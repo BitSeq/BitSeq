@@ -1,0 +1,12 @@
+- drop parseAlignment.py
+
+0.4.3:
+- changed order in estimateDE output (logFC ConfidenceLow ConfidenceHigh)
+   -> rename to credible intervals ?
+- added normalization for getV. estimateDE estimateHP
+- estimateE
+   - new format in thetaMeans
+   - set seed
+   - doMax
+- drop example.html
+- bugfix for parseALignment

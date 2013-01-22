@@ -1,0 +1,32 @@
+# parameters:
+# if this parameters file is used ( -p parameters1.txt ) then these values override the command line arguments --MCMC_*
+
+# length of burnIn
+burnIn 1000
+
+# initial number of samples, doubles every time targetScaleReduction is not met, until it reaches sampleNmax
+samplesN 1000
+# max number of samples generated in one iteration
+# after generating samplesNmax sampels, the program finishes even if some transcripts have not met the targetScaleReduction criteria
+samplesNmax 30000
+
+# number of samples actually recorded
+samplesSave 500
+
+# number of parallel chains
+chainsN 4
+
+# target scale reduction for the parameters
+# this applies only when option --scaleReduction is used
+# this parameter decides end of sampling
+# if you want to end simulation increase it, this file is read every time sampling finnishes k-th iteration of (2^(k-1))*samplesN samples
+#targetScaleReduction 1.2
+
+
+# parameters for the prior distributions
+#dirAlpha 1
+#dirBeta 1
+#betaAlpha 10
+#betaBeta 2
+
+

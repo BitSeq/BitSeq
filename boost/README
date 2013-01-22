@@ -1,0 +1,6 @@
+- subset of boost-1.47.0
+
+CHANGES:
+random/uniform_01.hpp
+ -> commented out line 19:
+   #include<iostream>

@@ -1,0 +1,29 @@
+Dependencies:
+---------------------------------------
+GNU make, g++ , zlib (for samtools API used in parseAlignment program)
+
+
+Compilation:
+--------------------------------------
+Enter BitSeq directory and run:
+make
+
+
+Help & Usage:
+--------------------------------
+See wiki for more information:
+http://code.google.com/p/bitseq/wiki/BitSeq
+
+
+Contact:
+----------------------------------
+Please contact Peter Glaus (glaus [at] cs.man.ac.uk)  for help, issue resolution and comments.
+
+
+License:
+----------------------------------
+Artistic-2.0 
+ + Boost_1_0 for directory boost 
+ + MIT for directory samtools
+ + LGPL for directory asa103
+
