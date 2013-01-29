@@ -251,7 +251,7 @@ string programDescription =
       pplr = 0;
       logFC = 0;
       for(n=0;n<N;n++){
-         if(samples[0][n] < samples[1][n])pplr+=1;
+         if(samples[1][n] > samples[0][n])pplr+=1;
          logFC += samples[1][n]-samples[0][n];
          difs[n] = samples[1][n]-samples[0][n];
       }

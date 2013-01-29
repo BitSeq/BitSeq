@@ -22,7 +22,7 @@ int main(int argc,char* argv[]){
    buildTime(argv[0],__DATE__,__TIME__);
    string programDescription=
 "Computes PPLR from MCMC expression samples.\n\
-   (the probability of first condition being up-regulated)\n\
+   (the probability of second condition being up-regulated)\n\
    [sampleFiles] should contain transposed MCMC samples from replicates.\n\
                   (use --log option if they are not logged)";   
    // Set options {{{
@@ -92,10 +92,10 @@ int main(int argc,char* argv[]){
          avfc=0;
          for(i=0;i<subN;i++){
             if(logged){ 
-               difs[i]=log(tr[0][i])-log(tr[1][i]);
+               difs[i]=log(tr[1][i])-log(tr[0][i]);
                avfc+=tr[1][i]/tr[0][i];
             }else{
-               difs[i]=tr[0][i]-tr[1][i];
+               difs[i]=tr[1][i]-tr[0][i];
                avfc+=exp(tr[1][i])/exp(tr[0][i]);
             }
             if(difs[i]>0)pplr+=1;
@@ -125,9 +125,9 @@ int main(int argc,char* argv[]){
          outFile<<trSelect[m]<<" ";
          for(i=0;i<N;i++){
             if(logged)
-               outFile<<log(tr[0][i])-log(tr[1][i])<<" ";
+               outFile<<log(tr[1][i])-log(tr[0][i])<<" ";
             else
-               outFile<<tr[0][i]-tr[1][i]<<" ";
+               outFile<<tr[1][i]-tr[0][i]<<" ";
          }
          outFile<<endl;
       }
