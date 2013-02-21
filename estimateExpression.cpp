@@ -102,7 +102,19 @@ TagAlignments* readData(ArgumentParser &args) {//{{{
    //message("Bad: %ld\n",bad);
    inFile.close();
    long Nhits,NreadsReal;
-   alignments->finalizeRead(M, NreadsReal, Nhits);
+   alignments->finalizeRead(&M, &NreadsReal, &Nhits);
+   // If the transcript info is initialized, check that the number of transcripts has not changed.
+   // The number can't be smaller as it starts off with trInfo->M
+   if((trInfo.isOK())&&(M > trInfo.getM() + 1)){
+      if(outTypeI == RPKM){
+         error("Main: Number of transcripts in .prob file is higher than in the .tr file (%ld %ld)!\n",M,trInfo.getM() + 1);
+         delete alignments;
+         return NULL;
+      }else{
+         warning("Main: Number of transcripts in .prob file is higher than in the .tr file (%ld %ld)!\n",M,trInfo.getM() + 1);
+         warning("Main: This can cause problems later on!\n");
+      }
+   }
    //}}}
    if(i<Nmap)message("Read only %ld reads.\n",NreadsReal);
    message("Finished Reading!\nTotal hits = %ld\n",Nhits);

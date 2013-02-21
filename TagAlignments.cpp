@@ -92,10 +92,10 @@ void TagAlignments::pushRead(){//{{{
    currentRead++;
    readIndex.push_back(probs.size());
 }//}}}
-void TagAlignments::finalizeRead(long &M, long &Nreads, long &Ntotal){//{{{
-   M = this->M = readsInIsoform.size();
-   Nreads = this->Nreads = readIndex.size() - 1;
-   Ntotal = this->Ntotal = probs.size();
+void TagAlignments::finalizeRead(long *M, long *Nreads, long *Ntotal){//{{{
+   *M = this->M = readsInIsoform.size();
+   *Nreads = this->Nreads = readIndex.size() - 1;
+   *Ntotal = this->Ntotal = probs.size();
 #ifdef MEM_USAGE
    message("TagAlignments: readIndex size: %ld  capacity %ld\n",readIndex.size(),readIndex.capacity());
    message("TagAlignments: probs size: %ld  capacity %ld\n",probs.size(),probs.capacity());

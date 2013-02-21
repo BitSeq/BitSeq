@@ -3,9 +3,6 @@
 #include "common.h"
 #include"TranscriptInfo.h"
 
-bool TranscriptInfo::genesOrdered(){//{{{
-   return ordered;
-}//}}}
 bool TranscriptInfo::writeInfo(string fileName, bool force){//{{{
    ofstream trF;
    if(! force){
@@ -25,9 +22,11 @@ bool TranscriptInfo::writeInfo(string fileName, bool force){//{{{
    return true;
 }//}}}
 bool TranscriptInfo::setInfo(vector<string> gNames,vector<string> tNames, vector<long> lengths){//{{{
+   // The sizes have to be equal.
    if((gNames.size()!=tNames.size())||(tNames.size()!=lengths.size())) return false;
    transcriptT newT;
    M = (long) gNames.size();
+   // Create new entry for each transcript.
    for(long i=0;i<M;i++){
       newT.g=gNames[i];
       newT.t=tNames[i];
@@ -35,31 +34,40 @@ bool TranscriptInfo::setInfo(vector<string> gNames,vector<string> tNames, vector
       newT.effL = lengths[i];
       transcripts.push_back(newT);
    }
+   // Initialize gene info based on gene names.
    setGeneInfo();
-   ok = true;
-   return ok;
+   isInitialized = true;
+   return isInitialized;
 }//}}}
 void TranscriptInfo::setGeneInfo(){//{{{
+   // Map of genes: name -> position within gene vector.
    map<string,long> names;
    geneT tmpG;
    long gi=0,i;
-   ordered = true;
-   string lastName = "-noname-";
+   groupedByGenes = true;
+   string previousName = "-noname-";
    for(i=0;i<M;i++){
-      if(transcripts[i].g == lastName){
+      // If gene name same as previous, then just add new transcript.
+      if(transcripts[i].g == previousName){
          genes[gi].m++;
          genes[gi].trs.push_back(i);
       }else{
+         // Check whether the gene name is new or was seen before.
          if(names.count(transcripts[i].g) == 0){
+            // Prepare entry for new gene, starting with one (current) transcript.
             tmpG.name = transcripts[i].g;
             tmpG.m = 1;
             tmpG.trs = vector<long>(1,i);
+            // Add entry to the gene list.
             genes.push_back(tmpG);
+            // Set current gene index.
             gi=genes.size()-1;
+            // Map gene name to it's index and update previousName.
             names[transcripts[i].g] = gi;
-            lastName=transcripts[i].g;
+            previousName=transcripts[i].g;
          }else{
-            ordered=false;
+            // If gene name was seen before then transcripts are not grouped by genes.
+            groupedByGenes=false;
             //warning("TranscriptInfo: Transcripts of gene %ld are not grouped.\n",transcripts[i].g);
             gi = names[transcripts[i].g];
             genes[gi].m++;
@@ -68,13 +76,12 @@ void TranscriptInfo::setGeneInfo(){//{{{
       }
    }
    G = genes.size();
-   //for(i=0;i<G;i++)message("%s %ld %ld\n",(genes[i].name).c_str(),genes[i].m,genes[i].trs.size());
 }//}}}
 TranscriptInfo::TranscriptInfo(){ clearTranscriptInfo(); }
 void TranscriptInfo::clearTranscriptInfo(){//{{{
    M=G=0;
-   ok=false;
-   ordered=true;
+   isInitialized=false;
+   groupedByGenes=true;
    transcripts.clear();
    genes.clear();
 }//}}}
@@ -90,26 +97,31 @@ bool TranscriptInfo::readInfo(string fileName){//{{{
       return false;
    }
    transcriptT newT;
+   // Read all lines of file ignoring lines starting with #.
    while(trFile.good()){
       while(trFile.good() && (trFile.peek()=='#'))
          trFile.ignore(100000000,'\n');
+      if(!trFile.good()) break;
+      // Read gene name, tr name and length.
       trFile>>newT.g>>newT.t>>newT.l;
-      // read effective length if present
+      // Should not hit EOF or any other error yet.
+      if(!trFile.good()) break;
+      // Read effective length if present:
       while((trFile.peek() == '\t')||(trFile.peek() == ' ')) trFile.get();
-      if(trFile.peek() == '\n') newT.effL = newT.l;
+      // If end of line is reached then use length as effective length.
+      if((trFile.good()) && (trFile.peek() == '\n')) newT.effL = newT.l;
       else trFile>>newT.effL;
-      if(trFile.good())
+      // If the line was OK, then push new entry (EOF when looking for effective length is allowed).
+      if(!trFile.fail())
          transcripts.push_back(newT);
+      // Ignore rest of the line.
       trFile.ignore(100000000,'\n');
    }
    trFile.close();
-   ok = true;
+   isInitialized = true;
    M = (long)transcripts.size();
    setGeneInfo();
-   return ok;
-}//}}}
-bool TranscriptInfo::isOK(){//{{{
-   return ok;
+   return isInitialized;
 }//}}}
 long TranscriptInfo::getM(){//{{{
    return M;
@@ -122,19 +134,19 @@ const vector<long>* TranscriptInfo::getGtrs(long i){//{{{
    return &genes[i].trs;
 }//}}}
 double TranscriptInfo::effL(long i){//{{{
-   if(ok && (i<M))return transcripts[i].effL;
+   if(isInitialized && (i<M))return transcripts[i].effL;
    return 0;
 }//}}}
 long TranscriptInfo::L(long i){//{{{
-   if(ok && (i<M))return transcripts[i].l;
+   if(isInitialized && (i<M))return transcripts[i].l;
    return 0;
 }//}}}
 string TranscriptInfo::trName(long i){//{{{
-   if(ok && (i<M))return transcripts[i].t;
+   if(isInitialized && (i<M))return transcripts[i].t;
    return "";
 }//}}}
 string TranscriptInfo::geName(long i){//{{{
-   if(ok && (i<M))return transcripts[i].g;
+   if(isInitialized && (i<M))return transcripts[i].g;
    return "";
 }//}}}
 void TranscriptInfo::setEffectiveLength(vector<double> effL){//{{{
@@ -163,33 +175,36 @@ vector<double> *TranscriptInfo::getShiftedLengths(bool effective){//{{{
    }
    return Ls;
 }//}}}
-bool TranscriptInfo::updateGeneNames(vector<string> geneList){
+bool TranscriptInfo::updateGeneNames(const vector<string> &geneList){//{{{
    if((long)geneList.size() != M){
       warning("TranscriptInfo: Number of items in gene list (%ld) does not match number of transcripts (%ld).",geneList.size(),M);
       return false;
-   }   
+   }
+   // Copy gene names in the order they are.
    for(long i=0;i<M;i++){
       transcripts[i].g = geneList[i];
    }
+   // Initialize gene info.
    setGeneInfo();
    return true;
-}
-bool TranscriptInfo::updateGeneNames(map<string,string> trGeneList){
+}//}}}
+bool TranscriptInfo::updateGeneNames(const map<string,string> &trGeneList){//{{{
    if((long)trGeneList.size() != M){
       warning("TranscriptInfo: Number of items in gene list (%ld) does not match number of transcripts (%ld).",trGeneList.size(),M);
       return false;
    }
-   // check all transcripts are in
-   long i;
-   for(i=0;i<M;i++){
+   // Check all transcripts have associated gene name.
+   for(long i=0;i<M;i++){
       if(!trGeneList.count(transcripts[i].t)){
-         warning("TranscriptInfo: No gene name for transcript [%s].",transcripts[i].t.c_str()); 
+         warning("TranscriptInfo: No gene name for transcript [%s].",transcripts[i].t.c_str());
          return false;
       }
    }
-   for(i=0;i<M;i++){
-      transcripts[i].g = trGeneList[transcripts[i].t];
+   // Set gene names.
+   for(long i=0;i<M;i++){
+      transcripts[i].g = trGeneList.find(transcripts[i].t)->second;
    }
+   // Initialize gene info.
    setGeneInfo();
    return true;
-}
+}//}}}
