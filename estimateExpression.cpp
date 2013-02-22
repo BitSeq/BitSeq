@@ -111,8 +111,7 @@ TagAlignments* readData(ArgumentParser &args) {//{{{
          delete alignments;
          return NULL;
       }else{
-         warning("Main: Number of transcripts in .prob file is higher than in the .tr file (%ld %ld)!\n",M,trInfo.getM() + 1);
-         warning("Main: This can cause problems later on!\n");
+         warning("Main: Number of transcripts in .prob file is higher than in the .tr file (%ld %ld)!\n   This can cause problems later on!\n",M,trInfo.getM() + 1);
       }
    }
    //}}}

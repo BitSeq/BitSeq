@@ -22,7 +22,7 @@ Only up to TRS_CACHE_MAX transcripts are "cached" at a time.
 */
 class TranscriptSequence{
    private:
-      // Total number of transcripts and number of chached transcripts.
+      // Total number of transcripts and number of cached transcripts.
       long M,cM;
       // Counter for the least recently used entry.
       uint_least64_t useCounter;
@@ -46,11 +46,13 @@ class TranscriptSequence{
       TranscriptSequence();
       // Initialize class and cass readSequence(fileName).
       TranscriptSequence(string fileName);
-      // Process input file fileName and record begining of each transcript.
+      // Process input file fileName and record beginning of each transcript.
       // The transcript sequence is not read and cached until it is actually requested.
       bool readSequence(string fileName);
       // Return number of transcripts.
       long getM(){ return M; }
+      // Return number of gene names.
+      long getG(){ return geneNames.size(); }
       // Return pointer to the transcript sequence. The reference is not persistent.
       // NULL for unknown transcript.
       const string* getTr(long tr);
