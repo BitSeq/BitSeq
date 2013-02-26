@@ -145,7 +145,7 @@ Conditions::Conditions(){//{{{
 long Conditions::getIndex(long max){ // {{{returns index, without checking for duplicates
    return rand() % max;
 }//}}}
-long Conditions::getRC(long c){ //{{{
+long Conditions::getRC(long c) const { //{{{
    if(c>C)return -1;
    return cIndex[c].SS;
 }//}}}
