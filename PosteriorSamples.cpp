@@ -149,11 +149,11 @@ long Conditions::getRC(long c){ //{{{
    if(c>C)return -1;
    return cIndex[c].SS;
 }//}}}
-bool Conditions::init(long &m,long &n,string trFileName, vector<string> filesGot){//{{{
+bool Conditions::init(string trFileName, vector<string> filesGot, long *m, long *n){//{{{
    long c;
-   return init(c,m,n,trFileName,filesGot);
+   return init(trFileName,filesGot,&c,m,n);
 }//}}}
-bool Conditions::init(long &c,long &m,long &n,string trFileName, vector<string> filesGot){//{{{
+bool Conditions::init(string trFileName, vector<string> filesGot, long *c, long *m, long *n){//{{{
    long i,j,x,colN;
    bool sameMs=true;
    vector<string> files;
@@ -172,7 +172,7 @@ bool Conditions::init(long &c,long &m,long &n,string trFileName, vector<string> 
       cIndex.pop_back();
    }
    C = Sof(cIndex);
-   c = C;
+   *c = C;
    //message("File names processed.\n");
 
    CN = Sof(files);
@@ -200,14 +200,14 @@ bool Conditions::init(long &c,long &m,long &n,string trFileName, vector<string> 
       }
       if(N>Ns[i])N=Ns[i];
    }
-   n=N;
+   *n=N;
 
    ifstream trFile(trFileName.c_str());
    if(! trFile.is_open()){
    // if there is no transcript join file, the we have to make sure that Ms are the same
       if(sameMs){
          M=Ms[0];
-         m=M;
+         *m=M;
          mapping = false;
          return true;
       }else{
@@ -220,7 +220,7 @@ bool Conditions::init(long &c,long &m,long &n,string trFileName, vector<string> 
          error("Conditions: Wrong transcript join descriptor file - m: %ld colN: %ld\n",M,colN);
          return false;
       }
-      m=M;
+      *m=M;
       trMap.resize(M,vector<long>(CN));
       for(i=0;i<M;i++){
          trFile>>x;

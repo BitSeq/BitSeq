@@ -43,8 +43,8 @@ class Conditions{//{{{
       long getRC(long c);
       long getRN(){ return CN;}
       long getC(){ return C;}
-      bool init(long &c,long &m,long &n,string trFileName, vector<string> filesGot);
-      bool init(long &m,long &n,string trFileName, vector<string> filesGot);
+      bool init(string trFileName, vector<string> filesGot, long *c, long *m, long *n);
+      bool init(string trFileName, vector<string> filesGot, long *m, long *n);
       bool setNorm(vector<double> norms);
       bool getTranscript(long cond, long rep, long tr, vector<double> &trSamples);
       bool getTranscript(long cond, long tr, vector<double> &trSamples);

@@ -37,7 +37,7 @@ int main(int argc,char* argv[]){
    long i,j,r,N,RN,M=0,C;
 
    Conditions cond;
-   if(! (cond.init(C,M,N,"NONE", args.args() ))){
+   if(! (cond.init("NONE", args.args(), &C, &M, &N))){
       cerr<<"ERROR: Main: Failed loading MCMC samples."<<endl;
       return 0;
    }

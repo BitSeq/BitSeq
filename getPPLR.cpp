@@ -55,7 +55,7 @@ int main(int argc,char* argv[]){
    }
 
    Conditions cond;
-   if(! cond.init(M,N,"NONE",args.args())){
+   if(! cond.init("NONE", args.args(), &M, &N)){
       cerr<<"ERROR: Main: Failed loading conditions."<<endl;
       return 1;
    }
