@@ -46,8 +46,8 @@ class ArgumentParser{
       vector<string> compulsory;
       long minimumArguments;
 
-      bool existsOption(string name);
-      bool existsName(string name);
+      bool existsOption(string name) const;
+      bool existsName(string name) const;
       template <typename valueType>
       void appendDescription(string &desc,valueType defValue);
    public:
@@ -69,13 +69,14 @@ class ArgumentParser{
       void addOptionL(string shortName, string longName, string name, bool comp, string description="", long defValue=-47);
       void addOptionD(string shortName, string longName, string name, bool comp, string description="", double defValue=-47.47);
       void addOptionB(string shortName, string longName, string name, bool comp, string description="", bool defValue=false);
-      string getS(string name);
-      long getL(string name);
-      double getD(string name);
-      vector<string>& args();
+      inline bool verb() const { return verbose; }
+      string getS(string name) const;
+      long getL(string name) const;
+      double getD(string name) const;
+      const vector<string>& args() const;
       vector<double> getTokenizedS2D(string name);
-      bool flag(string name);
-      bool isSet(string name);
+      bool flag(string name) const;
+      bool isSet(string name) const;
       void usage();
       void writeAll();
       /*

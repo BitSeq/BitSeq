@@ -1,20 +1,21 @@
 /*
- * Original model applying the DE model to individual sets (from all replicates) of samples independently  
- *
+ * Original model applying the DE model to individual sets of samples independently.
+ * One set of samples == 1 sample from each replicate of each condition.
  */
-#include<cmath>
 #include<algorithm>
-#include "boost/random/mersenne_twister.hpp"
+#include<cmath>
+#include<fstream>
 #include "boost/random/gamma_distribution.hpp"
+#include "boost/random/mersenne_twister.hpp"
 #include "boost/random/normal_distribution.hpp"
 
 using namespace std;
 
-#include "PosteriorSamples.h"
-#include "FileHeader.h"
-#include "MyTimer.h"
 #include "ArgumentParser.h"
 #include "common.h"
+#include "FileHeader.h"
+#include "MyTimer.h"
+#include "PosteriorSamples.h"
 
 #define FF first
 #define SS second
@@ -22,36 +23,26 @@ using namespace std;
 //#define PERCENT 0.9
 
 #define LAMBDA_0 2.0
-//#define MU_0 (10/M)
-// CHECK: ------------------------------
-//#define ALPHA 1.2
-//#define BETA 3.2
-// CHECK: ------------------------------
 const double LOG_ZERO=-1000;
 
-void getParams(double &alpha, double &beta, double expr, vector<pair<double,pair<double,double> > > &params){//{{{
-   long i=0,j=params.size()-1,k;
-   if(expr<=params[0].FF){
-      alpha=params[0].SS.FF;
-      beta=params[0].SS.SS;
-      return;
+namespace ns_estimateDE {
+
+struct paramT {//{{{
+   double expr, alpha, beta;
+   bool operator< (const paramT &p2) const{
+      return expr<p2.expr;
    }
-   if(expr>=params[j].FF){
-      alpha=params[j].SS.FF;
-      beta=params[j].SS.SS;
-      return;
-   }
-   while(j-i>1){
-      k=(i+j)/2;
-      if(params[k].FF<=expr)i=k;
-      else j=k;
-   }
-   if(expr-params[i].FF<params[j].FF-expr)k=i;
-   else k=j;
-   
-   alpha=params[k].SS.FF;
-   beta=params[k].SS.SS;
-}//}}}
+};//}}}
+
+// Open and write headers into appropriate output files.
+// The size of outFiles[] should be C+1.
+// Retruns true if everything went OK.
+bool initializeOutputFile(long M, long N, long C, const ArgumentParser &args, ofstream *outF, ofstream outFiles[]);
+// For a given mean expression expr finds alpha and beta for which were estimated for a closes expression.
+void getParams(double expr,const vector<paramT> &params, double *alpha, double *beta);
+bool readParams(const ArgumentParser &args, long *parN, vector<paramT> *params);
+
+}
 
 extern "C" int estimateDE(int *argc,char* argv[]){
 string programDescription =
@@ -70,23 +61,12 @@ string programDescription =
    args.addOptionS("","norm","normalization",0,"Normalization constants for each input file provided as comma separated list of doubles (e.g. 1.0017,1.0,0.9999 ).");
    if(!args.parse(*argc,argv))return 0;
    //}}}
-   long i,C,M,N,m,n,c,r,parN;
-   // param file:{{{
-   ifstream paramF(args.getS("parFileName").c_str());
-   FileHeader fh(&paramF);
-   if((!fh.paramsHeader(parN))||(parN==0)){
-      error("Main: Problem loading parameters file %s\n",args.getS("parFileName").c_str());
-      return 1;
-   }
-   vector<pair<double, pair<double,double> > > params(parN);
-   for(i=0;i<parN;i++){
-      paramF>>params[i].SS.FF>>params[i].SS.SS>>params[i].FF;
-   }
-   fh.close();
-   sort(params.begin(),params.end());
-   if(args.verbose)message("Parameters loaded.\n");
-   //}}}
+   long C,M,N,m,n,c,r,parN;
+   // Open file with hyper parameters and read those in.
+   vector<ns_estimateDE::paramT> params(parN);
+   if(!readParams(args, &parN, &params)) return 1;
    // samples files: {{{
+   // Initialize sample files handled by object cond.
    Conditions cond;
    if(! cond.init(C,M,N,"NONE",args.args())){
       error("Main: Failed loading conditions.\n");
@@ -106,47 +86,11 @@ string programDescription =
    // CR = cond.getRN();
    if(args.verbose)message("Sample files loaded.\n");
    // }}}
-   // output files:{{{
+   // Initialize output files.
    ofstream outF;
+   // Use standard array as we don't want to bother with vector of pointers.
    ofstream outFiles[C+1];
-   if(args.flag("samples")){
-      stringstream fName;
-      for(c=0;c<C;c++){
-         fName.str("");
-         fName<<args.getS("outFilePrefix")<<"-C"<<c<<".est";
-         outFiles[c].open(fName.str().c_str());
-         if(! outFiles[c].is_open()){
-            error("Unable to open output file %s\n",(fName.str()).c_str());
-            return 1;
-         }
-         outFiles[c]<<"# Inferred means\n";
-         outFiles[c]<<"# condition "<<c<<endl;
-         outFiles[c]<<"# ";
-         for(i=0;i<(long)args.args().size();i++){
-            outFiles[c]<<args.args()[i]<<" ";
-         }
-         outFiles[c]<<"\n# lambda_0 "<<args.getD("lambda0")<<"\n# T \n# M "<<M<<"\n# N "<<N<<endl;
-      }
-      outFiles[C].open((args.getS("outFilePrefix")+".estVar").c_str());
-      if(! outFiles[C].is_open()){
-         error("Unable to open output file %s\n",((args.getS("outFilePrefix")+".estVar")).c_str());
-         return 1;
-      }
-      outFiles[C]<<"# infered variances\n";
-      outFiles[C]<<"\n# lambda_0 "<<args.getD("lambda0")<<"\n# T \n# M "<<M<<"\n# N "<<N<<endl;
-   }
-   outF.open((args.getS("outFilePrefix")+".pplr").c_str());
-   if(! outF.is_open()){
-      error("Unable to open output file %s\n",((args.getS("outFilePrefix")+".pplr")).c_str());
-      return 1;
-   }
-   outF<<"# ";
-   for(i=0;i<(long)args.args().size();i++){
-      outF<<args.args()[i]<<" ";
-   }
-   outF<<"\n# lambda_0 "<<args.getD("lambda0")<<"\n# T \n# M "<<M<<"\n# N "<<N<<"\n# Columns:\n";
-   outF<<"# PPLR log2FC ConfidenceLow ConfidenceHigh [mean condition mean expressions]"<<endl;
-   // }}}
+   if(!ns_estimateDE::initializeOutputFile(M, N, C, args, &outF, outFiles)) return 1;
 
    // variables {{{
    vector<vector<vector<double> > > tr(C);
@@ -215,7 +159,7 @@ string programDescription =
       for(n=0;n<N;n++){
          for(c=0;c<C;c++){
             RC = cond.getRC(c);
-            getParams(al0,be0,mu_0[c],params);
+            ns_estimateDE::getParams(mu_0[c],params,&al0,&be0);
             alpha = al0 + RC / 2.0;
             betaPar = lambda0*mu_00*mu_00;
 
@@ -291,3 +235,101 @@ int main(int argc,char* argv[]){
    return estimateDE(&argc,argv);
 }
 #endif
+
+namespace ns_estimateDE {
+
+bool initializeOutputFile(long M, long N, long C, const ArgumentParser &args, ofstream *outF, ofstream outFiles[]){//{{{
+   if(args.flag("samples")){
+      // If samples flag is set, then write condition mean expression samples into -C?.est files.
+      // Also write variance samples into samples file.
+      stringstream fnStream;
+      string fileName;
+      // Initialize samples files.
+      for(long c=0;c<C;c++){
+         fnStream.str("");
+         fnStream<<args.getS("outFilePrefix")<<"-C"<<c<<".est";
+         fileName = fnStream.str();
+         outFiles[c].open(fileName.c_str());
+         if(! outFiles[c].is_open()){
+            error("Unable to open output file %s\n",fileName.c_str());
+            return false;
+         }
+         // Write header for samples file.
+         outFiles[c]<<"# Inferred means\n";
+         outFiles[c]<<"# condition "<<c<<endl;
+         outFiles[c]<<"# ";
+         for(long i=0;i<(long)args.args().size();i++){
+            outFiles[c]<<args.args()[i]<<" ";
+         }
+         outFiles[c]<<"\n# lambda_0 "<<args.getD("lambda0")<<"\n# T \n# M "<<M<<"\n# N "<<N<<endl;
+      }
+      // Initialize file for variances.
+      string varFileName = args.getS("outFilePrefix")+".estVar";
+      outFiles[C].open(varFileName.c_str());
+      if(! outFiles[C].is_open()){
+         error("Unable to open output file %s\n",varFileName.c_str());
+         return false;
+      }
+      // Write header for variance file.
+      outFiles[C]<<"# infered variances\n";
+      outFiles[C]<<"\n# lambda_0 "<<args.getD("lambda0")<<"\n# T \n# M "<<M<<"\n# N "<<N<<endl;
+   }
+   // Initialize PPLR file.
+   string outFileName = args.getS("outFilePrefix")+".pplr";
+   outF->open(outFileName.c_str());
+   if(! outF->is_open()){
+      error("Unable to open output file %s\n",outFileName.c_str());
+      return false;
+   }
+   // Write header for PPLR file.
+   *outF<<"# ";
+   for(long i=0;i<(long)args.args().size();i++){
+      *outF<<args.args()[i]<<" ";
+   }
+   *outF<<"\n# lambda_0 "<<args.getD("lambda0")<<"\n# T \n# M "<<M<<"\n# N "<<N<<"\n# Columns:\n";
+   *outF<<"# PPLR log2FC ConfidenceLow ConfidenceHigh [mean condition mean expressions]"<<endl;
+   return true;
+}//}}}
+
+void getParams(double expr,const vector<paramT> &params, double *alpha, double *beta){//{{{
+   long i=0,j=params.size()-1,k;
+   if(expr<=params[0].expr){
+      *alpha=params[0].alpha;
+      *beta=params[0].beta;
+      return;
+   }
+   if(expr>=params[j].expr){
+      *alpha=params[j].alpha;
+      *beta=params[j].beta;
+      return;
+   }
+   while(j-i>1){
+      k=(i+j)/2;
+      if(params[k].expr<=expr)i=k;
+      else j=k;
+   }
+   if(expr-params[i].expr<params[j].expr-expr)k=i;
+   else k=j;
+   
+   *alpha=params[k].alpha;
+   *beta=params[k].beta;
+}//}}}
+
+bool readParams(const ArgumentParser &args, long *parN, vector<paramT> *params){//{{{
+   ifstream paramF(args.getS("parFileName").c_str());
+   FileHeader fh(&paramF);
+   if((!fh.paramsHeader(parN))||(*parN==0)){
+      error("Main: Problem loading parameters file %s\n",args.getS("parFileName").c_str());
+      return false;
+   }
+   // Vector of parameters: (mean expression, (alpha, beta) )
+   params->resize(*parN);
+   for(long i=0;i<*parN;i++){
+      paramF>>(*params)[i].alpha>>(*params)[i].beta>>(*params)[i].expr;
+   }
+   fh.close();
+   sort(params->begin(),params->end());
+   if(args.verb())message("Parameters loaded.\n");
+   return true;
+}//}}}
+}
