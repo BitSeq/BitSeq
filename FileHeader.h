@@ -203,7 +203,8 @@ class FileHeader{
          }
          return true;
       }//}}}
-      bool paramsHeader(long *parN){//{{{
+      bool paramsHeader(long *parN, ofstream *outF){//{{{
+      // copy header into outF if it's not NULL.
          if((file==NULL)||(!file->is_open())){
             error("FileHeader: No file for header read.\n");
             *parN=0;
@@ -214,6 +215,8 @@ class FileHeader{
          *parN = 0;
          while((!file->eof())&&(file->peek() == '#')){
             getline(*file, line);
+            // Copy header if got outF.
+            if(outF!=NULL)(*outF)<<line<<endl;
             while((!file->eof())&&((file->peek() == ' ')||(file->peek() == '\n')))file->get();
             lineS.clear();
             lineS.str(line);

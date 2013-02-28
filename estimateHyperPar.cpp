@@ -3,19 +3,23 @@
  *  relevant estimate[*]DE.cpp
  */
 // DECLARATIONS: {{{
-#include <cmath>
 #include <algorithm>
+#include <cmath>
+#include "boost/random/mersenne_twister.hpp"
 #include "boost/random/normal_distribution.hpp"
 #include "boost/random/uniform_01.hpp"
-#include "boost/random/mersenne_twister.hpp"
 using namespace std;
 
-#include "PosteriorSamples.h"
-#include "MyTimer.h"
 #include "ArgumentParser.h"
-#include "lowess.h"
-#include "TranscriptExpression.h"
 #include "common.h"
+#include "lowess.h"
+#include "MyTimer.h"
+#include "misc.h"
+#include "PosteriorSamples.h"
+#include "TranscriptExpression.h"
+
+using ns_params::paramT;
+
 //}}}
 // Defaults: {{{
 #define ALPHA_PROP 0.1
@@ -26,16 +30,7 @@ using namespace std;
 #define MAX_ITER 1000
 #define MAX_RETRIES 10
 #define MAX_PARAM 5000
-#define LOG_ZERO -1000
 //}}}
-
-struct paramT {//{{{
-   double e,a,b;
-   bool operator< (const paramT& d2) const{
-      return e<d2.e;
-   }
-};//}}}
-
 
 extern "C" int estimateHyperPar(int *argc,char* argv[]){
 string programDescription =
@@ -60,89 +55,53 @@ string programDescription =
    args.addOptionL("","lowess-steps","lowess-steps",0,"Parameter Nsteps for lowess smoothing specifying number of iterations.",5);
    args.addOptionB("","noforce","noforce",0,"Do not force smoothing of the parameters.",true);
    args.addOptionS("","norm","normalization",0,"Normalization constants for each input file provided as comma separated list of doubles (e.g. 1.0017,1.0,0.9999 ).");
+   args.addOptionL("","seed","seed",0,"Random initialization seed.");
    if(!args.parse(*argc,argv))return 0;
    // }}}
 
    MyTimer timer;
    timer.start(1);
    long i,M=0,N,RTN,C;
-   bool logged=false,storeAll=args.isSet("paramsAllFileName");
+   bool storeAll=args.isSet("paramsAllFileName");
    vector<paramT> params;
    paramT param;
    TranscriptExpression trExp;
+   ofstream outF;
 
    if(! args.flag("smoothOnly")){
       if(! args.isSet("meanFileName")){
-         error("Main: Please provide mean file name.\n");
+         error("Main: Please provide mean file name (--meanFile).\n");
          return 1;
       }
       trExp.readExpression(args.getS("meanFileName"), MEAN_VARIANCE);
-      M = trExp.getM();
-      if(args.verbose)message("M: %ld\n",M);
-      logged = trExp.isLogged();
-      if(args.verbose){
-         if(logged)message("Using logged values.\n");
-         else message("NOT using logged values.\n");
+      // Force user to use logged mean and samples.
+      if(!trExp.isLogged()){
+         error("Main: Please compute the expression mean from logged samples (getVariance --log ...).");
+         return 1;
       }
+      M = trExp.getM();
+      if(args.verbose)message("Transcripts in expression file: %ld\n",M);
       trExp.doSort(true);
    } 
    
-   ofstream outF(args.getS("outFileName").c_str());
-   if(!outF.is_open()){
-      error("Main: Out file open failed.\n");
-      return 1;
-   }
+   if(!ns_misc::openOutput(args, &outF)) return 1;
    ///}}}
 
    if(args.flag("smoothOnly")){ 
-      // Reading previously sampled parameters. {{{
-      ifstream paramsF(args.args()[0].c_str());
-      if(!paramsF.is_open()){
-         error("Main: Input file open failed.\n");
-         return 1;
-      }
-      // Copy header lines.
-      string strBuffer;
-      while((paramsF.good())&&(paramsF.peek()=='#')){
-         getline(paramsF,strBuffer,'\n');
-         outF<<strBuffer<<endl;
-      }
-      // Read parameters.
-      while(paramsF.good()){
-         while((paramsF.good())&&(paramsF.peek()=='#')){
-            paramsF.ignore(10000000,'\n');
-         }
-         paramsF>>param.a>>param.b>>param.e;
-         if(paramsF.good())
-            params.push_back(param);
-         paramsF.ignore(10000000,'\n');
-      }
-      paramsF.close();
-      // }}}
+      // Reading previously sampled parameters. (header is copie into outF)
+      readParams(args.args()[0], &params, &outF);
    }else{ 
       // Sampling parameters based on data
       // Read conditions {{{   
       Conditions cond;
-      if(! cond.init("NONE", args.args(), &C, &M, &N)){
-         error("Main: Failed loading MCMC samples.\n");
-         return 0;
-      }
-      if(args.isSet("normalization")){
-         if(! cond.setNorm(args.getTokenizedS2D("normalization"))){
-            error("Main: Appying normalization constants failed.\n");
-            return 1;
-         }
-      }
+      if(!ns_misc::readConditions(args, &C, &M, &N, &cond)) return 1;
       RTN = cond.getRN();
-      if(args.verbose)message("Total replicates: %ld\n",RTN);
+      if(args.verbose)message("Number of all replicates: %ld\n",RTN);
 
+      // Prepare file for storing all sampled parameters.
       ofstream paramsF;
       if(storeAll){
-         paramsF.open(args.getS("paramsAllFileName").c_str());
-         if(!paramsF.is_open()){
-            error("Main: Failed opening %s.\n",(args.getS("paramsAllFileName")).c_str());
-            return 0;
-         }
+         if(!ns_misc::openOutput(args.getS("paramsAllFileName"), &paramsF)) return 1;
          paramsF<<"# lambda0 "<<args.getD("lambda0")<<endl;
       }
       // }}}
@@ -150,7 +109,7 @@ string programDescription =
       vector<long double> mu0(subM_MAX,0);
       vector<vector<vector<double> > > tr(subM_MAX,vector<vector<double> >(RTN));
       vector<vector<long double> > bAdd(subM_MAX,vector<long double> (C,0));
-      boost::random::mt11213b rng_mt(time(NULL));
+      boost::random::mt11213b rng_mt(ns_misc::getSeed(args));
       boost::random::uniform_01<long double> uniformDistribution;
       boost::random::normal_distribution<long double> normalDistributionA,normalDistributionB;
       typedef boost::random::normal_distribution<long double>::param_type nDP;
@@ -186,9 +145,10 @@ string programDescription =
             for(r=0;r<RTN;r++){
                good = cond.getTranscript(r, trExp.id(curM), tr[m][r],samplesN+MAX_RETRIES);
                if(!good)break;
-               if(logged) // should check whether samples are logged as well
+               // If sampels were not logged, log them now.
+               if(!cond.logged())
                   for(samp=0;samp<samplesN+MAX_RETRIES;samp++){
-                     tr[m][r][samp] = (tr[m][r][samp] == 0)? LOG_ZERO:log(tr[m][r][samp]);
+                     tr[m][r][samp] = (tr[m][r][samp] == 0)? ns_misc::LOG_ZERO:log(tr[m][r][samp]);
                   }
             }
             if(good){
@@ -306,9 +266,9 @@ string programDescription =
             if(!breaked){
                if(args.flag("veryVerbose")) message("%Lg  %Lg\n",alpha,beta);
                if(storeAll) paramsF<<alpha<<" "<<beta<<" "<<mean<<endl;
-               param.e=mean;
-               param.a=alpha;
-               param.b=beta;
+               param.expr=mean;
+               param.alpha=alpha;
+               param.beta=beta;
                params.push_back(param);
             }else{
                if(args.flag("veryVerbose")) message("# %Lg %Lg %Lg\n",alpha,beta,mean);
@@ -341,9 +301,9 @@ string programDescription =
    if(args.verbose)message("Have %ld parameters to smooth.\n",pAll);
    vector<double> exp(pAll),alp(pAll),bet(pAll),alpS,betS;
    for(i=0;i<pAll;i++){
-      exp[i]=params[i].e;
-      alp[i]=params[i].a;
-      bet[i]=params[i].b;
+      exp[i]=params[i].expr;
+      alp[i]=params[i].alpha;
+      bet[i]=params[i].beta;
    }
    double f = args.getD("lowess-f");
    long iter = args.getL("lowess-steps"),iterAdd;
