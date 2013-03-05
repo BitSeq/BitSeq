@@ -30,7 +30,7 @@ bool transposeFiles(vector<string> inFileNames, string outFileName, bool verbose
    for(i=0;i<fileN;i++){
       inFile[i].open(inFileNames[i].c_str());
       fh.setFile(&inFile[i]);
-      if(!fh.samplesHeader(n,m,trans)){
+      if(!fh.samplesHeader(&n,&m,&trans)){
          error("TransposeFile: Unable to read header of file: %s\n",(inFileNames[i]).c_str());
          return 0;
       }

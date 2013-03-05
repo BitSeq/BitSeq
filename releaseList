@@ -9,6 +9,7 @@ estimateDE.cpp
 estimateExpression.cpp
 estimateHyperPar.cpp
 extractSamples.cpp
+FileHeader.cpp
 FileHeader.h
 getFoldChange.cpp
 getGeneExpression.cpp

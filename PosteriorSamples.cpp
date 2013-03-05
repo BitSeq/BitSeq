@@ -52,7 +52,7 @@ bool PosteriorSamples::initSet(long &m,long &n, string fileName){//{{{
    if(! open(fileName))return false;
     
    FileHeader fh(&samplesF);
-   if(!fh.samplesHeader(N,M,transposed,areLogged)){
+   if(!fh.samplesHeader(&N,&M,&transposed,&areLogged)){
       error("PosteriorSamples: File header reading failed.\n");
       failed=true;
       return false;
@@ -216,7 +216,7 @@ bool Conditions::init(string trFileName, vector<string> filesGot, long *c, long 
       }  
    }else{
       FileHeader fh(&trFile);
-      if((!fh.transcriptsHeader(M,colN))||(M==0)||(colN<CN+1)){
+      if((!fh.transcriptsHeader(&M,&colN))||(M==0)||(colN<CN+1)){
          error("Conditions: Wrong transcript join descriptor file - m: %ld colN: %ld\n",M,colN);
          return false;
       }

@@ -27,7 +27,7 @@ SimpleSparse* readData(ArgumentParser &args){//{{{
    inFile.open(args.args()[0].c_str());
    FileHeader fh(&inFile);
    bool newformat=true;
-   if((!fh.probHeader(Nmap,Ntotal,newformat)) || (Nmap ==0)){//{{{
+   if((!fh.probHeader(&Nmap,&Ntotal,&newformat)) || (Nmap ==0)){//{{{
       error("Prob file header read failed.\n");
       return NULL;
    }//}}}

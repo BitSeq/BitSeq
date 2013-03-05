@@ -55,7 +55,7 @@ int main(int argc,char* argv[]){
 
    inFile.open(args.args()[0].c_str());
    fh.setFile(&inFile);
-   if(!fh.samplesHeader(N,m,trans)){//{{{
+   if(!fh.samplesHeader(&N,&m,&trans)){//{{{
       error("ERROR: Main: Unable to open samples file");
       return 1;
 /*   }else if((trans)&&(! ((action=="--RPKMtoCOVERAGE")||(action=="-R2C")) )){
