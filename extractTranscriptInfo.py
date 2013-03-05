@@ -3,7 +3,9 @@
 import sys
 from optparse import OptionParser
 parser = OptionParser(usage="%prog [options] <inputFile> <outputFile>\n\n\
-      This program extracts information about transcripts from reference Fasta file. This is partially replaced by using SAM header, which however does not include information about transcript-gene grouping.\
+      This program extracts information about transcripts from reference Fasta file.
+      This is partially replaced by using SAM header, which however does not include information about transcript-gene grouping.\n\
+      Current version of parseAlignment extracts this information from a reference sequence file (making this script obsolete).\
 ")
 parser.add_option("-v", "--verbose", default=False, dest="verbose",  action="store_true", help="Verbose output")
 parser.add_option("-t","--type",dest="type", type="string",help="Type of file to parse: ensembl, other");

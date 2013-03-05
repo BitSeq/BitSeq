@@ -21,6 +21,8 @@ GibbsSampler.cpp
 GibbsSampler.h
 lowess.cpp
 lowess.h
+misc.cpp
+misc.h
 MyTimer.h
 parseAlignment.cpp
 PosteriorSamples.cpp

@@ -1,6 +1,8 @@
 Dependencies:
 ---------------------------------------
 GNU make, g++ , zlib (for samtools API used in parseAlignment program)
+Optional:
+python - for helper scripts getCount.py, extractTranscriptInfo.py
 
 
 Compilation:

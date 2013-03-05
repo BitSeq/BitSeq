@@ -1,4 +1,14 @@
-- drop parseAlignment.py
+0.5.0:
+Improvements:
+- parse alignment can extract and save gene names from Ensembl type reference
+- estimateDE now produces comparison for all condition pairs when used with more than 2 conditions
+- added --seed option to estimateHyperPar and estimateDE
+
+Bug fixes:
+- changed getPPLR so that it produces PPLR comparison in the same "direction" as estimateDE
+- fixed problem wih reference sequence in parseAlignment
+Deprecation:
+- drop obsolete parseAlignment.py
 
 0.4.3:
 - changed order in estimateDE output (logFC ConfidenceLow ConfidenceHigh)
@@ -9,4 +19,4 @@
    - set seed
    - doMax
 - drop example.html
-- bugfix for parseALignment
+- bugfix for parseAlignment
