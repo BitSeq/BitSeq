@@ -203,15 +203,15 @@ class FileHeader{
          }
          return true;
       }//}}}
-      bool paramsHeader(long &parN){//{{{
+      bool paramsHeader(long *parN){//{{{
          if((file==NULL)||(!file->is_open())){
             error("FileHeader: No file for header read.\n");
-            parN=0;
+            *parN=0;
             return false;
          }
          string line,str;
          istringstream lineS;
-         parN = 0;
+         *parN = 0;
          while((!file->eof())&&(file->peek() == '#')){
             getline(*file, line);
             while((!file->eof())&&((file->peek() == ' ')||(file->peek() == '\n')))file->get();
@@ -220,8 +220,8 @@ class FileHeader{
             while(lineS.good()){
                lineS>>str;
                if(str == "PN"){
-                  lineS>>parN;
-//                  message("header %ld\n",parN);
+                  lineS>>*parN;
+//                  message("header %ld\n",*parN);
                   continue;
                }
             }
