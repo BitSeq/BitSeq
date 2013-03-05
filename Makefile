@@ -17,6 +17,9 @@ endif
 ifeq ($(HOSTNAME), rpc465.cs.man.ac.uk)
 	ARCH = -march=native
 endif
+ifeq ($(HOSTNAME), chopok)
+	ARCH = -march=native
+endif
 
 COFLAGS = $(ARCH) -O3 -pipe
 # -ffast-math segfaults with old gcc
@@ -84,7 +87,7 @@ estimateDE:  estimateDE.cpp common.o PosteriorSamples.o ArgumentParser.o
 	$(CXX) $(CXXFLAGS) $(BOOSTFLAGS) estimateDE.cpp common.o PosteriorSamples.o ArgumentParser.o -o estimateDE
 
 estimateExpression:  estimateExpression.cpp common.o ArgumentParser.o Sampler.o GibbsSampler.o CollapsedSampler.o GibbsParameters.o TranscriptInfo.o transposeFiles.o TagAlignments.o
-	$(CXX) $(CXXFLAGS) $(BOOSTFLAGS) $(OPENMP) estimateExpression.cpp common.o ArgumentParser.o Sampler.o GibbsSampler.o CollapsedSampler.o GibbsParameters.o TranscriptInfo.o transposeFiles.o TagAlignments.o -o estimateExpression
+	$(CXX) $(CXXFLAGS) $(BOOSTFLAGS) $(OPENMP) estimateExpression.cpp common.o Sampler.o GibbsSampler.o CollapsedSampler.o GibbsParameters.o TranscriptInfo.o transposeFiles.o TagAlignments.o ArgumentParser.o -o estimateExpression
 
 getVariance:  getVariance.cpp common.o PosteriorSamples.o ArgumentParser.o
 	$(CXX) $(CXXFLAGS) getVariance.cpp common.o PosteriorSamples.o ArgumentParser.o -o getVariance
@@ -108,7 +111,7 @@ asa103/asa103.o:
 	make --directory asa103
 TagAlignments.o: TagAlignments.cpp TagAlignments.h
 transposeFiles.o: transposeFiles.cpp transposeFiles.h FileHeader.h
-GibbsParameters.o: GibbsParameters.cpp GibbsParameters.h
+GibbsParameters.o: ArgumentParser.o GibbsParameters.cpp GibbsParameters.h
 ArgumentParser.o: ArgumentParser.cpp ArgumentParser.h
 lowess.o: lowess.cpp lowess.h
 TranscriptInfo.o: TranscriptInfo.cpp TranscriptInfo.h
