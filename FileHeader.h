@@ -1,238 +1,42 @@
+#ifndef FILEHEADER_H
+#define FILEHEADER_H
+
 #include<fstream>
-#include<sstream>
+#include<map>
+#include<vector>
 
 using namespace std;
 
-#include "common.h"
+const long no_value = -4747;
 
-class FileHeader{
-   private:
-      ifstream *file;
-   public:
-      FileHeader(ifstream *f=NULL){//{{{
-         file=f;
-      }//}}}
-      void setFile(ifstream *f){//{{{
-         file=f;
-      }//}}}
-      bool samplesHeader(long &n,long &m,bool &transposed,bool &logged){//{{{
-         transposed=false;
-         logged = false;
-         if((file==NULL)||(!file->is_open())){
-            error("FileHeader: No file for header read.\n");
-            m=0;
-            n=0;
-            return false;
-         }
-         string line,str;
-         istringstream lineS;
-         while((!file->eof())&&(file->peek() == '#')){
-            getline(*file, line);
-            while((!file->eof())&&((file->peek() == ' ')||(file->peek() == '\n')))file->get();
-            lineS.clear();
-            lineS.str(line);
-            while(lineS.good()){
-               lineS>>str;
-               if(str == "M"){
-                  lineS>>m;
-//                  message("header %ld\n",m);
-                  continue;
-               }
-               if(str == "N"){
-                  lineS>>n;
-//                  message("header %ld\n",n);
-                  continue;
-               }
-               if(str == "T"){
-//                  message("header transposed\n");
-                  transposed = true;
-                  continue;
-               }  
-               if(str == "L"){
-                  logged = true;
-                  continue;
-               }  
-            }
-         }
-         return true;
-      }//}}}
-      bool samplesHeader(long &n,long &m,bool &transposed){//{{{
-         transposed=false;
-         if((file==NULL)||(!file->is_open())){
-            error("FileHeader: No file for header read.\n");
-            m=0;
-            n=0;
-            return false;
-         }
-         string line,str;
-         istringstream lineS;
-         while((!file->eof())&&(file->peek() == '#')){
-            getline(*file, line);
-            while((!file->eof())&&((file->peek() == ' ')||(file->peek() == '\n')))file->get();
-            lineS.clear();
-            lineS.str(line);
-            while(lineS.good()){
-               lineS>>str;
-               if(str == "M"){
-                  lineS>>m;
-//                  message("header %ld\n",m);
-                  continue;
-               }
-               if(str == "N"){
-                  lineS>>n;
-//                  message("header %ld\n",n);
-                  continue;
-               }
-               if(str == "T"){
-//                  message("header transposed\n");
-                  transposed = true;
-                  continue;
-               }  
-            }
-         }
-         return true;
-      }//}}}
-      bool transcriptsHeader(long &m){//{{{
-         if((file==NULL)||(!file->is_open())){
-            error("FileHeader: No file for header read.\n");
-            m=0;
-            return false;
-         }
-         string line,str;
-         istringstream lineS;
-         while((!file->eof())&&(file->peek() == '#')){
-            getline(*file, line);
-            while((!file->eof())&&((file->peek() == ' ')||(file->peek() == '\n')))file->get();
-            lineS.clear();
-            lineS.str(line);
-            while(lineS.good()){
-               lineS>>str;
-               if(str == "M"){
-                  lineS>>m;
-//                  message("header %ld\n",m);
-                  continue;
-               }
-            }
-         }
-         return true;
-      }//}}}
-      bool transcriptsHeader(long &m,long &colN){//{{{
-         if((file==NULL)||(!file->is_open())){
-            error("FileHeader: No file for header read.\n");
-            m=0;
-            return false;
-         }
-         string line,str;
-         istringstream lineS;
-         while((!file->eof())&&(file->peek() == '#')){
-            getline(*file, line);
-            while((!file->eof())&&((file->peek() == ' ')||(file->peek() == '\n')))file->get();
-            lineS.clear();
-            lineS.str(line);
-            while(lineS.good()){
-               lineS>>str;
-               if(str == "M"){
-                  lineS>>m;
-//                  message("header %ld\n",m);
-                  continue;
-               }
-               if(str == "colN"){
-                  lineS>>colN;
-                  continue;
-               }
-            }
-         }
-         return true;
-      }//}}}
-      bool probHeader(long &Nmap,long &Ntotal,bool &newformat){//{{{
-         if((file==NULL)||(!file->is_open())){
-            error("FileHeader: No file for header read.\n");
-            Nmap=0;
-            return false;
-         }
-         newformat = false;
-         string line,str;
-         istringstream lineS;
-         while((!file->eof())&&(file->peek() == '#')){
-            getline(*file, line);
-            while((!file->eof())&&((file->peek() == ' ')||(file->peek() == '\n')))file->get();
-            lineS.clear();
-            lineS.str(line);
-            while(lineS.good()){
-               lineS>>str;
-               if(str == "Ntotal"){
-                  lineS>>Ntotal;
-                  continue;
-               }
-               if(str == "Nmap"){
-                  lineS>>Nmap;
-                  continue;
-               }
-               if(str == "NEWFORMAT"){
-                  newformat = true;
-               }
-            }
-         }
-         return true;
-      }//}}}
-      bool varianceHeader(long &m,bool &logged){//{{{
-         if((file==NULL)||(!file->is_open())){
-            error("FileHeader: No file for header read.\n");
-            m=0;
-            return false;
-         }
-         string line,str;
-         istringstream lineS;
-         while((!file->eof())&&(file->peek() == '#')){
-            getline(*file, line);
-            while((!file->eof())&&((file->peek() == ' ')||(file->peek() == '\n')))file->get();
-            lineS.clear();
-            lineS.str(line);
-            while(lineS.good()){
-               lineS>>str;
-               if(str == "M"){
-                  lineS>>m;
-//                  message("header %ld\n",m);
-                  continue;
-               }
-               if(str == "L"){
-                  logged = true;
-                  continue;
-               }  
-            }
-         }
-         return true;
-      }//}}}
-      bool paramsHeader(long *parN, ofstream *outF){//{{{
-      // copy header into outF if it's not NULL.
-         if((file==NULL)||(!file->is_open())){
-            error("FileHeader: No file for header read.\n");
-            *parN=0;
-            return false;
-         }
-         string line,str;
-         istringstream lineS;
-         *parN = 0;
-         while((!file->eof())&&(file->peek() == '#')){
-            getline(*file, line);
-            // Copy header if got outF.
-            if(outF!=NULL)(*outF)<<line<<endl;
-            while((!file->eof())&&((file->peek() == ' ')||(file->peek() == '\n')))file->get();
-            lineS.clear();
-            lineS.str(line);
-            while(lineS.good()){
-               lineS>>str;
-               if(str == "PN"){
-                  lineS>>*parN;
-//                  message("header %ld\n",*parN);
-                  continue;
-               }
-            }
-         }
-         return true;
-      }//}}}
-      void close(){//{{{
-         file->close();
-         file=NULL;
-      }//}}}
+// FileHeader class parses file headers (lines starting with # at the beginning of the file).
+// Every word (space separated string) is considered a possible FLAG.
+// If a FLAG is followed by a numeric value, than the value is stored as the FLAG's value.
+// The individual functions then just look whether FLAG was present, and in case of integers, whether it had some value assigned to it.
+class FileHeader {
+ private:
+   ifstream *file;
+   map<string,long> values;
+   bool readValues(ofstream *outF = NULL);
+
+   void skipEmptyLines();
+   static vector<string> tokenizer(const string &input,const string &space = " ");
+ public:
+   FileHeader(ifstream *f = NULL) {
+      file = f;
+   }
+   void setFile(ifstream *f){
+      file = f;
+   }
+   void close(){
+      file->close();
+      file=NULL;
+   }
+   bool samplesHeader(long *n, long *m, bool *transposed, bool *logged = NULL);
+   bool transcriptsHeader(long *m, long *colN);
+   bool probHeader(long *Nmap,long *Ntotal,bool *newformat);
+   bool varianceHeader(long *m,bool *logged);
+   bool paramsHeader(long *parN, ofstream *outF);
 };
+
+#endif

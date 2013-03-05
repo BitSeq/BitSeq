@@ -16,7 +16,7 @@ bool TranscriptExpression::readExpression(string fileName, TE_FileType fileType)
    long i;
    ifstream varFile(fileName.c_str());
    FileHeader fh(&varFile);
-   if((!fh.varianceHeader(M,logged))||(M==0)){
+   if((!fh.varianceHeader(&M,&logged))||(M==0)){
       error("TranscriptExpression: Problem loading variance file %s\n",(fileName).c_str());
       return false;
    }
