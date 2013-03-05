@@ -10,7 +10,7 @@ then
    exit
 fi
 
-DIR="/localhome/work/$1"
+DIR=$1
 
 if [ -d $DIR ]
 then
