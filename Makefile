@@ -80,11 +80,11 @@ convertSamples: convertSamples.cpp common.o ArgumentParser.o TranscriptInfo.o
 getPPLR:  getPPLR.cpp common.o ArgumentParser.o PosteriorSamples.o
 	$(CXX) $(CXXFLAGS) getPPLR.cpp common.o ArgumentParser.o PosteriorSamples.o -o getPPLR
 
-estimateHyperPar: estimateHyperPar.cpp common.o PosteriorSamples.o ArgumentParser.o lowess.o TranscriptExpression.o 
-	$(CXX) $(CXXFLAGS) $(BOOSTFLAGS) estimateHyperPar.cpp common.o PosteriorSamples.o ArgumentParser.o TranscriptExpression.o lowess.o -o estimateHyperPar
+estimateHyperPar: estimateHyperPar.cpp ArgumentParser.o common.o lowess.o misc.o PosteriorSamples.o TranscriptExpression.o 
+	$(CXX) $(CXXFLAGS) $(BOOSTFLAGS) estimateHyperPar.cpp ArgumentParser.o common.o lowess.o misc.o PosteriorSamples.o TranscriptExpression.o -o estimateHyperPar
 
-estimateDE:  estimateDE.cpp common.o PosteriorSamples.o ArgumentParser.o
-	$(CXX) $(CXXFLAGS) $(BOOSTFLAGS) estimateDE.cpp common.o PosteriorSamples.o ArgumentParser.o -o estimateDE
+estimateDE:  estimateDE.cpp ArgumentParser.o common.o misc.o PosteriorSamples.o
+	$(CXX) $(CXXFLAGS) $(BOOSTFLAGS) estimateDE.cpp ArgumentParser.o common.o misc.o PosteriorSamples.o -o estimateDE
 
 estimateExpression:  estimateExpression.cpp common.o ArgumentParser.o Sampler.o GibbsSampler.o CollapsedSampler.o GibbsParameters.o TranscriptInfo.o transposeFiles.o TagAlignments.o
 	$(CXX) $(CXXFLAGS) $(BOOSTFLAGS) $(OPENMP) estimateExpression.cpp common.o Sampler.o GibbsSampler.o CollapsedSampler.o GibbsParameters.o TranscriptInfo.o transposeFiles.o TagAlignments.o ArgumentParser.o -o estimateExpression
@@ -109,16 +109,17 @@ ReadDistribution.o: ReadDistribution.cpp ReadDistribution.h TranscriptInfo.o Tra
 
 asa103/asa103.o:
 	make --directory asa103
+ArgumentParser.o: ArgumentParser.cpp ArgumentParser.h
+common.o: common.cpp common.h
+GibbsParameters.o: ArgumentParser.h GibbsParameters.cpp GibbsParameters.h
+lowess.o: lowess.cpp lowess.h
+misc.o: ArgumentParser.h PosteriorSamples.h misc.cpp misc.h
+PosteriorSamples.o: PosteriorSamples.cpp PosteriorSamples.h FileHeader.h
 TagAlignments.o: TagAlignments.cpp TagAlignments.h
 transposeFiles.o: transposeFiles.cpp transposeFiles.h FileHeader.h
-GibbsParameters.o: ArgumentParser.o GibbsParameters.cpp GibbsParameters.h
-ArgumentParser.o: ArgumentParser.cpp ArgumentParser.h
-lowess.o: lowess.cpp lowess.h
+TranscriptExpression.o: TranscriptExpression.cpp TranscriptExpression.h
 TranscriptInfo.o: TranscriptInfo.cpp TranscriptInfo.h
 TranscriptSequence.o: TranscriptSequence.cpp TranscriptSequence.h
-TranscriptExpression.o: TranscriptExpression.cpp TranscriptExpression.h
-PosteriorSamples.o: PosteriorSamples.cpp PosteriorSamples.h FileHeader.h
-common.o: common.cpp common.h
 
 clean:
 	rm samtools/*.o asa103/*.o *.o $(PROGRAMS)

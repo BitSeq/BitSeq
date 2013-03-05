@@ -5,6 +5,7 @@
 #include<algorithm>
 #include<cmath>
 #include<fstream>
+#include<sstream>
 #include "boost/random/gamma_distribution.hpp"
 #include "boost/random/mersenne_twister.hpp"
 #include "boost/random/normal_distribution.hpp"
@@ -13,7 +14,7 @@ using namespace std;
 
 #include "ArgumentParser.h"
 #include "common.h"
-#include "FileHeader.h"
+#include "misc.h"
 #include "MyTimer.h"
 #include "PosteriorSamples.h"
 
@@ -23,16 +24,10 @@ using namespace std;
 //#define PERCENT 0.9
 
 #define LAMBDA_0 2.0
-const double LOG_ZERO=-1000;
+
+using ns_params::paramT;
 
 namespace ns_estimateDE {
-
-struct paramT {//{{{
-   double expr, alpha, beta;
-   bool operator< (const paramT &p2) const{
-      return expr<p2.expr;
-   }
-};//}}}
 
 // Open and write headers into appropriate output files.
 // The size of outFiles[] should be C+1.
@@ -40,10 +35,6 @@ struct paramT {//{{{
 bool initializeOutputFile(long C, long M, long N, const ArgumentParser &args, ofstream *outF, ofstream outFiles[]);
 // For a given mean expression expr finds alpha and beta for which were estimated for a closes expression.
 void getParams(double expr,const vector<paramT> &params, paramT *par);
-// Read hyperparameter from a file provided by flag --parameters.
-bool readParams(const ArgumentParser &args, vector<paramT> *params);
-// Reads and initializes files containing samples fro each condition and each replicate.
-bool readConditions(const ArgumentParser &args, long *C, long *M, long *N, Conditions *cond);
 // Read transcript m into tr and prepare mu_0 and mu_00, cond does not really change.
 void readNextTranscript(long m, long C, long N, Conditions *cond, const vector<paramT> &params, vector<vector<vector<double> > > *tr, vector<paramT> *curParams, double *mu_00);
 // Compute confidence intervals.
@@ -75,12 +66,13 @@ string programDescription =
     * C - number of conditions
     */
    long C,M,N;
-   vector<ns_estimateDE::paramT> params;
+   vector<paramT> params;
    Conditions cond;
    // Open file with hyper parameters and read those in.
-   if(!ns_estimateDE::readParams(args, &params)) return 1;
+   if(!ns_params::readParams(args.getS("parFileName"), &params)) return 1;
+   if(args.verb())message("Parameters loaded.\n");
    // Initialize sample files handled by object cond.
-   if(!ns_estimateDE::readConditions(args, &C, &M, &N, &cond)) return 1;
+   if(!ns_misc::readConditions(args, &C, &M, &N, &cond)) return 1;
    // Initialize output files.
    ofstream outF;
    ofstream outFiles[C+1];
@@ -89,7 +81,7 @@ string programDescription =
 
    // variables {{{
    vector<vector<vector<double> > > tr(C);
-   vector<ns_estimateDE::paramT> curParams(C);
+   vector<paramT> curParams(C);
    vector<vector<double> > samples(C,vector<double>(N));
    vector<double> vars(N);
    vector<double> mu_c(C);
@@ -100,11 +92,7 @@ string programDescription =
    double lambda0 = args.getD("lambda0");
    long RC;
    MyTimer timer;
-   long seed;
-   if(args.isSet("seed"))seed=args.getL("seed");
-   else seed = time(NULL);
-   if(args.verbose)message("seed: %ld\n",seed);
-   boost::random::mt11213b rng_mt(seed);
+   boost::random::mt11213b rng_mt(ns_misc::getSeed(args));
    boost::random::gamma_distribution<long double> gammaDistribution;
    typedef boost::random::gamma_distribution<long double>::param_type gDP;
    boost::random::normal_distribution<long double> normalDistribution;
@@ -303,44 +291,6 @@ void getParams(double expr,const vector<paramT> &params, paramT *par){//{{{
    par->beta=params[k].beta;
 }//}}}
 
-bool readParams(const ArgumentParser &args, vector<paramT> *params){//{{{
-   long parN;
-   ifstream paramF(args.getS("parFileName").c_str());
-   FileHeader fh(&paramF);
-   if((!fh.paramsHeader(&parN))||(parN==0)){
-      error("Main: Problem loading parameters file %s\n",args.getS("parFileName").c_str());
-      return false;
-   }
-   // Vector of parameters: (mean expression, (alpha, beta) )
-   params->resize(parN);
-   for(long i=0;i<parN;i++){
-      paramF>>(*params)[i].alpha>>(*params)[i].beta>>(*params)[i].expr;
-   }
-   fh.close();
-   sort(params->begin(),params->end());
-   if(args.verb())message("Parameters loaded.\n");
-   return true;
-}//}}}
-
-bool readConditions(const ArgumentParser &args, long *C, long *M, long *N, Conditions *cond){//{{{
-   if(! cond->init("NONE", args.args(), C, M, N)){
-      error("Main: Failed loading conditions.\n");
-      return false;
-   }
-   if(args.isSet("normalization")){
-      if(! cond->setNorm(args.getTokenizedS2D("normalization"))){
-         error("Main: Applying normalization constants failed.\n");
-         return false;
-      }
-   }
-   if(!cond->logged() && args.verb()){
-      message("Samples are not logged. (will log for you)\n");
-      message("Using %lg as minimum instead of log(0).\n",LOG_ZERO);
-   }
-   if(args.verb())message("Sample files loaded.\n");
-   return true;
-}//}}}
-
 void readNextTranscript(long m, long C, long N, Conditions *cond, const vector<paramT> &params, vector<vector<vector<double> > > *tr, vector<paramT> *curParams, double *mu_00){//{{{
    double divT = 0, divC, mu_0;
    long c,r,n,RC;
@@ -356,7 +306,7 @@ void readNextTranscript(long m, long C, long N, Conditions *cond, const vector<p
          if(cond->getTranscript(c, r , m, (*tr)[c][r]), N){
             for(n=0;n<N;n++){
                // Log the expression samples if the files don't have logged flag set.
-               if(!cond->logged())(*tr)[c][r][n] = ((*tr)[c][r][n] == 0)? LOG_ZERO : log ((*tr)[c][r][n] );
+               if(!cond->logged())(*tr)[c][r][n] = ((*tr)[c][r][n] == 0)? ns_misc::LOG_ZERO : log ((*tr)[c][r][n] );
                mu_0+=(*tr)[c][r][n];
             }
             divC+=1;
