@@ -65,6 +65,9 @@ bool readParams(const string &name, vector<paramT> *params, ofstream *outF){//{{
    // Vector of parameters: (mean expression, (alpha, beta) )
    paramT param;
    while(parFile.good()){
+      while((parFile.good())&&(parFile.peek()=='#')){
+         parFile.ignore(10000000,'\n');
+      }
       parFile>>param.alpha>>param.beta>>param.expr;
       if(parFile.good())
          params->push_back(param);

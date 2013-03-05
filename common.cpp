@@ -5,11 +5,11 @@
 
 using namespace std;
 
-void buildTime(char *argv0, string compileDate, string compileTime){
+void buildTime(char *argv0, string compileDate, string compileTime, const char* version){
 #ifdef BIOC_BUILD
    return ; // dont want to print compile information
 #endif
-   message("### %s build: %s %s\n",argv0,compileDate.c_str(),compileTime.c_str());
+   message("### %s (version: %s) build: %s %s\n",argv0, version, compileDate.c_str(),compileTime.c_str());
 }
 
 bool progressLog(long cur,long outOf, long steps) {
