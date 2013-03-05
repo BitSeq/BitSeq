@@ -28,9 +28,6 @@ vector <double> tokenizeD(const string &input,const string &space = ","){//{{{
 
 
 // GET {{{
-const vector<string>& ArgumentParser::args() const{
-   return arguments;
-}
 string ArgumentParser::getS(string name) const{
    if(!existsOption(name))error("ArgumentParser: argument name %s unknown.\n",name.c_str());
    if(mapS.find(name)!=mapS.end())
@@ -52,13 +49,13 @@ double ArgumentParser::getD(string name) const{
 bool ArgumentParser::flag(string name) const {
    if(!existsOption(name))error("ArgumentParser: argument name %s unknown.\n",(name).c_str());
    return isSet(name);
-}//}}}
-vector<double> ArgumentParser::getTokenizedS2D(string name){
+}
+vector<double> ArgumentParser::getTokenizedS2D(string name) const{
    if(!existsOption(name))error("ArgumentParser: argument name %s unknown.\n",name.c_str());
    if(mapS.find(name)!=mapS.end())
-      return tokenizeD(mapS[name]);
+      return tokenizeD(mapS.find(name)->second);
    return vector<double>();
-}
+}//}}}
 bool ArgumentParser::parse(int argc,char * argv[]){//{{{
 //   for(long i=0;i<argc;i++)message("_%s_\n",(args[i]).c_str());
    // add verbose if  possible {{{
@@ -227,8 +224,9 @@ void ArgumentParser::addOptionS(string shortName,string longName, string name, b
    if(longName!="")names[longName]=name;
    if(comp)compulsory.push_back(name);
 }//}}}
+//{{{ void ArgumentParser::appendDescription(string &desc,valueType defValue)
 template <typename valueType>
-void ArgumentParser::appendDescription(string &desc,valueType defValue){//{{{
+void ArgumentParser::appendDescription(string &desc,valueType defValue){
    stringstream descStream;
    descStream<<desc<<" (default: "<<defValue<<")";
    desc = descStream.str();

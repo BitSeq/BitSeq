@@ -37,10 +37,13 @@ struct paramT {//{{{
 // Open and write headers into appropriate output files.
 // The size of outFiles[] should be C+1.
 // Retruns true if everything went OK.
-bool initializeOutputFile(long M, long N, long C, const ArgumentParser &args, ofstream *outF, ofstream outFiles[]);
+bool initializeOutputFile(long C, long M, long N, const ArgumentParser &args, ofstream *outF, ofstream outFiles[]);
 // For a given mean expression expr finds alpha and beta for which were estimated for a closes expression.
 void getParams(double expr,const vector<paramT> &params, double *alpha, double *beta);
-bool readParams(const ArgumentParser &args, long *parN, vector<paramT> *params);
+// Read hyperparameter from a file provided by flag --parameters.
+bool readParams(const ArgumentParser &args, vector<paramT> *params);
+// Reads and initializes files containing samples fro each condition and each replicate.
+bool readConditions(const ArgumentParser &args, long *C, long *M, long *N, Conditions *cond, bool *logged);
 
 }
 
@@ -61,36 +64,24 @@ string programDescription =
    args.addOptionS("","norm","normalization",0,"Normalization constants for each input file provided as comma separated list of doubles (e.g. 1.0017,1.0,0.9999 ).");
    if(!args.parse(*argc,argv))return 0;
    //}}}
-   long C,M,N,m,n,c,r,parN;
-   // Open file with hyper parameters and read those in.
-   vector<ns_estimateDE::paramT> params(parN);
-   if(!readParams(args, &parN, &params)) return 1;
-   // samples files: {{{
-   // Initialize sample files handled by object cond.
+   /*
+    * N - number of samples in one replicate (the smallest number for replicates with different N_r)
+    * M - number of transcripts
+    * C - number of conditions
+    */
+   long C,M,N;
+   vector<ns_estimateDE::paramT> params;
    Conditions cond;
-   if(! cond.init(C,M,N,"NONE",args.args())){
-      error("Main: Failed loading conditions.\n");
-      return 0;
-   }
-   if(args.isSet("normalization")){
-      if(! cond.setNorm(args.getTokenizedS2D("normalization"))){
-         error("Main: Appying normalization constants failed.\n");
-         return 1;
-      }
-   }
-   bool logged = cond.logged();
-   if( (!logged) && args.verbose){
-      message("Samples are not logged. (will log for you)\n");
-      message("Using %lg as minimum instead of log(0).\n",LOG_ZERO);
-   }
-   // CR = cond.getRN();
-   if(args.verbose)message("Sample files loaded.\n");
-   // }}}
-   // Initialize output files.
+   bool logged;
    ofstream outF;
-   // Use standard array as we don't want to bother with vector of pointers.
    ofstream outFiles[C+1];
-   if(!ns_estimateDE::initializeOutputFile(M, N, C, args, &outF, outFiles)) return 1;
+   // Open file with hyper parameters and read those in.
+   if(!ns_estimateDE::readParams(args, &params)) return 1;
+   // Initialize sample files handled by object cond.
+   if(!ns_estimateDE::readConditions(args, &C, &M, &N, &cond, &logged)) return 1;
+   // Initialize output files.
+   // Use standard array as we don't want to bother with vector of pointers.
+   if(!ns_estimateDE::initializeOutputFile(C, M, N, args, &outF, outFiles)) return 1;
 
    // variables {{{
    vector<vector<vector<double> > > tr(C);
@@ -100,6 +91,7 @@ string programDescription =
    vector<double> mu_0(C);
 //   vector<vector<double> > mus(C,vector<double>(N,0));
 //   vector<double> vars(N);
+   long c,m,n,r;
    double prec,sum,sumSq,alpha,beta,betaPar,mu,al0,be0,mu_00,divC,divT;
    double lambda0 = args.getD("lambda0");
    long RC;
@@ -109,17 +101,10 @@ string programDescription =
    typedef boost::random::gamma_distribution<long double>::param_type gDP;
    boost::random::normal_distribution<long double> normalDistribution;
    typedef boost::random::normal_distribution<long double>::param_type nDP;
-   // }}}
-
    double logFC, pplr, cfLow, cfHigh;
    vector<long double> difs(N);
-   /*
-    * N - number of samples in one replicate (the smallest number for replicates with different N_r)
-    * M - number of transcripts
-    * C - number of conditions
-    * not used: CR - total number of replicates in all conditions
-    *
-    */
+   // }}}
+
    if(args.verbose){ //{{{
       timer.split();
       message("Sampling condition mean expression.\n");
@@ -238,7 +223,7 @@ int main(int argc,char* argv[]){
 
 namespace ns_estimateDE {
 
-bool initializeOutputFile(long M, long N, long C, const ArgumentParser &args, ofstream *outF, ofstream outFiles[]){//{{{
+bool initializeOutputFile(long C, long M, long N, const ArgumentParser &args, ofstream *outF, ofstream outFiles[]){//{{{
    if(args.flag("samples")){
       // If samples flag is set, then write condition mean expression samples into -C?.est files.
       // Also write variance samples into samples file.
@@ -315,21 +300,42 @@ void getParams(double expr,const vector<paramT> &params, double *alpha, double *
    *beta=params[k].beta;
 }//}}}
 
-bool readParams(const ArgumentParser &args, long *parN, vector<paramT> *params){//{{{
+bool readParams(const ArgumentParser &args, vector<paramT> *params){//{{{
+   long parN;
    ifstream paramF(args.getS("parFileName").c_str());
    FileHeader fh(&paramF);
-   if((!fh.paramsHeader(parN))||(*parN==0)){
+   if((!fh.paramsHeader(&parN))||(parN==0)){
       error("Main: Problem loading parameters file %s\n",args.getS("parFileName").c_str());
       return false;
    }
    // Vector of parameters: (mean expression, (alpha, beta) )
-   params->resize(*parN);
-   for(long i=0;i<*parN;i++){
+   params->resize(parN);
+   for(long i=0;i<parN;i++){
       paramF>>(*params)[i].alpha>>(*params)[i].beta>>(*params)[i].expr;
    }
    fh.close();
    sort(params->begin(),params->end());
    if(args.verb())message("Parameters loaded.\n");
+   return true;
+}//}}}
+
+bool readConditions(const ArgumentParser &args, long *C, long *M, long *N, Conditions *cond, bool *logged){//{{{
+   if(! cond->init("NONE", args.args(), C, M, N)){
+      error("Main: Failed loading conditions.\n");
+      return false;
+   }
+   if(args.isSet("normalization")){
+      if(! cond->setNorm(args.getTokenizedS2D("normalization"))){
+         error("Main: Appying normalization constants failed.\n");
+         return false;
+      }
+   }
+   *logged = cond->logged();
+   if( (!*logged) && args.verb()){
+      message("Samples are not logged. (will log for you)\n");
+      message("Using %lg as minimum instead of log(0).\n",LOG_ZERO);
+   }
+   if(args.verb())message("Sample files loaded.\n");
    return true;
 }//}}}
 }

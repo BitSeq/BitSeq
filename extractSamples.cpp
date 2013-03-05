@@ -51,7 +51,7 @@ int main(int argc,char* argv[]){
    Conditions samples;
 
    // Initialize samples reader
-   if( (!samples.init(C,M,N,"NONE",args.args())) || (C<=0) || (M<=0) || (N<=0)){
+   if( (!samples.init("NONE", args.args(), &C, &M, &N)) || (C<=0) || (M<=0) || (N<=0)){
       cerr<<"ERROR: Main: Failed loading MCMC samples."<<endl;
       return 1;
    }

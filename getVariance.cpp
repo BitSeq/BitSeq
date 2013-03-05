@@ -34,7 +34,7 @@ extern "C" int getVariance(int *argc,char* argv[]){
    long i,j,r,N,RN,M=0;
 
    Conditions cond;
-   if(! (cond.init(M,N,"NONE", args.args() ))){
+   if(! (cond.init("NONE", args.args(), &M, &N))){
       error("Main: Failed loading MCMC samples.\n");
       return 1;
    }

@@ -123,7 +123,7 @@ string programDescription =
       // Sampling parameters based on data
       // Read conditions {{{   
       Conditions cond;
-      if(! cond.init(C,M,N,"NONE",args.args())){
+      if(! cond.init("NONE", args.args(), &C, &M, &N)){
          error("Main: Failed loading MCMC samples.\n");
          return 0;
       }
