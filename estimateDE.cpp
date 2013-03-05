@@ -178,13 +178,13 @@ string programDescription =
                difs[n] = samples[c2][n]-samples[c][n];
             ns_estimateDE::computeCI(args.getD("cf"), &difs, &ciLow, &ciHigh);
             log2FC = (mu_c[c2] - mu_c[c])/log(2);
-            outF<<log2FC<<" "<<ciLow<<" "<<ciHigh;
+            outF<<log2FC<<" "<<ciLow<<" "<<ciHigh<<" ";
          }
       }
       // }}}
-      // Write logged condition mean for each condition. {{{
-      for(c=0;c<C;c++)outF<<" "<<mu_c[c];
-      outF<<endl;
+      // Write logged condition mean for each condition. No space before EOL. {{{
+      for(c = 0; c < C-1; c++)outF<<mu_c[c]<<" ";
+      outF<<mu_c[C-1]<<endl;
       // }}}
       // Write samples if necessary. {{{ 
       if(args.flag("samples")){
