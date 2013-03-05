@@ -1,14 +1,8 @@
 CXX = g++
-#CFLAGS = -Wall 
 HOSTNAME = $(shell hostname)
 ARCH = -mtune=generic
 
-
-
 ifeq ($(HOSTNAME), valiant)
-	ARCH = -march=core2
-endif
-ifeq ($(HOSTNAME), master1.templar.internal)
 	ARCH = -march=core2
 endif
 ifeq ($(HOSTNAME), gauss)
@@ -21,94 +15,90 @@ ifeq ($(HOSTNAME), chopok)
 	ARCH = -march=native
 endif
 
+DBGFLAGS = -ggdb -U_FORTIFY_SOURCE
 COFLAGS = $(ARCH) -O3 -pipe
 # -ffast-math segfaults with old gcc
 #COFLAGS = $(ARCH) -O3 -ffast-math -pipe
-DBGFLAGS = -ggdb
 CXXFLAGS = -Wall $(COFLAGS)
-#COFLAGS = -Wall -U_FORTIFY_SOURCE -O2 -ffast-math 
-PROGRAMS = estimateVBExpression extractSamples getGeneExpression getWithinGeneExpression estimateExpression transposeLargeFile estimateDE getVariance estimateHyperPar getPPLR convertSamples parseAlignment getFoldChange
-# getCount estimate0_4HyperPar estimate0_4DE 
 BOOSTFLAGS = -I .
 OPENMP = -fopenmp -DSUPPORT_OPENMP
 
-#host:
-#	echo $(HOSTNAME)
+PROGRAMS = \
+   convertSamples \
+   estimateDE \
+   estimateExpression \
+   estimateHyperPar \
+   estimateVBExpression \
+   extractSamples \
+   getFoldChange \
+   getGeneExpression \
+   getPPLR \
+   getVariance \
+   getWithinGeneExpression \
+   parseAlignment \
+   transposeLargeFile
 
 all: $(PROGRAMS)
 
-#%.cpp%.o:  
-#	$(CXX) $(COFLAGS) -c $<
-#.PHONY: test
+# PROGRAMS:
+convertSamples: convertSamples.cpp ArgumentParser.o common.o TranscriptInfo.o
+	$(CXX) $(CXXFLAGS) convertSamples.cpp ArgumentParser.o common.o TranscriptInfo.o -o convertSamples
 
-#estimate0_4HyperPar: estimate0_4HyperPar.cpp common.o PosteriorSamples.o ArgumentParser.o lowess.o TranscriptExpression.o 
-#	$(CXX) $(CXXFLAGS) $(BOOSTFLAGS) estimate0_4HyperPar.cpp common.o PosteriorSamples.o ArgumentParser.o TranscriptExpression.o lowess.o -o estimate0_4HyperPar
+estimateDE: estimateDE.cpp ArgumentParser.o common.o misc.o PosteriorSamples.o
+	$(CXX) $(CXXFLAGS) $(BOOSTFLAGS) estimateDE.cpp ArgumentParser.o common.o misc.o PosteriorSamples.o -o estimateDE
 
-#estimate0_4DE:  estimate0_4DE.cpp common.o PosteriorSamples.o ArgumentParser.o
-#	$(CXX) $(CXXFLAGS) $(BOOSTFLAGS) estimate0_4DE.cpp common.o PosteriorSamples.o ArgumentParser.o -o estimate0_4DE
-
-estimateVBExpression:  estimateVBExpression.cpp common.o ArgumentParser.o VariationalBayes.o SimpleSparse.o TagAlignments.o asa103/asa103.o
-	$(CXX) $(CXXFLAGS) $(BOOSTFLAGS) $(OPENMP) estimateVBExpression.cpp common.o ArgumentParser.o VariationalBayes.o SimpleSparse.o TagAlignments.o asa103/asa103.o -o estimateVBExpression
-
-VariationalBayes.o: VariationalBayes.cpp VariationalBayes.h SimpleSparse.o
-	$(CXX) $(CXXFLAGS) $(BOOSTFLAGS) $(OPENMP) -c VariationalBayes.cpp 
-
-SimpleSparse.o: SimpleSparse.cpp SimpleSparse.h
-	$(CXX) $(CXXFLAGS) $(BOOSTFLAGS) $(OPENMP) -c SimpleSparse.cpp
-
-extractSamples: extractSamples.cpp common.o ArgumentParser.o PosteriorSamples.o common.h
-	$(CXX) $(CXXFLAGS) extractSamples.cpp common.o ArgumentParser.o PosteriorSamples.o -o extractSamples
-
-getFoldChange: getFoldChange.cpp common.o ArgumentParser.o PosteriorSamples.o 
-	$(CXX) $(CXXFLAGS) getFoldChange.cpp common.o ArgumentParser.o PosteriorSamples.o -o getFoldChange
-
-getGeneExpression: getGeneExpression.cpp common.o ArgumentParser.o TranscriptInfo.o PosteriorSamples.o common.h
-	$(CXX) $(CXXFLAGS) getGeneExpression.cpp common.o ArgumentParser.o TranscriptInfo.o PosteriorSamples.o -o getGeneExpression
-
-getWithinGeneExpression: getWithinGeneExpression.cpp common.o ArgumentParser.o TranscriptInfo.o PosteriorSamples.o common.h
-	$(CXX) $(CXXFLAGS) getWithinGeneExpression.cpp common.o ArgumentParser.o TranscriptInfo.o PosteriorSamples.o -o getWithinGeneExpression
-
-parseAlignment: parseAlignment.cpp common.o ArgumentParser.o TranscriptInfo.o TranscriptSequence.o TranscriptExpression.o ReadDistribution.o samtools/sam.o
-	$(CXX) $(CXXFLAGS) $(OPENMP) -Isamtools samtools/*.o common.o ArgumentParser.o TranscriptInfo.o TranscriptSequence.o TranscriptExpression.o ReadDistribution.o parseAlignment.cpp -lz -o parseAlignment
-
-samtools/sam.o:
-	make --directory samtools
-
-convertSamples: convertSamples.cpp common.o ArgumentParser.o TranscriptInfo.o
-	$(CXX) $(CXXFLAGS) convertSamples.cpp common.o ArgumentParser.o  TranscriptInfo.o -o convertSamples
-
-getPPLR:  getPPLR.cpp common.o ArgumentParser.o PosteriorSamples.o
-	$(CXX) $(CXXFLAGS) getPPLR.cpp common.o ArgumentParser.o PosteriorSamples.o -o getPPLR
+estimateExpression: estimateExpression.cpp ArgumentParser.o CollapsedSampler.o common.o GibbsParameters.o GibbsSampler.o Sampler.o TagAlignments.o TranscriptInfo.o transposeFiles.o
+	$(CXX) $(CXXFLAGS) $(BOOSTFLAGS) $(OPENMP) estimateExpression.cpp ArgumentParser.o CollapsedSampler.o common.o GibbsParameters.o GibbsSampler.o Sampler.o TagAlignments.o TranscriptInfo.o transposeFiles.o -o estimateExpression
 
 estimateHyperPar: estimateHyperPar.cpp ArgumentParser.o common.o lowess.o misc.o PosteriorSamples.o TranscriptExpression.o 
 	$(CXX) $(CXXFLAGS) $(BOOSTFLAGS) estimateHyperPar.cpp ArgumentParser.o common.o lowess.o misc.o PosteriorSamples.o TranscriptExpression.o -o estimateHyperPar
 
-estimateDE:  estimateDE.cpp ArgumentParser.o common.o misc.o PosteriorSamples.o
-	$(CXX) $(CXXFLAGS) $(BOOSTFLAGS) estimateDE.cpp ArgumentParser.o common.o misc.o PosteriorSamples.o -o estimateDE
+estimateVBExpression: estimateVBExpression.cpp asa103/asa103.o ArgumentParser.o common.o SimpleSparse.o TagAlignments.o VariationalBayes.o
+	$(CXX) $(CXXFLAGS) $(BOOSTFLAGS) $(OPENMP) estimateVBExpression.cpp asa103/asa103.o ArgumentParser.o common.o SimpleSparse.o TagAlignments.o VariationalBayes.o -o estimateVBExpression
 
-estimateExpression:  estimateExpression.cpp common.o ArgumentParser.o Sampler.o GibbsSampler.o CollapsedSampler.o GibbsParameters.o TranscriptInfo.o transposeFiles.o TagAlignments.o
-	$(CXX) $(CXXFLAGS) $(BOOSTFLAGS) $(OPENMP) estimateExpression.cpp common.o Sampler.o GibbsSampler.o CollapsedSampler.o GibbsParameters.o TranscriptInfo.o transposeFiles.o TagAlignments.o ArgumentParser.o -o estimateExpression
+extractSamples: extractSamples.cpp ArgumentParser.o common.o PosteriorSamples.o
+	$(CXX) $(CXXFLAGS) extractSamples.cpp ArgumentParser.o common.o PosteriorSamples.o -o extractSamples
 
-getVariance:  getVariance.cpp common.o PosteriorSamples.o ArgumentParser.o
-	$(CXX) $(CXXFLAGS) getVariance.cpp common.o PosteriorSamples.o ArgumentParser.o -o getVariance
+getFoldChange: getFoldChange.cpp ArgumentParser.o common.o PosteriorSamples.o 
+	$(CXX) $(CXXFLAGS) getFoldChange.cpp ArgumentParser.o common.o PosteriorSamples.o -o getFoldChange
 
-transposeLargeFile: common.o transposeFiles.o ArgumentParser.o
-	$(CXX) $(CXXFLAGS) transposeLargeFile.cpp common.o transposeFiles.o ArgumentParser.o -o transposeLargeFile
+getGeneExpression: getGeneExpression.cpp ArgumentParser.o common.o PosteriorSamples.o TranscriptInfo.o
+	$(CXX) $(CXXFLAGS) getGeneExpression.cpp ArgumentParser.o common.o PosteriorSamples.o TranscriptInfo.o -o getGeneExpression
 
-GibbsSampler.o: GibbsSampler.h GibbsSampler.cpp Sampler.o GibbsParameters.o
-	$(CXX) $(CXXFLAGS) $(BOOSTFLAGS) -c GibbsSampler.cpp
+getPPLR: getPPLR.cpp ArgumentParser.o common.o PosteriorSamples.o
+	$(CXX) $(CXXFLAGS) getPPLR.cpp ArgumentParser.o common.o PosteriorSamples.o -o getPPLR
 
-CollapsedSampler.o: CollapsedSampler.h CollapsedSampler.cpp Sampler.o GibbsParameters.o
+getVariance: getVariance.cpp ArgumentParser.o common.o PosteriorSamples.o
+	$(CXX) $(CXXFLAGS) getVariance.cpp ArgumentParser.o common.o PosteriorSamples.o -o getVariance
+
+getWithinGeneExpression: getWithinGeneExpression.cpp ArgumentParser.o common.o PosteriorSamples.o TranscriptInfo.o
+	$(CXX) $(CXXFLAGS) getWithinGeneExpression.cpp ArgumentParser.o common.o PosteriorSamples.o TranscriptInfo.o -o getWithinGeneExpression
+
+parseAlignment: parseAlignment.cpp ArgumentParser.o common.o ReadDistribution.o samtools/sam.o TranscriptExpression.o TranscriptInfo.o TranscriptSequence.o
+	$(CXX) $(CXXFLAGS) $(OPENMP) -Isamtools parseAlignment.cpp ArgumentParser.o common.o ReadDistribution.o samtools/*.o TranscriptExpression.o TranscriptInfo.o TranscriptSequence.o -lz -o parseAlignment
+
+transposeLargeFile: transposeLargeFile.cpp ArgumentParser.o common.o transposeFiles.o
+	$(CXX) $(CXXFLAGS) transposeLargeFile.cpp ArgumentParser.o common.o transposeFiles.o -o transposeLargeFile
+
+# LIBRARIES:
+CollapsedSampler.o: CollapsedSampler.cpp CollapsedSampler.h GibbsParameters.h Sampler.h
 	$(CXX) $(CXXFLAGS) $(BOOSTFLAGS) -c CollapsedSampler.cpp
 
-Sampler.o: Sampler.cpp Sampler.h GibbsParameters.o
-	$(CXX) $(CXXFLAGS) $(BOOSTFLAGS) -c Sampler.cpp
+GibbsSampler.o: GibbsSampler.cpp GibbsSampler.h GibbsParameters.h Sampler.h
+	$(CXX) $(CXXFLAGS) $(BOOSTFLAGS) -c GibbsSampler.cpp
 
-ReadDistribution.o: ReadDistribution.cpp ReadDistribution.h TranscriptInfo.o TranscriptSequence.o TranscriptExpression.o 
+ReadDistribution.o: ReadDistribution.cpp ReadDistribution.h TranscriptExpression.h TranscriptInfo.h TranscriptSequence.h 
 	$(CXX) $(CXXFLAGS) $(OPENMP) -Isamtools -c ReadDistribution.cpp
 
-asa103/asa103.o:
-	make --directory asa103
+Sampler.o: Sampler.cpp Sampler.h GibbsParameters.h
+	$(CXX) $(CXXFLAGS) $(BOOSTFLAGS) -c Sampler.cpp
+
+SimpleSparse.o: SimpleSparse.cpp SimpleSparse.h
+	$(CXX) $(CXXFLAGS) $(BOOSTFLAGS) $(OPENMP) -c SimpleSparse.cpp
+
+VariationalBayes.o: VariationalBayes.cpp VariationalBayes.h SimpleSparse.h
+	$(CXX) $(CXXFLAGS) $(BOOSTFLAGS) $(OPENMP) -c VariationalBayes.cpp 
+
 ArgumentParser.o: ArgumentParser.cpp ArgumentParser.h
 common.o: common.cpp common.h
 GibbsParameters.o: ArgumentParser.h GibbsParameters.cpp GibbsParameters.h
@@ -116,11 +106,19 @@ lowess.o: lowess.cpp lowess.h
 misc.o: ArgumentParser.h PosteriorSamples.h misc.cpp misc.h
 PosteriorSamples.o: PosteriorSamples.cpp PosteriorSamples.h FileHeader.h
 TagAlignments.o: TagAlignments.cpp TagAlignments.h
-transposeFiles.o: transposeFiles.cpp transposeFiles.h FileHeader.h
 TranscriptExpression.o: TranscriptExpression.cpp TranscriptExpression.h
 TranscriptInfo.o: TranscriptInfo.cpp TranscriptInfo.h
 TranscriptSequence.o: TranscriptSequence.cpp TranscriptSequence.h
+transposeFiles.o: transposeFiles.cpp transposeFiles.h FileHeader.h
 
+# EXTERNAL LIBRARIES:
+asa103/asa103.o:
+	make --directory asa103
+
+samtools/sam.o:
+	make --directory samtools
+
+# CLEAN:
 clean:
 	rm samtools/*.o asa103/*.o *.o $(PROGRAMS)
 
