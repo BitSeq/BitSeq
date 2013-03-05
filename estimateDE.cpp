@@ -36,7 +36,7 @@ struct paramT {//{{{
 
 // Open and write headers into appropriate output files.
 // The size of outFiles[] should be C+1.
-// Retruns true if everything went OK.
+// Returns true if everything went OK.
 bool initializeOutputFile(long C, long M, long N, const ArgumentParser &args, ofstream *outF, ofstream outFiles[]);
 // For a given mean expression expr finds alpha and beta for which were estimated for a closes expression.
 void getParams(double expr,const vector<paramT> &params, paramT *par);
@@ -47,7 +47,7 @@ bool readConditions(const ArgumentParser &args, long *C, long *M, long *N, Condi
 // Read transcript m into tr and prepare mu_0 and mu_00, cond does not really change.
 void readNextTranscript(long m, long C, long N, Conditions *cond, const vector<paramT> &params, vector<vector<vector<double> > > *tr, vector<paramT> *curParams, double *mu_00);
 // Compute condfidence intervals.
-void computeCF(double cf, vector<long double> *difs, double *cfLow, double *cfHigh);
+void computeCI(double cf, vector<double> *difs, double *ciLow, double *ciHigh);
 
 }
 
@@ -94,8 +94,8 @@ string programDescription =
    vector<double> mu_c(C);
 //   vector<vector<double> > mus(C,vector<double>(N,0));
 //   vector<double> vars(N);
-   long c,m,n,r;
-   double prec,sum,sumSq,alpha,beta,betaPar,mu_00,normMu;
+   long c,c2,m,n,r;
+   double prec,var,sum,sumSq,alpha,beta,betaPar,mu_00,normMu;
    double lambda0 = args.getD("lambda0");
    long RC;
    MyTimer timer;
@@ -104,8 +104,8 @@ string programDescription =
    typedef boost::random::gamma_distribution<long double>::param_type gDP;
    boost::random::normal_distribution<long double> normalDistribution;
    typedef boost::random::normal_distribution<long double>::param_type nDP;
-   double logFC, pplr, cfLow, cfHigh;
-   vector<long double> difs(N);
+   double log2FC, pplr, ciLow, ciHigh;
+   vector<double> difs(N);
    // }}}
 
    if(args.verbose){ //{{{
@@ -134,47 +134,63 @@ string programDescription =
                (lambda0 + RC);
             normMu= (lambda0*mu_00 + sum) / (lambda0 + RC);
             beta = curParams[c].beta + betaPar / 2 ;
+            // Set parameters of gamma distribution.
             gammaDistribution.param(gDP(alpha, 1.0/beta));
-            prec=gammaDistribution(rng_mt);
+            // Sample precision.
+            prec = gammaDistribution(rng_mt);
+            // Variance, the precision is scaled by (lambda0+RC).
+            var = 1/(prec *(lambda0 + RC));
+            vars[n] = var;
 
             // Set parameter for normal distribution.
-            normalDistribution.param(nDP(normMu, 1/sqrt(prec *(lambda0 + RC))));
+            normalDistribution.param(nDP(normMu, sqrt(var)));
             // Sample condition mean.
             samples[c][n] = normalDistribution(rng_mt);
-            vars[n] = 1/(prec *(lambda0 + RC));
          }
          R_INTERUPT;
       }
       // }}}
-      // Compute condition mean, pplr(s) and fold change(s).
+      // Compute condition mean for each condition. {{{
       for(c=0;c<C;c++){
          mu_c[c] = 0;
          for(n=0;n<N;n++)mu_c[c] +=samples[c][n];
          mu_c[c] /= N;
       }
-      pplr = 0;
-      logFC = 0;
-      for(n=0;n<N;n++){
-         if(samples[1][n] > samples[0][n])pplr+=1;
-         logFC += samples[1][n]-samples[0][n];
-         difs[n] = samples[1][n]-samples[0][n];
+      // }}}
+      // Calculate and write pplr for each pair of conditions. {{{
+      for(c=0;c<C;c++){
+         for(c2=c+1;c2<C;c2++){
+            pplr = 0;
+            for(n=0;n<N;n++)
+               if(samples[c2][n] > samples[c][n])pplr+=1;
+            pplr/=N;
+            outF<<pplr<<" ";
+         }
       }
-      // Use log2FC
-      logFC /= log(2);
-      logFC /= N;
-      pplr /= N;
-      ns_estimateDE::computeCF(args.getD("cf"), &difs, &cfLow, &cfHigh);
-      outF<<pplr<<" "<<logFC<<" "<<cfLow<<" "<<cfHigh;
+      // }}}
+      // Calculate log2FC; write log2FC and CIs for each pair of conditions. {{{
+      for(c=0;c<C;c++){
+         for(c2=c+1;c2<C;c2++){
+            for(n=0;n<N;n++)
+               difs[n] = samples[c2][n]-samples[c][n];
+            ns_estimateDE::computeCI(args.getD("cf"), &difs, &ciLow, &ciHigh);
+            log2FC = (mu_c[c2] - mu_c[c])/log(2);
+            outF<<log2FC<<" "<<ciLow<<" "<<ciHigh;
+         }
+      }
+      // }}}
+      // Write logged condition mean for each condition. {{{
       for(c=0;c<C;c++)outF<<" "<<mu_c[c];
       outF<<endl;
-      if(args.flag("samples")){//{{{
+      // }}}
+      // Write samples if necessary. {{{ 
+      if(args.flag("samples")){
          for(c=0;c<C;c++){
             for(n=0;n<N;n++)outFiles[c]<<samples[c][n]<<" ";
             outFiles[c]<<endl;
          }
-         for(n=0;n<N;n++){
-            outFiles[C]<<vars[n]<<" ";
-         }
+         // Save sampled variance as well.
+         for(n=0;n<N;n++) outFiles[C]<<vars[n]<<" ";
          outFiles[C]<<endl;
       }//}}}
    }
@@ -299,7 +315,7 @@ bool readConditions(const ArgumentParser &args, long *C, long *M, long *N, Condi
    }
    if(args.isSet("normalization")){
       if(! cond->setNorm(args.getTokenizedS2D("normalization"))){
-         error("Main: Appying normalization constants failed.\n");
+         error("Main: Applying normalization constants failed.\n");
          return false;
       }
    }
@@ -345,10 +361,10 @@ void readNextTranscript(long m, long C, long N, Conditions *cond, const vector<p
    *mu_00/=divT; 
 }//}}}
 
-void computeCF(double cf, vector<long double> *difs, double *cfLow, double *cfHigh){//{{{
+void computeCI(double cf, vector<double> *difs, double *ciLow, double *ciHigh){//{{{
    double N = difs->size();
    sort(difs->begin(),difs->end());
-   *cfLow = (*difs)[(long)(N/100.*cf)];
-   *cfHigh = (*difs)[(long)(N-N/100.*cf)];
+   *ciLow = (*difs)[(long)(N/100.*cf)];
+   *ciHigh = (*difs)[(long)(N-N/100.*cf)];
 }//}}}
 }
