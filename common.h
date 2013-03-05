@@ -3,7 +3,9 @@
 
 #include<string>
 
-using namespace std;
+using std::string;
+
+const char bitseq_version[] = "0.5.0";
 
 #ifdef BIOC_BUILD
 
@@ -26,7 +28,7 @@ using namespace std;
 
 #endif
 
-void buildTime(char *argv0, string compileDate, string compileTime);
+void buildTime(char *argv0, string compileDate, string compileTime, const char *version = bitseq_version);
 
 bool progressLog(long cur,long outOf, long steps = 10);
 
