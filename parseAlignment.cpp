@@ -88,7 +88,7 @@ bool readNextFragment(samfile_t* samData, fragmentP &cur, fragmentP &next){//{{{
 
 extern "C" int parseAlignment(int *argc,char* argv[]){
 string programDescription =
-"Precomputes probabilities of (observed) reads' alignments.\n\
+"Pre-computes probabilities of (observed) reads' alignments.\n\
    [alignment file] should be in either SAM or BAM format.\n";
    TranscriptInfo *trInfo=NULL;
    TranscriptSequence *trSeq=NULL;
@@ -183,6 +183,19 @@ string programDescription =
       if(trInfo->L(i) != (long)(trSeq->getTr(i))->size()){
          error("Main: Transcript info length and sequence length of transcript %ld DO NOT MATCH! (%ld %d)\n",i,trInfo->L(i),(int)((trSeq->getTr(i))->size()));
          return 1;
+      }
+   }
+   // If there were gene names in transcript sequence, assign them to transcript info.
+   if(trSeq->hasGeneNames() && (trSeq->getG()>1)){
+      if(trInfo->getG() == 1){
+         // If just one gene present, then assign gene names.
+         if(args.verbose)message("Found gene names in sequence file, updating transcript information.\n");
+         trInfo->updateGeneNames(trSeq->getGeneNames());
+      }else{
+         // If there is more than one gene name already, don't fix.
+         if(trInfo->getG() != trSeq->getG()){
+            warning("Main: Different number of genes detected in transcript information and sequence file (%ld %ld).\n   You might want to check your data.\n", trInfo->getG(), trSeq->getG());
+         }
       }
    }
    if(!args.flag("uniform")){
