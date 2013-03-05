@@ -40,14 +40,14 @@ class Conditions{//{{{
    public:
       Conditions();
       void close();
-      long getRC(long c);
-      long getRN(){ return CN;}
-      long getC(){ return C;}
+      long getRC(long c) const;
+      long getRN() const { return CN;}
+      long getC() const { return C;}
       bool init(string trFileName, vector<string> filesGot, long *c, long *m, long *n);
       bool init(string trFileName, vector<string> filesGot, long *m, long *n);
       bool setNorm(vector<double> norms);
       bool getTranscript(long cond, long rep, long tr, vector<double> &trSamples);
       bool getTranscript(long cond, long tr, vector<double> &trSamples);
       bool getTranscript(long cond, long tr, vector<double> &trSamples, long samplesN);
-      bool logged(){return areLogged;}
+      bool logged() const { return areLogged; }
 };//}}}

@@ -39,11 +39,15 @@ struct paramT {//{{{
 // Retruns true if everything went OK.
 bool initializeOutputFile(long C, long M, long N, const ArgumentParser &args, ofstream *outF, ofstream outFiles[]);
 // For a given mean expression expr finds alpha and beta for which were estimated for a closes expression.
-void getParams(double expr,const vector<paramT> &params, double *alpha, double *beta);
+void getParams(double expr,const vector<paramT> &params, paramT *par);
 // Read hyperparameter from a file provided by flag --parameters.
 bool readParams(const ArgumentParser &args, vector<paramT> *params);
 // Reads and initializes files containing samples fro each condition and each replicate.
-bool readConditions(const ArgumentParser &args, long *C, long *M, long *N, Conditions *cond, bool *logged);
+bool readConditions(const ArgumentParser &args, long *C, long *M, long *N, Conditions *cond);
+// Read transcript m into tr and prepare mu_0 and mu_00, cond does not really change.
+void readNextTranscript(long m, long C, long N, Conditions *cond, const vector<paramT> &params, vector<vector<vector<double> > > *tr, vector<paramT> *curParams, double *mu_00);
+// Compute condfidence intervals.
+void computeCF(double cf, vector<long double> *difs, double *cfLow, double *cfHigh);
 
 }
 
@@ -72,27 +76,26 @@ string programDescription =
    long C,M,N;
    vector<ns_estimateDE::paramT> params;
    Conditions cond;
-   bool logged;
    ofstream outF;
    ofstream outFiles[C+1];
    // Open file with hyper parameters and read those in.
    if(!ns_estimateDE::readParams(args, &params)) return 1;
    // Initialize sample files handled by object cond.
-   if(!ns_estimateDE::readConditions(args, &C, &M, &N, &cond, &logged)) return 1;
+   if(!ns_estimateDE::readConditions(args, &C, &M, &N, &cond)) return 1;
    // Initialize output files.
    // Use standard array as we don't want to bother with vector of pointers.
    if(!ns_estimateDE::initializeOutputFile(C, M, N, args, &outF, outFiles)) return 1;
 
    // variables {{{
    vector<vector<vector<double> > > tr(C);
+   vector<ns_estimateDE::paramT> curParams(C);
    vector<vector<double> > samples(C,vector<double>(N));
    vector<double> vars(N);
-   vector<double> normMu(C);
-   vector<double> mu_0(C);
+   vector<double> mu_c(C);
 //   vector<vector<double> > mus(C,vector<double>(N,0));
 //   vector<double> vars(N);
    long c,m,n,r;
-   double prec,sum,sumSq,alpha,beta,betaPar,mu,al0,be0,mu_00,divC,divT;
+   double prec,sum,sumSq,alpha,beta,betaPar,mu_00,normMu;
    double lambda0 = args.getD("lambda0");
    long RC;
    MyTimer timer;
@@ -111,41 +114,14 @@ string programDescription =
    }//}}}
    for(m=0;m<M;m++){
       if(progressLog(m,M))timer.split();
-      // Read and prepare {{{
-      mu_00 = divT = 0;
-      for(c=0;c<C;c++){
-         mu_0[c]=0;
-         divC=0;
-         RC = cond.getRC(c);
-         if((long)tr[c].size() < RC){
-            tr[c].resize( RC );
-         }
-         for(r=0;r< RC;r++){
-            if(cond.getTranscript(c, r , m, tr[c][r]), N){
-               for(n=0;n<N;n++){
-                  if(!logged)tr[c][r][n] = (tr[c][r][n] == 0)? LOG_ZERO : log (tr[c][r][n] ); // NO LOGGING
-                  mu_0[c]+=tr[c][r][n];
-               }
-               divC+=1;
-            }else{
-               warning("Main: Condition %ld replicate %ld does not seem to have transcript %ld.\n",c,r,m);
-            }
-         }
-#ifdef BIOC_BUILD
-	 R_CheckUserInterrupt();
-#endif
-         mu_0[c] /= (divC * N); // take mean over all replicates
-         mu_00+=mu_0[c];
-         if(mu_0[c]!=0)divT++;
-      }
-      mu_00/=divT; 
-      //}}}
+      // Read into tr and assign hyperparameters into curParams, initialize mu_00.
+      // cond does not really change, just reads more data from file.
+      ns_estimateDE::readNextTranscript(m, C, N, &cond, params, &tr, &curParams, &mu_00);
       // Sample condition mean expressions {{{
       for(n=0;n<N;n++){
          for(c=0;c<C;c++){
             RC = cond.getRC(c);
-            ns_estimateDE::getParams(mu_0[c],params,&al0,&be0);
-            alpha = al0 + RC / 2.0;
+            alpha = curParams[c].alpha + RC / 2.0;
             betaPar = lambda0*mu_00*mu_00;
 
             sum=0;
@@ -156,26 +132,25 @@ string programDescription =
             }
             betaPar += sumSq - (lambda0*mu_00 + sum)*(lambda0*mu_00 + sum) /
                (lambda0 + RC);
-            normMu[c]= (lambda0*mu_00 + sum) / (lambda0 + RC);
-            beta = be0 + betaPar / 2 ;
+            normMu= (lambda0*mu_00 + sum) / (lambda0 + RC);
+            beta = curParams[c].beta + betaPar / 2 ;
             gammaDistribution.param(gDP(alpha, 1.0/beta));
             prec=gammaDistribution(rng_mt);
 
-            normalDistribution.param(nDP(normMu[c], 1/sqrt(prec *(lambda0 + RC))));
-            mu = normalDistribution(rng_mt);
-            // save sample
-            samples[c][n] = mu;
+            // Set parameter for normal distribution.
+            normalDistribution.param(nDP(normMu, 1/sqrt(prec *(lambda0 + RC))));
+            // Sample condition mean.
+            samples[c][n] = normalDistribution(rng_mt);
             vars[n] = 1/(prec *(lambda0 + RC));
          }
-#ifdef BIOC_BUILD
-	 R_CheckUserInterrupt();
-#endif
+         R_INTERUPT;
       }
       // }}}
+      // Compute condition mean, pplr(s) and fold change(s).
       for(c=0;c<C;c++){
-         mu_0[c] = 0;
-         for(n=0;n<N;n++)mu_0[c] +=samples[c][n];
-         mu_0[c] /= N;
+         mu_c[c] = 0;
+         for(n=0;n<N;n++)mu_c[c] +=samples[c][n];
+         mu_c[c] /= N;
       }
       pplr = 0;
       logFC = 0;
@@ -188,11 +163,9 @@ string programDescription =
       logFC /= log(2);
       logFC /= N;
       pplr /= N;
-      sort(difs.begin(),difs.end());
-      cfLow = difs[(long)(N/100.*args.getD("cf"))];
-      cfHigh = difs[(long)(N-N/100.*args.getD("cf"))];
+      ns_estimateDE::computeCF(args.getD("cf"), &difs, &cfLow, &cfHigh);
       outF<<pplr<<" "<<logFC<<" "<<cfLow<<" "<<cfHigh;
-      for(c=0;c<C;c++)outF<<" "<<mu_0[c];
+      for(c=0;c<C;c++)outF<<" "<<mu_c[c];
       outF<<endl;
       if(args.flag("samples")){//{{{
          for(c=0;c<C;c++){
@@ -276,16 +249,16 @@ bool initializeOutputFile(long C, long M, long N, const ArgumentParser &args, of
    return true;
 }//}}}
 
-void getParams(double expr,const vector<paramT> &params, double *alpha, double *beta){//{{{
+void getParams(double expr,const vector<paramT> &params, paramT *par){//{{{
    long i=0,j=params.size()-1,k;
    if(expr<=params[0].expr){
-      *alpha=params[0].alpha;
-      *beta=params[0].beta;
+      par->alpha=params[0].alpha;
+      par->beta=params[0].beta;
       return;
    }
    if(expr>=params[j].expr){
-      *alpha=params[j].alpha;
-      *beta=params[j].beta;
+      par->alpha=params[j].alpha;
+      par->beta=params[j].beta;
       return;
    }
    while(j-i>1){
@@ -296,8 +269,8 @@ void getParams(double expr,const vector<paramT> &params, double *alpha, double *
    if(expr-params[i].expr<params[j].expr-expr)k=i;
    else k=j;
    
-   *alpha=params[k].alpha;
-   *beta=params[k].beta;
+   par->alpha=params[k].alpha;
+   par->beta=params[k].beta;
 }//}}}
 
 bool readParams(const ArgumentParser &args, vector<paramT> *params){//{{{
@@ -319,7 +292,7 @@ bool readParams(const ArgumentParser &args, vector<paramT> *params){//{{{
    return true;
 }//}}}
 
-bool readConditions(const ArgumentParser &args, long *C, long *M, long *N, Conditions *cond, bool *logged){//{{{
+bool readConditions(const ArgumentParser &args, long *C, long *M, long *N, Conditions *cond){//{{{
    if(! cond->init("NONE", args.args(), C, M, N)){
       error("Main: Failed loading conditions.\n");
       return false;
@@ -330,12 +303,52 @@ bool readConditions(const ArgumentParser &args, long *C, long *M, long *N, Condi
          return false;
       }
    }
-   *logged = cond->logged();
-   if( (!*logged) && args.verb()){
+   if(!cond->logged() && args.verb()){
       message("Samples are not logged. (will log for you)\n");
       message("Using %lg as minimum instead of log(0).\n",LOG_ZERO);
    }
    if(args.verb())message("Sample files loaded.\n");
    return true;
+}//}}}
+
+void readNextTranscript(long m, long C, long N, Conditions *cond, const vector<paramT> &params, vector<vector<vector<double> > > *tr, vector<paramT> *curParams, double *mu_00){//{{{
+   double divT = 0, divC, mu_0;
+   long c,r,n,RC;
+   *mu_00 = 0;
+   for(c=0;c<C;c++){
+      mu_0=0;
+      divC=0;
+      RC = cond->getRC(c);
+      if((long)(*tr)[c].size() < RC){
+         (*tr)[c].resize( RC );
+      }
+      for(r=0;r<RC;r++){
+         if(cond->getTranscript(c, r , m, (*tr)[c][r]), N){
+            for(n=0;n<N;n++){
+               // Log the expression samples if the files don't have logged flag set.
+               if(!cond->logged())(*tr)[c][r][n] = ((*tr)[c][r][n] == 0)? LOG_ZERO : log ((*tr)[c][r][n] );
+               mu_0+=(*tr)[c][r][n];
+            }
+            divC+=1;
+         }else{
+            warning("Main: Condition %ld replicate %ld does not seem to have transcript %ld.\n",c,r,m);
+         }
+      }
+      R_INTERUPT;
+      if(divC>0){
+         mu_0 /= (divC * N); // take mean over all replicates
+         *mu_00+=mu_0;
+         divT++;
+      }
+      getParams(mu_0, params, &(*curParams)[c]);
+   }
+   *mu_00/=divT; 
+}//}}}
+
+void computeCF(double cf, vector<long double> *difs, double *cfLow, double *cfHigh){//{{{
+   double N = difs->size();
+   sort(difs->begin(),difs->end());
+   *cfLow = (*difs)[(long)(N/100.*cf)];
+   *cfHigh = (*difs)[(long)(N-N/100.*cf)];
 }//}}}
 }

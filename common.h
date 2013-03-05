@@ -10,11 +10,15 @@ using namespace std;
 #include <R.h>
 #include <R_ext/Utils.h>
 
+#define R_INTERUPT R_CheckUserInterrupt()
+
 #define message(...) Rprintf(__VA_ARGS__)
 
 #else
 
 #include<cstdio>
+
+#define R_INTERUPT
 
 #define message(...) printf(__VA_ARGS__)
 #define warning(...) {fprintf(stderr,"WARNING: ");fprintf(stderr, __VA_ARGS__);}
