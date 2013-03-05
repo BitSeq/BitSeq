@@ -77,7 +77,7 @@ SimpleSparse* readData(ArgumentParser &args){//{{{
    //message("Bad: %ld\n",bad);
    inFile.close();
    long Nhits,NreadsReal;
-   alignments->finalizeRead(M, NreadsReal, Nhits);
+   alignments->finalizeRead(&M, &NreadsReal, &Nhits);
    //}}}
    if(i<Nmap)message("Read only %ld reads.\n",NreadsReal);
    message("Finished Reading!\nTotal hits = %ld\n",Nhits);

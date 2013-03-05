@@ -20,7 +20,7 @@ class TagAlignments{
       void init(long Nreads = 0,long Ntotal = 0,long M = 0);
       void pushAlignment(long trId, double prob);
       void pushRead();
-      void finalizeRead(long &M, long &Nreads, long &Ntotal);
+      void finalizeRead(long *M, long *Nreads, long *Ntotal);
       int_least32_t getTrId(long i) const;
       double getProb(long i) const;
       int_least32_t getReadsI(long i) const;
