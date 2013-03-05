@@ -6,75 +6,91 @@ ARCH = -mtune=generic
 
 COFLAGS = $(ARCH) -O3 -pipe
 CXXFLAGS = -Wall $(COFLAGS)
-
-PROGRAMS = extractSamples getGeneExpression getWithinGeneExpression estimateExpression transposeLargeFile estimateDE getVariance estimateHyperPar getPPLR convertSamples parseAlignment getFoldChange
 BOOSTFLAGS = -I .
 OPENMP = -fopenmp -DSUPPORT_OPENMP
 
+PROGRAMS = \
+   convertSamples \
+   estimateDE \
+   estimateExpression \
+   estimateHyperPar \
+   extractSamples \
+   getFoldChange \
+   getGeneExpression \
+   getPPLR \
+   getVariance \
+   getWithinGeneExpression \
+   parseAlignment \
+   transposeLargeFile
+
 all: $(PROGRAMS)
 
-extractSamples: extractSamples.cpp common.o ArgumentParser.o PosteriorSamples.o common.h
-	$(CXX) $(CXXFLAGS) extractSamples.cpp common.o ArgumentParser.o PosteriorSamples.o -o extractSamples
+# PROGRAMS:
+convertSamples: convertSamples.cpp ArgumentParser.o common.o TranscriptInfo.o
+	$(CXX) $(CXXFLAGS) convertSamples.cpp ArgumentParser.o common.o TranscriptInfo.o -o convertSamples
 
-getFoldChange: getFoldChange.cpp common.o ArgumentParser.o PosteriorSamples.o 
-	$(CXX) $(CXXFLAGS) getFoldChange.cpp common.o ArgumentParser.o PosteriorSamples.o -o getFoldChange
+estimateDE: estimateDE.cpp ArgumentParser.o common.o misc.o PosteriorSamples.o
+	$(CXX) $(CXXFLAGS) $(BOOSTFLAGS) estimateDE.cpp ArgumentParser.o common.o misc.o PosteriorSamples.o -o estimateDE
 
-getGeneExpression: getGeneExpression.cpp common.o ArgumentParser.o TranscriptInfo.o PosteriorSamples.o common.h
-	$(CXX) $(CXXFLAGS) getGeneExpression.cpp common.o ArgumentParser.o TranscriptInfo.o PosteriorSamples.o -o getGeneExpression
+estimateExpression: estimateExpression.cpp ArgumentParser.o CollapsedSampler.o common.o GibbsParameters.o GibbsSampler.o Sampler.o TagAlignments.o TranscriptInfo.o transposeFiles.o
+	$(CXX) $(CXXFLAGS) $(BOOSTFLAGS) $(OPENMP) estimateExpression.cpp ArgumentParser.o CollapsedSampler.o common.o GibbsParameters.o GibbsSampler.o Sampler.o TagAlignments.o TranscriptInfo.o transposeFiles.o -o estimateExpression
 
-getWithinGeneExpression: getWithinGeneExpression.cpp common.o ArgumentParser.o TranscriptInfo.o PosteriorSamples.o common.h
-	$(CXX) $(CXXFLAGS) getWithinGeneExpression.cpp common.o ArgumentParser.o TranscriptInfo.o PosteriorSamples.o -o getWithinGeneExpression
+estimateHyperPar: estimateHyperPar.cpp ArgumentParser.o common.o lowess.o misc.o PosteriorSamples.o TranscriptExpression.o 
+	$(CXX) $(CXXFLAGS) $(BOOSTFLAGS) estimateHyperPar.cpp ArgumentParser.o common.o lowess.o misc.o PosteriorSamples.o TranscriptExpression.o -o estimateHyperPar
 
-parseAlignment: parseAlignment.cpp common.o ArgumentParser.o TranscriptInfo.o TranscriptSequence.o TranscriptExpression.o ReadDistribution.o samtools/sam.o
-	$(CXX) $(CXXFLAGS) $(OPENMP) -Isamtools samtools/*.o common.o ArgumentParser.o TranscriptInfo.o TranscriptSequence.o TranscriptExpression.o ReadDistribution.o parseAlignment.cpp -lz -o parseAlignment
+extractSamples: extractSamples.cpp ArgumentParser.o common.o PosteriorSamples.o
+	$(CXX) $(CXXFLAGS) extractSamples.cpp ArgumentParser.o common.o PosteriorSamples.o -o extractSamples
 
+getFoldChange: getFoldChange.cpp ArgumentParser.o common.o PosteriorSamples.o 
+	$(CXX) $(CXXFLAGS) getFoldChange.cpp ArgumentParser.o common.o PosteriorSamples.o -o getFoldChange
+
+getGeneExpression: getGeneExpression.cpp ArgumentParser.o common.o PosteriorSamples.o TranscriptInfo.o
+	$(CXX) $(CXXFLAGS) getGeneExpression.cpp ArgumentParser.o common.o PosteriorSamples.o TranscriptInfo.o -o getGeneExpression
+
+getPPLR: getPPLR.cpp ArgumentParser.o common.o PosteriorSamples.o
+	$(CXX) $(CXXFLAGS) getPPLR.cpp ArgumentParser.o common.o PosteriorSamples.o -o getPPLR
+
+getVariance: getVariance.cpp ArgumentParser.o common.o PosteriorSamples.o
+	$(CXX) $(CXXFLAGS) getVariance.cpp ArgumentParser.o common.o PosteriorSamples.o -o getVariance
+
+getWithinGeneExpression: getWithinGeneExpression.cpp ArgumentParser.o common.o PosteriorSamples.o TranscriptInfo.o
+	$(CXX) $(CXXFLAGS) getWithinGeneExpression.cpp ArgumentParser.o common.o PosteriorSamples.o TranscriptInfo.o -o getWithinGeneExpression
+
+parseAlignment: parseAlignment.cpp ArgumentParser.o common.o ReadDistribution.o samtools/sam.o TranscriptExpression.o TranscriptInfo.o TranscriptSequence.o
+	$(CXX) $(CXXFLAGS) $(OPENMP) -Isamtools parseAlignment.cpp ArgumentParser.o common.o ReadDistribution.o samtools/*.o TranscriptExpression.o TranscriptInfo.o TranscriptSequence.o -lz -o parseAlignment
+
+transposeLargeFile: transposeLargeFile.cpp ArgumentParser.o common.o transposeFiles.o
+	$(CXX) $(CXXFLAGS) transposeLargeFile.cpp ArgumentParser.o common.o transposeFiles.o -o transposeLargeFile
+
+# LIBRARIES:
+CollapsedSampler.o: CollapsedSampler.cpp CollapsedSampler.h GibbsParameters.h Sampler.h
+	$(CXX) $(CXXFLAGS) $(BOOSTFLAGS) -c CollapsedSampler.cpp
+
+GibbsSampler.o: GibbsSampler.cpp GibbsSampler.h GibbsParameters.h Sampler.h
+	$(CXX) $(CXXFLAGS) $(BOOSTFLAGS) -c GibbsSampler.cpp
+
+ReadDistribution.o: ReadDistribution.cpp ReadDistribution.h TranscriptExpression.h TranscriptInfo.h TranscriptSequence.h 
+	$(CXX) $(CXXFLAGS) $(OPENMP) -Isamtools -c ReadDistribution.cpp
+
+Sampler.o: Sampler.cpp Sampler.h GibbsParameters.h
+	$(CXX) $(CXXFLAGS) $(BOOSTFLAGS) -c Sampler.cpp
+
+ArgumentParser.o: ArgumentParser.cpp ArgumentParser.h
+common.o: common.cpp common.h
+GibbsParameters.o: ArgumentParser.h GibbsParameters.cpp GibbsParameters.h
+lowess.o: lowess.cpp lowess.h
+misc.o: ArgumentParser.h PosteriorSamples.h misc.cpp misc.h
+PosteriorSamples.o: PosteriorSamples.cpp PosteriorSamples.h FileHeader.h
+TagAlignments.o: TagAlignments.cpp TagAlignments.h
+TranscriptExpression.o: TranscriptExpression.cpp TranscriptExpression.h
+TranscriptInfo.o: TranscriptInfo.cpp TranscriptInfo.h
+TranscriptSequence.o: TranscriptSequence.cpp TranscriptSequence.h
+transposeFiles.o: transposeFiles.cpp transposeFiles.h FileHeader.h
+
+# EXTERNAL LIBRARIES:
 samtools/sam.o:
 	make --directory samtools
 
-convertSamples: convertSamples.cpp common.o ArgumentParser.o TranscriptInfo.o
-	$(CXX) $(CXXFLAGS) convertSamples.cpp common.o ArgumentParser.o  TranscriptInfo.o -o convertSamples
-
-getPPLR:  getPPLR.cpp common.o ArgumentParser.o PosteriorSamples.o
-	$(CXX) $(CXXFLAGS) getPPLR.cpp common.o ArgumentParser.o PosteriorSamples.o -o getPPLR
-
-estimateHyperPar: estimateHyperPar.cpp common.o PosteriorSamples.o ArgumentParser.o lowess.o TranscriptExpression.o 
-	$(CXX) $(CXXFLAGS) $(BOOSTFLAGS) estimateHyperPar.cpp common.o PosteriorSamples.o ArgumentParser.o TranscriptExpression.o lowess.o -o estimateHyperPar
-
-estimateDE:  estimateDE.cpp common.o PosteriorSamples.o ArgumentParser.o
-	$(CXX) $(CXXFLAGS) $(BOOSTFLAGS) estimateDE.cpp common.o PosteriorSamples.o ArgumentParser.o -o estimateDE
-
-estimateExpression:  estimateExpression.cpp common.o ArgumentParser.o Sampler.o GibbsSampler.o CollapsedSampler.o GibbsParameters.o TranscriptInfo.o transposeFiles.o TagAlignments.o
-	$(CXX) $(CXXFLAGS) $(BOOSTFLAGS) $(OPENMP) estimateExpression.cpp common.o ArgumentParser.o Sampler.o GibbsSampler.o CollapsedSampler.o GibbsParameters.o TranscriptInfo.o transposeFiles.o TagAlignments.o -o estimateExpression
-
-getVariance:  getVariance.cpp common.o PosteriorSamples.o ArgumentParser.o
-	$(CXX) $(CXXFLAGS) getVariance.cpp common.o PosteriorSamples.o ArgumentParser.o -o getVariance
-
-transposeLargeFile: common.o transposeFiles.o ArgumentParser.o
-	$(CXX) $(CXXFLAGS) transposeLargeFile.cpp common.o transposeFiles.o ArgumentParser.o -o transposeLargeFile
-
-GibbsSampler.o: GibbsSampler.h GibbsSampler.cpp Sampler.o GibbsParameters.o
-	$(CXX) $(CXXFLAGS) $(BOOSTFLAGS) -c GibbsSampler.cpp
-
-CollapsedSampler.o: CollapsedSampler.h CollapsedSampler.cpp Sampler.o GibbsParameters.o
-	$(CXX) $(CXXFLAGS) $(BOOSTFLAGS) -c CollapsedSampler.cpp
-
-Sampler.o: Sampler.cpp Sampler.h GibbsParameters.o
-	$(CXX) $(CXXFLAGS) $(BOOSTFLAGS) -c Sampler.cpp
-
-ReadDistribution.o: ReadDistribution.cpp ReadDistribution.h TranscriptInfo.o TranscriptSequence.o TranscriptExpression.o 
-	$(CXX) $(CXXFLAGS) $(OPENMP) -Isamtools -c ReadDistribution.cpp
-
-TagAlignments.o: TagAlignments.cpp TagAlignments.h
-transposeFiles.o: transposeFiles.cpp transposeFiles.h FileHeader.h
-GibbsParameters.o: GibbsParameters.cpp GibbsParameters.h
-ArgumentParser.o: ArgumentParser.cpp ArgumentParser.h
-lowess.o: lowess.cpp lowess.h
-TranscriptInfo.o: TranscriptInfo.cpp TranscriptInfo.h
-TranscriptSequence.o: TranscriptSequence.cpp TranscriptSequence.h
-TranscriptExpression.o: TranscriptExpression.cpp TranscriptExpression.h
-PosteriorSamples.o: PosteriorSamples.cpp PosteriorSamples.h FileHeader.h
-common.o: common.cpp common.h
-
+# CLEAN:
 clean:
 	rm samtools/*.o *.o $(PROGRAMS)
-

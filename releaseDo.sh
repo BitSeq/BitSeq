@@ -1,5 +1,9 @@
 #!/bin/bash
 
+# Script that automizes creating new BitSeq release.
+# Copies relevant files listed in releaseList, uses _release_Makefile as new Makefile
+# (make sure it's correct) and copies directories boost and samtools.
+
 if [ $# -ne 1 ]
 then
    echo "reselaseDo.sh [dirName]"
