@@ -45,7 +45,7 @@ void TranscriptInfo::setGeneInfo(){//{{{
    geneT tmpG;
    long gi=0,i;
    groupedByGenes = true;
-   string previousName = "-noname-";
+   string previousName = "!-noname-!";
    for(i=0;i<M;i++){
       // If gene name same as previous, then just add new transcript.
       if(transcripts[i].g == previousName){
