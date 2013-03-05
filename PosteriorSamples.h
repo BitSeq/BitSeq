@@ -1,3 +1,6 @@
+#ifndef POSTERIORSAMPLES_H
+#define POSTERIORSAMPLES_H
+
 #include<vector>
 #include<fstream>
 #include<string>
@@ -51,3 +54,5 @@ class Conditions{//{{{
       bool getTranscript(long cond, long tr, vector<double> &trSamples, long samplesN);
       bool logged() const { return areLogged; }
 };//}}}
+
+#endif
