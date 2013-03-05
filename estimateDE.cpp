@@ -66,6 +66,7 @@ string programDescription =
    args.addOptionD("l","lambda0","lambda0",0,"Parameter lambda_0.",LAMBDA_0);
    args.addOptionD("c","confidencePerc","cf",0,"Percentage for confidence intervals.", 5);
    args.addOptionS("","norm","normalization",0,"Normalization constants for each input file provided as comma separated list of doubles (e.g. 1.0017,1.0,0.9999 ).");
+   args.addOptionL("s","seed","seed",0,"Random initialization seed.");
    if(!args.parse(*argc,argv))return 0;
    //}}}
    /*
@@ -99,7 +100,11 @@ string programDescription =
    double lambda0 = args.getD("lambda0");
    long RC;
    MyTimer timer;
-   boost::random::mt11213b rng_mt(time(NULL));
+   long seed;
+   if(args.isSet("seed"))seed=args.getL("seed");
+   else seed = time(NULL);
+   if(args.verbose)message("seed: %ld\n",seed);
+   boost::random::mt11213b rng_mt(seed);
    boost::random::gamma_distribution<long double> gammaDistribution;
    typedef boost::random::gamma_distribution<long double>::param_type gDP;
    boost::random::normal_distribution<long double> normalDistribution;
