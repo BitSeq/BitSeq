@@ -100,7 +100,6 @@ extern "C" int estimateVBExpression(int *argc, char* argv[]) {//{{{
 string programDescription =
 "Estimates expression given precomputed probabilities of (observed) reads' alignments.\n\
    Uses Variational Bayes algorithm to produce parameters for distribution  of relative abundances.\n";
-   buildTime(argv[0],__DATE__,__TIME__);
    // Set options {{{
    ArgumentParser args;
    args.init(programDescription,"[prob file]",1);
@@ -113,6 +112,7 @@ string programDescription =
    args.addOptionL("","maxIter","maxIter",0,"Maximum number of iterations.");
    args.addOptionL("P","procN","procN",0,"Limit the maximum number of threads to be used.",1);
    if(!args.parse(*argc,argv))return 0;
+   if(args.verbose)buildTime(argv[0],__DATE__,__TIME__);
    OPT_TYPE optM;
    if(args.isSet("optMethod")){
       if(args.getS("optMethod")=="steepest")optM = OPTT_STEEPEST;

@@ -433,7 +433,6 @@ clearDataEE();
 string programDescription =
 "Estimates expression given precomputed probabilities of (observed) reads' alignments.\n\
    Uses MCMC sampling algorithm to produce relative abundance or RPKM.\n";
-   buildTime(argv[0],__DATE__,__TIME__);
    // Set options {{{
    ArgumentParser args;
    args.init(programDescription,"[prob file]",1);
@@ -455,6 +454,7 @@ string programDescription =
    args.addOptionB("","scaleReduction","scaleReduction",0,"Use scale reduction as stopping criterion, instead of computing effective sample size.");
    args.addOptionL("s","seed","seed",0,"Random initialization seed.");
    if(!args.parse(*argc,argv))return 0;
+   if(args.verbose)buildTime(argv[0],__DATE__,__TIME__);
    // }}}
    MyTimer timer;
 #ifdef SUPPORT_OPENMP

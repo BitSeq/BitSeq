@@ -13,7 +13,6 @@ using namespace std;
 #include "common.h"
 
 extern "C" int getGeneExpression(int *argc,char* argv[]){
-   buildTime(argv[0],__DATE__,__TIME__);
    string programDescription=
 "Computes expression of whole genes.\n\
    [sampleFiles] should contain transposed MCMC samples which are transformed into gene expression samples.";   
@@ -25,6 +24,7 @@ extern "C" int getGeneExpression(int *argc,char* argv[]){
    args.addOptionS("o","outFile","outFileName",1,"Name of the output file.");
    args.addOptionB("l","log","log",0,"Output logged values.");
    if(!args.parse(*argc,argv))return 0;
+   if(args.verbose)buildTime(argv[0],__DATE__,__TIME__);
    // }}}
    bool doLog=args.flag("log"),doAdjust=args.flag("adjust")||args.flag("rpkm"),doRPKM=args.flag("rpkm");
 

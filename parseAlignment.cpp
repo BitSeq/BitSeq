@@ -98,7 +98,6 @@ string programDescription =
    long M=0,i;
    samfile_t *samData=NULL;
    // Intro: {{{
-   buildTime(argv[0],__DATE__,__TIME__);
    // Set options {{{
    ArgumentParser args(programDescription,"[alignment file]",1);
    args.addOptionS("o","outFile","outFileName",1,"Name of the output file.");
@@ -116,6 +115,7 @@ string programDescription =
    args.addOptionB("V","veryVerbose","veryVerbose",0,"Very verbose output.");
    args.addOptionL("","noiseMismatches","numNoiseMismatches",0,"Number of mismatches to be considered as noise.",LOW_PROB_MISSES);
    if(!args.parse(*argc,argv))return 0;
+   if(args.verbose)buildTime(argv[0],__DATE__,__TIME__);
 #ifdef SUPPORT_OPENMP
    omp_set_num_threads(args.getL("procN"));
 #endif

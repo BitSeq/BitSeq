@@ -15,7 +15,6 @@ using namespace std;
 #define LOG_ZERO -1000
 
 extern "C" int getVariance(int *argc,char* argv[]){
-   buildTime(argv[0],__DATE__,__TIME__);
    string programDescription=
 "Estimates variance of MCMC samples from 1 or multiple replicates.\n\
    [sample Files] should contain transposed MCMC samples from replicates.";   
@@ -26,6 +25,7 @@ extern "C" int getVariance(int *argc,char* argv[]){
    args.addOptionS("t","type","type",0,"Type of variance, possible values: [sample,sqDif] for sample variance or squared difference.","sample");
    args.addOptionS("","norm","normalization",0,"Normalization constants for each input file provided as comma separated list of doubles (e.g. 1.0017,1.0,0.9999 ).");
    if(!args.parse(*argc,argv)){return 0;}
+   if(args.verbose)buildTime(argv[0],__DATE__,__TIME__);
    bool doLog=args.flag("log");
    if(doLog){ if(args.verbose)message("Using logged values.\n");}
    else{ if(args.verbose)message("NOT using logged values.\n");}
