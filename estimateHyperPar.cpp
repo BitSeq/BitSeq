@@ -39,7 +39,6 @@ string programDescription =
    To distinguish conditions use C between them e.g.:\n\
       samplesC1-R1.rpkm samplesC1-R2.rpkm C samplesC2-R1.rpkm samplesC2-R2.rpkm";
    // Intro: {{{
-   buildTime(argv[0],__DATE__,__TIME__);
    // Set options {{{
    ArgumentParser args(programDescription,"[sampleFiles]",1);
    args.addOptionB("V","veryVerbose","veryVerbose",0,"More verbose output.");
@@ -57,6 +56,7 @@ string programDescription =
    args.addOptionS("","norm","normalization",0,"Normalization constants for each input file provided as comma separated list of doubles (e.g. 1.0017,1.0,0.9999 ).");
    args.addOptionL("","seed","seed",0,"Random initialization seed.");
    if(!args.parse(*argc,argv))return 0;
+   if(args.verbose)buildTime(argv[0],__DATE__,__TIME__);
    // }}}
 
    MyTimer timer;

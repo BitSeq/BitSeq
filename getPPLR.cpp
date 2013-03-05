@@ -19,7 +19,6 @@ long getIndex(long N){ // returns index, without checking for duplicates
 }
 
 int main(int argc,char* argv[]){
-   buildTime(argv[0],__DATE__,__TIME__);
    string programDescription=
 "Computes PPLR from MCMC expression samples.\n\
    (the probability of second condition being up-regulated)\n\
@@ -32,6 +31,7 @@ int main(int argc,char* argv[]){
    args.addOptionB("d","distribution","distribution",0,"Produce whole distribution of differences.");
    args.addOptionS("s","selectFile","selectFileName",0,"File containing list of selected transcript IDs, only these will be reported. Only works with --distribution option.");
    if(!args.parse(argc,argv))return 0;
+   if(args.verbose)buildTime(argv[0],__DATE__,__TIME__);
    // }}}
 
    long i,m,N,M;

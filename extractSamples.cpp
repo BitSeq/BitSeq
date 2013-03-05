@@ -35,7 +35,6 @@ vector <long> tokenizer(const string &input,const string &space = " "){//{{{
 
 int main(int argc,char* argv[]){
    srand(time(NULL));
-   buildTime(argv[0],__DATE__,__TIME__);
    string programDescription=
 "Extracts MCMC samples of selected transcripts.\n\
    [sampleFiles] should contain transposed MCMC samples.";   
@@ -45,6 +44,7 @@ int main(int argc,char* argv[]){
    args.addOptionS("L","list","list",0,"Comma delimited list of ZERO-BASED transcript ids (i.e. lines) which should be extracted: 0,17,47,1024,4777");
    args.addOptionL("r","random","randomN",0,"Choose random [randomN] transcripts.");
    if(!args.parse(argc,argv))return 0;
+   if(args.verbose)buildTime(argv[0],__DATE__,__TIME__);
    // }}}
    long i,j,c,C,N,M=0,S;
    vector<long> trList;

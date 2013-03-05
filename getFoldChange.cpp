@@ -15,7 +15,6 @@ using namespace std;
 
 
 int main(int argc,char* argv[]){
-   buildTime(argv[0],__DATE__,__TIME__);
    string programDescription=
 "Computes log_2 Fold Change from MCMC expression samples.\n\
    [sampleFiles] should contain transposed MCMC samples from replicates.\n\
@@ -26,6 +25,7 @@ int main(int argc,char* argv[]){
    args.addOptionB("l","log","log",0,"Use logged values.");
 //   args.addOptionS("t","type","type",0,"Type of variance, possible values: [sample,sqDif] for sample variance or sqared difference.","sample");
    if(!args.parse(argc,argv))return 0;
+   if(args.verbose)buildTime(argv[0],__DATE__,__TIME__);
    // }}}
    bool doLog=args.flag("log");
    if(doLog){

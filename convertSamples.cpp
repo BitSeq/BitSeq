@@ -14,7 +14,6 @@ using namespace std;
 #define Sof(x) (long)x.size()
 
 int main(int argc,char* argv[]){
-   buildTime(argv[0],__DATE__,__TIME__);
    string programDescription=
 "Converts or normalizes MCMC expression samples.\n\
    [sampleFile] should contain transposed MCMC samples.";
@@ -26,6 +25,7 @@ int main(int argc,char* argv[]){
    args.addOptionD("","Nmap","Nmap",0,"Total number of aligned reads. Or a normalization constant, when normalizing.");
    args.addOptionS("t","trInfoFile","trInfoFileName",0,"File containing transcript information.");
    if(!args.parse(argc,argv))return 0;
+   if(args.verbose)buildTime(argv[0],__DATE__,__TIME__);
    // }}}
    
    long M=0,i,j,m,N;

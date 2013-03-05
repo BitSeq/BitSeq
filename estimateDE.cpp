@@ -49,7 +49,6 @@ string programDescription =
    To distinguish conditions use C between them e.g.:\n\
       samplesC1-R1.rpkm samplesC1-R2.rpkm C samplesC2-R1.rpkm samplesC2-R2.rpkm";
    // Intro: {{{
-   buildTime(argv[0],__DATE__,__TIME__);
    ArgumentParser args(programDescription,"[sampleFiles]",1);
    args.addOptionS("o","outPrefix","outFilePrefix",1,"Prefix for the output files.");
    args.addOptionS("p","parameters","parFileName",1,"File containing estimated hyperparameters.");
@@ -59,6 +58,7 @@ string programDescription =
    args.addOptionS("","norm","normalization",0,"Normalization constants for each input file provided as comma separated list of doubles (e.g. 1.0017,1.0,0.9999 ).");
    args.addOptionL("","seed","seed",0,"Random initialization seed.");
    if(!args.parse(*argc,argv))return 0;
+   if(args.verbose)buildTime(argv[0],__DATE__,__TIME__);
    //}}}
    /*
     * N - number of samples in one replicate (the smallest number for replicates with different N_r)
