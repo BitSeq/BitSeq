@@ -101,11 +101,13 @@ string programDescription =
          error("Main: Input file open failed.\n");
          return 1;
       }
-      char buf[300];
+      // Copy header lines.
+      string strBuffer;
       while((paramsF.good())&&(paramsF.peek()=='#')){
-         paramsF.getline(buf,300);
-         outF<<buf<<endl;
+         getline(paramsF,strBuffer,'\n');
+         outF<<strBuffer<<endl;
       }
+      // Read parameters.
       while(paramsF.good()){
          while((paramsF.good())&&(paramsF.peek()=='#')){
             paramsF.ignore(10000000,'\n');

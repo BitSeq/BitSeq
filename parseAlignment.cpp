@@ -170,12 +170,15 @@ string programDescription =
    }//}}}
    // Read expression and initialize transcript sequence {{{
    if(args.verbose)message("Initializing fasta sequence reader.\n");
+   // Initialize fasta sequence reader.
    trSeq = new TranscriptSequence();
    trSeq->readSequence(args.getS("trSeqFileName")); 
+   // Check numbers for transcripts match.
    if(trSeq->getM() != M){
       error("Main: Number of transcripts in the alignment(%s) file and the sequence file are different: %ld vs %ld\n",args.getS("format").c_str(),M,trSeq->getM());
       return 1;
    }
+   // Check that length of each transcript matches.
    for(i=0;i<M;i++){
       if(trInfo->L(i) != (long)(trSeq->getTr(i))->size()){
          error("Main: Transcript info length and sequence length of transcript %ld DO NOT MATCH! (%ld %d)\n",i,trInfo->L(i),(int)((trSeq->getTr(i))->size()));
@@ -183,6 +186,7 @@ string programDescription =
       }
    }
    if(!args.flag("uniform")){
+      // Try loading expression file from previous estimation for non-uniform read model.
       if(args.isSet("expFileName")){
          if(args.verbose)message("Loading transcript initial expression data.\n");
          trExp = new TranscriptExpression(args.getS("expFileName"));
