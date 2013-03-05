@@ -46,7 +46,7 @@ bool readParams(const ArgumentParser &args, vector<paramT> *params);
 bool readConditions(const ArgumentParser &args, long *C, long *M, long *N, Conditions *cond);
 // Read transcript m into tr and prepare mu_0 and mu_00, cond does not really change.
 void readNextTranscript(long m, long C, long N, Conditions *cond, const vector<paramT> &params, vector<vector<vector<double> > > *tr, vector<paramT> *curParams, double *mu_00);
-// Compute condfidence intervals.
+// Compute confidence intervals.
 void computeCI(double cf, vector<double> *difs, double *ciLow, double *ciHigh);
 
 }
@@ -66,7 +66,7 @@ string programDescription =
    args.addOptionD("l","lambda0","lambda0",0,"Parameter lambda_0.",LAMBDA_0);
    args.addOptionD("c","confidencePerc","cf",0,"Percentage for confidence intervals.", 5);
    args.addOptionS("","norm","normalization",0,"Normalization constants for each input file provided as comma separated list of doubles (e.g. 1.0017,1.0,0.9999 ).");
-   args.addOptionL("s","seed","seed",0,"Random initialization seed.");
+   args.addOptionL("","seed","seed",0,"Random initialization seed.");
    if(!args.parse(*argc,argv))return 0;
    //}}}
    /*
@@ -77,13 +77,13 @@ string programDescription =
    long C,M,N;
    vector<ns_estimateDE::paramT> params;
    Conditions cond;
-   ofstream outF;
-   ofstream outFiles[C+1];
    // Open file with hyper parameters and read those in.
    if(!ns_estimateDE::readParams(args, &params)) return 1;
    // Initialize sample files handled by object cond.
    if(!ns_estimateDE::readConditions(args, &C, &M, &N, &cond)) return 1;
    // Initialize output files.
+   ofstream outF;
+   ofstream outFiles[C+1];
    // Use standard array as we don't want to bother with vector of pointers.
    if(!ns_estimateDE::initializeOutputFile(C, M, N, args, &outF, outFiles)) return 1;
 
@@ -122,6 +122,8 @@ string programDescription =
       // Read into tr and assign hyperparameters into curParams, initialize mu_00.
       // cond does not really change, just reads more data from file.
       ns_estimateDE::readNextTranscript(m, C, N, &cond, params, &tr, &curParams, &mu_00);
+      // Zero "mean condition mean expression".
+      mu_c.assign(C,0);
       // Sample condition mean expressions {{{
       for(n=0;n<N;n++){
          for(c=0;c<C;c++){
@@ -151,17 +153,13 @@ string programDescription =
             normalDistribution.param(nDP(normMu, sqrt(var)));
             // Sample condition mean.
             samples[c][n] = normalDistribution(rng_mt);
+            mu_c[c] += samples[c][n];
          }
          R_INTERUPT;
       }
       // }}}
-      // Compute condition mean for each condition. {{{
-      for(c=0;c<C;c++){
-         mu_c[c] = 0;
-         for(n=0;n<N;n++)mu_c[c] +=samples[c][n];
-         mu_c[c] /= N;
-      }
-      // }}}
+      // Compute condition mean for each condition.
+      for(c=0;c<C;c++) mu_c[c] /= N;
       // Calculate and write pplr for each pair of conditions. {{{
       for(c=0;c<C;c++){
          for(c2=c+1;c2<C;c2++){
@@ -234,9 +232,9 @@ bool initializeOutputFile(long C, long M, long N, const ArgumentParser &args, of
             return false;
          }
          // Write header for samples file.
-         outFiles[c]<<"# Inferred means\n";
-         outFiles[c]<<"# condition "<<c<<endl;
-         outFiles[c]<<"# ";
+         outFiles[c]<<"# Inferred condition mean log expression.\n"
+                      "# condition "<<c+1
+                    <<"\n# ";
          for(long i=0;i<(long)args.args().size();i++){
             outFiles[c]<<args.args()[i]<<" ";
          }
@@ -250,8 +248,10 @@ bool initializeOutputFile(long C, long M, long N, const ArgumentParser &args, of
          return false;
       }
       // Write header for variance file.
-      outFiles[C]<<"# infered variances\n";
-      outFiles[C]<<"\n# lambda_0 "<<args.getD("lambda0")<<"\n# T \n# M "<<M<<"\n# N "<<N<<endl;
+      outFiles[C]<<"# Inferred variances in last condition.\n"
+                   "# lambda_0 "<<args.getD("lambda0")
+                 <<"\n# T \n# M "<<M<<"\n# N "<<N
+                 <<endl;
    }
    // Initialize PPLR file.
    string outFileName = args.getS("outFilePrefix")+".pplr";
@@ -265,8 +265,17 @@ bool initializeOutputFile(long C, long M, long N, const ArgumentParser &args, of
    for(long i=0;i<(long)args.args().size();i++){
       *outF<<args.args()[i]<<" ";
    }
-   *outF<<"\n# lambda_0 "<<args.getD("lambda0")<<"\n# T \n# M "<<M<<"\n# N "<<N<<"\n# Columns:\n";
-   *outF<<"# PPLR log2FC ConfidenceLow ConfidenceHigh [mean condition mean expressions]"<<endl;
+   *outF<<"\n# lambda_0 "<<args.getD("lambda0")<<"\n# T \n# M "<<M<<"\n# N "<<N<<"\n"
+        <<"# Conditions: C "<<C<<" Condition pairs("<<C*(C-1)/2<<"): ";
+   for(long c=0;c<C;c++)
+      for(long c2=c+1;c2<C;c2++)
+      *outF<<c+1<<"~"<<c2+1<<" ";
+   *outF<<"\n# Columns contain PPLR for each pair of conditions, "
+          "log2 fold change for each pair of conditions and "
+          "log mean condition mean expression for each condition.\n"
+          "# CPxPPLR CPx(log2FC ConfidenceLow ConfidenceHigh) "
+          "Cx(log mean condition mean expressions)"
+        <<endl;
    return true;
 }//}}}
 
