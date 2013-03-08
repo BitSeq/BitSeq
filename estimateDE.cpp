@@ -37,8 +37,6 @@ bool initializeOutputFile(long C, long M, long N, const ArgumentParser &args, of
 void getParams(double expr,const vector<paramT> &params, paramT *par);
 // Read transcript m into tr and prepare mu_0 and mu_00, cond does not really change.
 void readNextTranscript(long m, long C, long N, Conditions *cond, const vector<paramT> &params, vector<vector<vector<double> > > *tr, vector<paramT> *curParams, double *mu_00);
-// Compute confidence intervals.
-void computeCI(double cf, vector<double> *difs, double *ciLow, double *ciHigh);
 
 }
 
@@ -54,7 +52,7 @@ string programDescription =
    args.addOptionS("p","parameters","parFileName",1,"File containing estimated hyperparameters.");
    args.addOptionB("s","samples","samples",0,"Produce samples of condition mean expression apart from PPLR and confidence.");
    args.addOptionD("l","lambda0","lambda0",0,"Parameter lambda_0.",LAMBDA_0);
-   args.addOptionD("c","confidencePerc","cf",0,"Percentage for confidence intervals.", 5);
+   args.addOptionD("","confidenceInterval","cf",0,"Percentage for confidence intervals.", 95);
    args.addOptionS("","norm","normalization",0,"Normalization constants for each input file provided as comma separated list of doubles (e.g. 1.0017,1.0,0.9999 ).");
    args.addOptionL("","seed","seed",0,"Random initialization seed.");
    if(!args.parse(*argc,argv))return 0;
@@ -164,7 +162,9 @@ string programDescription =
          for(c2=c+1;c2<C;c2++){
             for(n=0;n<N;n++)
                difs[n] = samples[c2][n]-samples[c][n];
-            ns_estimateDE::computeCI(args.getD("cf"), &difs, &ciLow, &ciHigh);
+            ns_misc::computeCI(args.getD("cf"), &difs, &ciLow, &ciHigh);
+            ciLow /= log(2);
+            ciHigh /= log(2);
             log2FC = (mu_c[c2] - mu_c[c])/log(2);
             outF<<log2FC<<" "<<ciLow<<" "<<ciHigh<<" ";
          }
@@ -226,7 +226,7 @@ bool initializeOutputFile(long C, long M, long N, const ArgumentParser &args, of
          for(long i=0;i<(long)args.args().size();i++){
             outFiles[c]<<args.args()[i]<<" ";
          }
-         outFiles[c]<<"\n# lambda_0 "<<args.getD("lambda0")<<"\n# T \n# M "<<M<<"\n# N "<<N<<endl;
+         outFiles[c]<<"\n# lambda_0 "<<args.getD("lambda0")<<"\n# T (Mrows_Ncols) L (logged)\n# M "<<M<<"\n# N "<<N<<endl;
       }
       // Initialize file for variances.
       string varFileName = args.getS("outFilePrefix")+".estVar";
@@ -259,7 +259,7 @@ bool initializeOutputFile(long C, long M, long N, const ArgumentParser &args, of
       for(long c2=c+1;c2<C;c2++)
       *outF<<c+1<<"~"<<c2+1<<" ";
    *outF<<"\n# Columns contain PPLR for each pair of conditions, "
-          "log2 fold change for each pair of conditions and "
+          "log2 fold change with confidence intervals for each pair of conditions and "
           "log mean condition mean expression for each condition.\n"
           "# CPxPPLR CPx(log2FC ConfidenceLow ConfidenceHigh) "
           "Cx(log mean condition mean expressions)"
@@ -325,10 +325,4 @@ void readNextTranscript(long m, long C, long N, Conditions *cond, const vector<p
    *mu_00/=divT; 
 }//}}}
 
-void computeCI(double cf, vector<double> *difs, double *ciLow, double *ciHigh){//{{{
-   double N = difs->size();
-   sort(difs->begin(),difs->end());
-   *ciLow = (*difs)[(long)(N/100.*cf)];
-   *ciHigh = (*difs)[(long)(N-N/100.*cf)];
-}//}}}
 }

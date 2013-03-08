@@ -3,10 +3,14 @@ Improvements:
 - parse alignment can extract and save gene names from Ensembl type reference
 - estimateDE now produces comparison for all condition pairs when used with more than 2 conditions
 - added --seed option to estimateHyperPar and estimateDE
+- estimateHyperPar works in log scale only (it accepts only mean logged expression in --meanFile; and logs expression samples automatically when needed)
 
 Bug fixes:
+- fixed output of estimateDE: fold change with confidence intervals are in log2 scale, mean expression in natural log scale
+   + changed flag confidencePerc to confidenceInterval and default value to 95
 - changed getPPLR so that it produces PPLR comparison in the same "direction" as estimateDE
-- fixed problem wih reference sequence in parseAlignment
+- fixed problem with long lines in reference sequence file in parseAlignment
+
 Deprecation:
 - drop obsolete parseAlignment.py
 

@@ -51,8 +51,8 @@ getFoldChange: getFoldChange.cpp $(COMMON_DEPS) PosteriorSamples.o
 getGeneExpression: getGeneExpression.cpp $(COMMON_DEPS) PosteriorSamples.o TranscriptInfo.o
 	$(CXX) $(CXXFLAGS) getGeneExpression.cpp $(COMMON_DEPS) PosteriorSamples.o TranscriptInfo.o -o getGeneExpression
 
-getPPLR: getPPLR.cpp $(COMMON_DEPS) PosteriorSamples.o
-	$(CXX) $(CXXFLAGS) getPPLR.cpp $(COMMON_DEPS) PosteriorSamples.o -o getPPLR
+getPPLR: getPPLR.cpp $(COMMON_DEPS) misc.o PosteriorSamples.o
+	$(CXX) $(CXXFLAGS) getPPLR.cpp $(COMMON_DEPS) misc.o PosteriorSamples.o -o getPPLR
 
 getVariance: getVariance.cpp $(COMMON_DEPS) PosteriorSamples.o
 	$(CXX) $(CXXFLAGS) getVariance.cpp $(COMMON_DEPS) PosteriorSamples.o -o getVariance
