@@ -21,7 +21,7 @@ string lower(string str){
    return str;
 }
 
-PosteriorSamples::PosteriorSamples(){//{{{
+void PosteriorSamples::clear(){//{{{
    N=0;
    M=0;
    norm = 1.0;
@@ -39,18 +39,10 @@ bool PosteriorSamples::open(string fileName){//{{{
    }
    return true;
 }//}}}
-/*bool PosteriorSamples::init(long n, long m,bool t,string fileName){//{{{
-   failed=false;
-   if(! open(fileName))return false;
-   N=n;
-   M=m;
-   transposed=t; 
-   return read();
-}//}}}*/
 bool PosteriorSamples::initSet(long &m,long &n, string fileName){//{{{
    failed=false;
    if(! open(fileName))return false;
-    
+   
    FileHeader fh(&samplesF);
    if(!fh.samplesHeader(&N,&M,&transposed,&areLogged)){
       error("PosteriorSamples: File header reading failed.\n");
@@ -176,7 +168,7 @@ bool Conditions::init(string trFileName, vector<string> filesGot, long *c, long 
    //message("File names processed.\n");
 
    CN = Sof(files);
-   samples = new PosteriorSamples[CN];
+   samples.resize(CN);
    Ms.resize(CN);
    Ns.resize(CN);
    if(! samples[0].initSet(Ms[0],Ns[0],files[0])){
@@ -307,6 +299,5 @@ void Conditions::close(){//{{{
    for(long i=0;i<CN;i++){
       samples[i].close();
    }
-   delete[] samples;
    cIndex.clear();
 }//}}}
