@@ -21,8 +21,16 @@ class PosteriorSamples{//{{{
       bool open(string fileName);
       bool read();
    public:
-   PosteriorSamples();
-//   bool init(long n, long m, bool t, string fileName);
+   PosteriorSamples() { clear(); }
+   ~PosteriorSamples() { close(); }
+   // Copy constructor and assginment. Both just create new class. For vectors only.
+   PosteriorSamples(const PosteriorSamples &other) { clear(); }
+   PosteriorSamples& operator=(const PosteriorSamples & other) { //{{{
+      close();
+      clear();
+      return *this;
+   } //}}}
+   void clear();
    bool initSet(long &m, long &n, string fileName);
    bool getTranscript(long tr, vector<double> &trSamples);
    void close();
@@ -36,7 +44,7 @@ class Conditions{//{{{
       bool mapping,areLogged;
       vector<long> Ms,Ns;
       vector<vector <long> > trMap;
-      PosteriorSamples *samples;
+      vector<PosteriorSamples> samples;
       vector<pair<long,long> > cIndex;
       
       long getIndex(long max); // return index without checking for duplicats
