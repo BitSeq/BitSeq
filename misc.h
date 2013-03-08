@@ -18,6 +18,9 @@ bool openOutput(const string &name, ofstream *outF);
 // Reads and initializes files containing samples fro each condition and each replicate.
 bool readConditions(const ArgumentParser &args, long *C, long *M, long *N, Conditions *cond);
 
+// Compute confidence intervals.
+void computeCI(double cf, vector<double> *difs, double *ciLow, double *ciHigh);
+
 }
 
 namespace ns_params{

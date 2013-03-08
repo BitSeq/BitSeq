@@ -51,6 +51,13 @@ bool readConditions(const ArgumentParser &args, long *C, long *M, long *N, Condi
    return true;
 }//}}}
 
+void computeCI(double cf, vector<double> *difs, double *ciLow, double *ciHigh){//{{{
+   cf = (100 - cf) / 2.0;
+   double N = difs->size();
+   sort(difs->begin(),difs->end());
+   *ciLow = (*difs)[(long)(N/100.*cf)];
+   *ciHigh = (*difs)[(long)(N-N/100.*cf)];
+}//}}}
 } // namespace ns_misc
 
 namespace ns_params {
