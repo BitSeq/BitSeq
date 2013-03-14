@@ -1,11 +1,13 @@
 
-#include "FileHeader.h"
-#include "MyTimer.h"
 #include "ArgumentParser.h"
-#include "SimpleSparse.h"
-#include "VariationalBayes.h"
-#include "TagAlignments.h"
 #include "common.h"
+#include "FileHeader.h"
+#include "misc.h"
+#include "MyTimer.h"
+#include "SimpleSparse.h"
+#include "TagAlignments.h"
+#include "transposeFiles.h"
+#include "VariationalBayes.h"
 
 
 SimpleSparse* readData(ArgumentParser &args){//{{{
@@ -109,6 +111,7 @@ string programDescription =
    args.addOptionL("s","seed","seed",0,"Random initialization seed.");
    args.addOptionL("","maxIter","maxIter",0,"Maximum number of iterations.");
    args.addOptionL("P","procN","procN",0,"Limit the maximum number of threads to be used.",1);
+   args.addOptionL("","samples","samples",0,"Number of samples to be sampled from the distribution.");
    if(!args.parse(*argc,argv))return 0;
    if(args.verbose)buildTime(argv[0],__DATE__,__TIME__);
    OPT_TYPE optM;
@@ -119,8 +122,6 @@ string programDescription =
       else if(args.getS("optMethod")=="HS")optM = OPTT_HS;
       else optM = OPTT_FR;
    }else  optM = OPTT_FR;
-   long seed=0;
-   if(args.isSet("seed"))seed=args.getL("seed");
    // }}}
    MyTimer timer;
    timer.start(17);
@@ -154,7 +155,7 @@ string programDescription =
 
    if(args.verbose)message("Initializing VB.\n");
 
-   VariationalBayes varB(beta,NULL,seed,args.getL("procN"));
+   VariationalBayes varB(beta,NULL,ns_misc::getSeed(args),args.getL("procN"));
    
    if(args.verbose)timer.split();
    if(args.verbose)message("Starting VB optimization.\n");
@@ -172,9 +173,8 @@ string programDescription =
    double alphaSum = 0 ;
    long i;
    for(i=0;i<M;i++)alphaSum+=alpha[i];
-   ofstream outF((args.getS("outFilePrefix")+".m_alphas").c_str());
-   if(!outF.is_open()){
-      error("Main: Unable to open output file.");
+   ofstream outF;
+   if(! ns_misc::openOutput((args.getS("outFilePrefix")+".m_alphas"), &outF)){
       return 1;
    }
    outF<<"# "<<args.args()[0]<<endl;
@@ -189,6 +189,21 @@ string programDescription =
    // free memory
    delete beta;
    delete[] alpha;
+   if(args.isSet("samples") && (args.getL("samples")>0)){
+      string samplesFName = args.getS("outFilePrefix")+".VBtheta";
+      string samplesTmpName = args.getS("outFilePrefix")+".VBtheta"; 
+      if(args.verbose)message("Generating samples into temporary file %s.\n",samplesTmpName.c_str());
+      if(!ns_misc::openOutput(samplesTmpName, &outF)) return 1;
+      varB.generateSamples(args.getL("samples"), &outF);
+      outF.close();
+      if(transposeFiles(vector<string>(1, samplesTmpName), samplesFName, args.verbose, "")){
+         if(args.verbose)message("Removing temporary file %s.\n", samplesTmpName.c_str());
+         remove(samplesTmpName.c_str());
+      }else {
+         error("Main: Transposing samples failed.");
+         return 1;
+      }
+   }
    return 0;
 }//}}}
 

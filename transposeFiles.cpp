@@ -1,15 +1,13 @@
 #include<cstdlib>
-#include<iomanip>
 #include<fstream>
+#include<iomanip>
 #include<vector>
 
 using namespace std;
 
+#include "common.h"
 #include "FileHeader.h"
 #include "transposeFiles.h"
-#include "common.h"
-
-#define Sof(x) (long)x.size()
 
 bool transposeFiles(vector<string> inFileNames, string outFileName, bool verbose, string message){
    long M=0,fileN=1,i,j,bufMax,bufN,m,n,totalN,maxN=0,f;
@@ -23,7 +21,7 @@ bool transposeFiles(vector<string> inFileNames, string outFileName, bool verbose
       return 0;
    }//}}}
    //{{{ Opening input
-   fileN = Sof(inFileNames);
+   fileN = inFileNames.size();
    ifstream *inFile = new ifstream[fileN];
    totalN=0;
    FileHeader fh;
@@ -34,7 +32,7 @@ bool transposeFiles(vector<string> inFileNames, string outFileName, bool verbose
          error("TransposeFile: Unable to read header of file: %s\n",(inFileNames[i]).c_str());
          return 0;
       }
-      if(Sof(N)==0){
+      if(N.size()==0){
          M=m;
          transposed=trans;
          maxN=n;

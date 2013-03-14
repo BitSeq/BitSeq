@@ -6,13 +6,15 @@
 
 #include "VariationalBayes.h"
 #include "boost/random/normal_distribution.hpp"
-#include "boost/random/mersenne_twister.hpp"
+#include "boost/random/gamma_distribution.hpp"
 #include "asa103/asa103.hpp"
 #include "common.h"
 
 
 #define SWAPD(x,y) {tmpD=x;x=y;y=tmpD;}
 #define ZERO_LIMIT 1e-12
+
+typedef boost::random::gamma_distribution<double>::param_type gDP;
 
 void VariationalBayes::setLog(string logFileName,MyTimer *timer){//{{{
    this->logFileName=logFileName;
@@ -48,10 +50,7 @@ VariationalBayes::VariationalBayes(SimpleSparse *_beta,double *_alpha,long seed,
    phiHat = new double[M];
    digA_pH = new double[M];
    
-   //boost::random::mt11213b rng_mt(time(NULL));
-   if(seed==0)seed=time(NULL);
-   boost::random::mt11213b rng_mt(seed);
-   message("seed: %ld\n",seed);
+   rng_mt.seed(seed);
    boost::random::normal_distribution<long double> normalD;
    //typedef boost::random::normal_distribution<long double>::param_type nDP;
    //normalD.param(nDP(0,1));
@@ -289,3 +288,28 @@ double *VariationalBayes::getAlphas(){//{{{
    for(long i=0;i<M;i++)alphas[i] = alpha[i] + phiHat[i];
    return alphas;
 }//}}}
+
+void VariationalBayes::generateSamples(long samplesN, ofstream *outF) {
+   vector<double> gamma(M,0);
+   vector<gDP> alphaParam;
+   long n,m;
+   double gammaSum;
+   boost::random::gamma_distribution<double> gammaDistribution;
+   // Precompute dirichlet's alpha and save them as parameters for Gamma.
+   for(m=0;m<M;m++)alphaParam.push_back(gDP(alpha[m] + phiHat[m], 1.0));
+   // Sample.
+   for(n=0;n<samplesN;n++){
+      // Compute M gammas and normalize.
+      gammaSum = 0;
+      for(m=0;m<M;m++){
+         gammaDistribution.param(alphaParam[m]);
+         gamma[m] = gammaDistribution(rng_mt);
+         gammaSum += gamma[m];
+      }
+      for(m=0;m < M-1;m++){
+         (*outF)<<gamma[m]/gammaSum<<" ";
+      }
+      // Don't want space at the end of line.
+      (*outF)<<gamma[M-1]/gammaSum<<endl;
+   }
+}
