@@ -141,7 +141,8 @@ void MCMC(TagAlignments *alignments,gibbsParameters &gPar,ArgumentParser &args){
    long i,j,samplesHave=0,totalSamples=0,samplesN,chainsN,samplesSave,seed;
    pairD rMean,tmpA,tmpV;
    double rH1,rH2;
-   ofstream meansFile,samplesFile[gPar.chainsN()];
+   ofstream meansFile;
+   ofstream *samplesFile = new ofstream[gPar.chainsN()];
    MyTimer timer;
    bool quitNext = false;
    vector<pairD> betwVar(M),withVar(M),s2j(M),totAverage(M),av,var;
