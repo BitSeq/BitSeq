@@ -192,9 +192,7 @@ string programDescription =
             normalDistributionB.param(nDP(0,BETA_PROP*proposalMultiplier));
             maxIter=0;
             breaked = false;
-#ifdef BIOC_BUILD
-	    R_CheckUserInterrupt();
-#endif
+            R_INTERUPT;
             //}}}
             while((acceptR<0.25)||(acceptR>0.5)||(old_mult!=proposalMultiplier)){
                // Convergence control based on acceptance ratio. {{{
@@ -224,9 +222,7 @@ string programDescription =
                }
                //}}}
                acceptR=0;
-#ifdef BIOC_BUILD
-	       R_CheckUserInterrupt();
-#endif
+               R_INTERUPT;
                for(i=0;i<1000;i++){ // Sampling 1000 samples {{{
                   alphaP = alpha + normalDistributionA(rng_mt);
                   if(alphaP<0)alphaP = -alphaP;

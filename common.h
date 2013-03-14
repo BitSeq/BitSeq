@@ -16,6 +16,8 @@ const char bitseq_version[] = "0.5.0";
 
 #define message(...) Rprintf(__VA_ARGS__)
 
+const long samplesAtOnce = 20;
+
 #else
 
 #include<cstdio>

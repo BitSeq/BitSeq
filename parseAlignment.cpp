@@ -330,9 +330,7 @@ string programDescription =
             if(curF->paired)failedReads.insert(bam1_qname(curF->second));
          }
       }
-#ifdef BIOC_BUILD
-      R_CheckUserInterrupt();
-#endif
+      R_INTERUPT;
    }
    if(args.verbose)message("Analyzed %ld single reads and %ld paired-end reads.\n",singleN,pairedN);
    outF.close();
