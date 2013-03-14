@@ -64,10 +64,8 @@ SimpleSparse* readData(ArgumentParser &args){//{{{
       inFile.ignore(10000000,'\n');
 
       alignments->pushRead();
-
-#ifdef BIOC_BUILD
-      R_CheckUserInterrupt();
-#endif
+      
+      R_INTERUPT;
       if((i % mod == 0)&&(i>0)){
          message("  %ld ",i);
          timer.split();

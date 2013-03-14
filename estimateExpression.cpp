@@ -90,10 +90,8 @@ TagAlignments* readData(ArgumentParser &args) {//{{{
       inFile.ignore(10000000,'\n');
 
       alignments->pushRead();
-
-#ifdef BIOC_BUILD
-      R_CheckUserInterrupt();
-#endif
+   
+      R_INTERUPT;
       if((i % mod == 0)&&(i>0)){
          message("  %ld ",i);
          timer.split();
@@ -165,9 +163,6 @@ void MCMC(TagAlignments *alignments,gibbsParameters &gPar,ArgumentParser &args){
    }
 
    timer.start();;
-   // parallel block: 
-   // make sure that all functions used are CONST and variables are beaing READ or private
-   // private: samplesHave
    if(args.isSet("seed"))seed=args.getL("seed");
    else seed = time(NULL);
    if(args.verbose)message("seed: %ld\n",seed);
@@ -180,16 +175,32 @@ void MCMC(TagAlignments *alignments,gibbsParameters &gPar,ArgumentParser &args){
       DEBUG(message("   seed: %ld\n",seed);)
       // sampler is initialized with 'seed' and then sets 'seed' to new random seed for the next sampler
    }
+   // parallel block: 
+   // make sure that all functions used are CONST and variables are beaing READ or private
+   // private: samplesHave (or subCounter)
+#ifdef BIOC_BUILD
+   long samplesDo, subCounter;
+   for(samplesHave=0;samplesHave<gPar.burnIn();samplesHave+=samplesDo){
+      samplesDo = min(gPar.burnIn() - samplesHave, samplesAtOnce);
+      subCounter;
+      #pragma omp parallel for private(subCounter)
+      for(i=0;i<chainsN;i++){
+         for(subCounter=0;subCounter<samplesDo; subCounter++){
+           samplers[i]->sample();
+         }
+      }
+      // Check for interupt out of the parallel part.
+      R_INTERUPT;
+   }
+#else
    #pragma omp parallel for private(samplesHave)
    for(i=0;i<chainsN;i++){
       DEBUG(message(" burn in\n");) 
       for(samplesHave=0;samplesHave<gPar.burnIn();samplesHave++){
-        samplers[i]->sample();
-#ifdef BIOC_BUILD
-         R_CheckUserInterrupt();
-#endif
+         samplers[i]->sample();
       }
    }
+#endif
    message("Burn in: %ld DONE. ",gPar.burnIn());
    DEBUG(message(" reseting samplers after burnin\n"));
    for(i=0;i<chainsN;i++){
@@ -203,17 +214,30 @@ void MCMC(TagAlignments *alignments,gibbsParameters &gPar,ArgumentParser &args){
       // Sample: {{{
       // parallel block:
       // make sure that all functions used are CONST and variables are being READ or private
-      // private: samplesHave, samplesSkipped
+      // private: samplesHave (or subCounter)
+#ifdef BIOC_BUILD
+      for(samplesHave=0;samplesHave<samplesN;samplesHave+=samplesDo){
+         samplesDo = min(samplesN - samplesHave, samplesAtOnce);
+         subCounter;
+         #pragma omp parallel for private(subCounter)
+         for(i=0;i<chainsN;i++){
+            for(subCounter=0;subCounter<samplesDo; subCounter++){
+               samplers[i]->sample();
+               samplers[i]->update();
+            }
+         }
+         // Check for interupt out of the parallel part.
+         R_INTERUPT;
+      }
+#else
       #pragma omp parallel for private(samplesHave)
       for(i=0;i<chainsN;i++){
          for(samplesHave = 0;samplesHave<samplesN;samplesHave++){
             samplers[i]->sample();
             samplers[i]->update();
-#ifdef BIOC_BUILD
-            R_CheckUserInterrupt();
-#endif
          }
       }
+#endif
       totalSamples+=samplesN*chainsN;
       message("\nSampling DONE. ");
       timer.split(0,'m');
