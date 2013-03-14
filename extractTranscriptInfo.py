@@ -3,12 +3,12 @@
 import sys
 from optparse import OptionParser
 parser = OptionParser(usage="%prog [options] <inputFile> <outputFile>\n\n\
-      This program extracts information about transcripts from reference Fasta file.
+      This program extracts information about transcripts from reference Fasta file.\n\
       This is partially replaced by using SAM header, which however does not include information about transcript-gene grouping.\n\
       Current version of parseAlignment extracts this information from a reference sequence file (making this script obsolete).\
 ")
 parser.add_option("-v", "--verbose", default=False, dest="verbose",  action="store_true", help="Verbose output")
-parser.add_option("-t","--type",dest="type", type="string",help="Type of file to parse: ensembl, other");
+parser.add_option("-t","--type",dest="type", type="string",help="Type of file to parse: ensembl, cuff, other");
 
 (options, args) = parser.parse_args()
 def verbose(str):
@@ -44,9 +44,28 @@ if options.type and options.type=="ensembl":
          if seqName!="":
             result.append([geneName,seqName,str(seqLen)]);
          seqLen=0;
-         seqName = line.split()[0][1:];
-         for it in line.split():
+         # Split line after >
+         lSplit = line[1:].split()
+         seqName = lSplit[0];
+         for it in lSplit:
             if "gene:" in it:
+               geneName=it[5:];
+         seqCount+=1;
+      else: seqLen+=len(line)-1;
+   if seqName!="":
+      result.append([geneName,seqName,str(seqLen)]);
+elif options.type and options.type=="cuff":
+   print "Expecting header line format:\n>[tr Name] .* gene=[gene Name] .*";
+   for line in inF:
+      if line[0] == '>':
+         if seqName!="":
+            result.append([geneName,seqName,str(seqLen)]);
+         seqLen=0;
+         # Split line after >
+         lSplit = line[1:].split()
+         seqName = lSplit[0];
+         for it in lSplit:
+            if "gene=" in it:
                geneName=it[5:];
          seqCount+=1;
       else: seqLen+=len(line)-1;
@@ -59,7 +78,9 @@ else:
          if seqName!="":
             result.append(["none",seqName,str(seqLen)]);
          seqLen=0;
-         seqName = line.split()[0][1:];
+         # Split line after >
+         lSplit = line[1:].split()
+         seqName = lSplit[0];
          seqCount+=1;
       else: seqLen+=len(line)-1;
    if seqName!="":

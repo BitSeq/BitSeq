@@ -41,7 +41,7 @@ bool TranscriptSequence::readSequence(string fileName){//{{{
       // Read description line:
       getline(fastaF, trDesc, '\n');
       // look for gene name:
-      pos=trDesc.find("gene:");
+      pos=min(trDesc.find("gene:"),trDesc.find("gene="));
       if(pos!=(long)string::npos){
          geneDesc.clear();
          geneDesc.str(trDesc.substr(pos+5));
