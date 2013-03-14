@@ -294,8 +294,6 @@ string programDescription =
    outF<<scientific;
    // }}}
    
-   //goto endProg;
-   
    // fill in "next" fragment:
    readNextFragment(samData, curF, nextF);
    // start reading:
@@ -361,7 +359,6 @@ string programDescription =
       timer.split(0,'m');
    }
    // Close, free and write failed reads if filename provided {{{
-   //   endProg:
    delete curF;
    delete nextF;
    delete trInfo;

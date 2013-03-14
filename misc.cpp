@@ -1,13 +1,28 @@
 #include "misc.h"
 #include <algorithm>
+#include <cmath>
 #include <ctime>
 
 #include "common.h"
 #include "FileHeader.h"
 
+namespace ns_math {
+double logAddExp(double a, double b){ //{{{
+   if(a>b){
+      return a+log1p(exp(b-a));
+   }else {
+      return b+log1p(exp(a-b));
+   }
+} //}}}
+double logSumExp(const vector<double> &vals){ //{{{
+   double sumE = 0, m = *max_element(vals.begin(),vals.end());
+   for(size_t i=0;i<vals.size();i++)
+      sumE += exp(vals[i]-m);
+   return  m + log(sumE);
+} //}}}
+} // namespace ns_math
 
 namespace ns_misc {
-
 long getSeed(const ArgumentParser &args){//{{{
    long seed;
    if(args.isSet("seed"))seed=args.getL("seed");
