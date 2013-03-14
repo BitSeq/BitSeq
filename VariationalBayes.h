@@ -1,8 +1,10 @@
 #ifndef VARIATIONALBAYES_H
 #define VARIATIONALBAYES_H
 
-#include "SimpleSparse.h"
+#include "boost/random/mersenne_twister.hpp"
+
 #include "MyTimer.h"
+#include "SimpleSparse.h"
 
 #define LOG_CONV
 
@@ -19,6 +21,8 @@ class VariationalBayes {
       // logBeta replaced by logging beta itself
       string logFileName;
       MyTimer *logTimer;
+      // mersen twister random number generator
+      boost::random::mt11213b rng_mt;
 
    public:
       VariationalBayes(SimpleSparse *_beta,double *_alpha=NULL,long seed = 0,long procN = 1);
@@ -30,6 +34,7 @@ class VariationalBayes {
       void optimize(bool verbose=false, OPT_TYPE method=OPTT_STEEPEST,long maxIter=50000,double ftol=1e-6, double gtol=1e-6);
       double *getAlphas();
       void setLog(string logFileName,MyTimer *timer);
+      void generateSamples(long samplesN, ofstream *outF);
 };
 
 #endif
