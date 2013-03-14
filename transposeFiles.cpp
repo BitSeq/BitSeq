@@ -24,7 +24,7 @@ bool transposeFiles(vector<string> inFileNames, string outFileName, bool verbose
    }//}}}
    //{{{ Opening input
    fileN = Sof(inFileNames);
-   ifstream inFile[fileN];
+   ifstream *inFile = new ifstream[fileN];
    totalN=0;
    FileHeader fh;
    for(i=0;i<fileN;i++){

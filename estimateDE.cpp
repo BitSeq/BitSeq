@@ -73,7 +73,7 @@ string programDescription =
    if(!ns_misc::readConditions(args, &C, &M, &N, &cond)) return 1;
    // Initialize output files.
    ofstream outF;
-   ofstream outFiles[C+1];
+   ofstream *outFiles = new ofstream[C+1];
    // Use standard array as we don't want to bother with vector of pointers.
    if(!ns_estimateDE::initializeOutputFile(C, M, N, args, &outF, outFiles)) return 1;
 
