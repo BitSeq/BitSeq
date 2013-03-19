@@ -5,7 +5,7 @@
 
 using std::string;
 
-const char bitseq_version[] = "0.5.0";
+const char bitseq_version[] = PACKAGE_VERSION;
 
 #ifdef BIOC_BUILD
 

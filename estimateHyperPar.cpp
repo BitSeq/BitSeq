@@ -5,6 +5,8 @@
 // DECLARATIONS: {{{
 #include <algorithm>
 #include <cmath>
+#include <fstream>
+#include <sstream>
 #include "boost/random/mersenne_twister.hpp"
 #include "boost/random/normal_distribution.hpp"
 #include "boost/random/uniform_01.hpp"
