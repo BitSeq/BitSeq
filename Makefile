@@ -1,6 +1,7 @@
 CXX = g++
 HOSTNAME = $(shell hostname)
 ARCH = -mtune=generic
+VERSION = 0.5.1
 
 ifeq ($(HOSTNAME), valiant)
 	ARCH = -march=core2
@@ -19,7 +20,7 @@ DBGFLAGS = -ggdb -U_FORTIFY_SOURCE
 COFLAGS = $(ARCH) -O3 -pipe
 # -ffast-math segfaults with old gcc
 #COFLAGS = $(ARCH) -O3 -ffast-math -pipe
-CXXFLAGS = -Wall -Wvla $(COFLAGS)
+CXXFLAGS = -DPACKAGE_VERSION=\"$(VERSION)\" -Wall -Wvla $(COFLAGS)
 LDFLAGS = -Wl,-gc-sections
 BOOSTFLAGS = -I .
 OPENMP = -fopenmp -DSUPPORT_OPENMP
