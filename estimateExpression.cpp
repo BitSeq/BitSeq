@@ -183,7 +183,6 @@ void MCMC(TagAlignments *alignments,gibbsParameters &gPar,ArgumentParser &args){
    long samplesDo, subCounter;
    for(samplesHave=0;samplesHave<gPar.burnIn();samplesHave+=samplesDo){
       samplesDo = min(gPar.burnIn() - samplesHave, samplesAtOnce);
-      subCounter;
       #pragma omp parallel for private(subCounter)
       for(i=0;i<chainsN;i++){
          for(subCounter=0;subCounter<samplesDo; subCounter++){
@@ -219,7 +218,6 @@ void MCMC(TagAlignments *alignments,gibbsParameters &gPar,ArgumentParser &args){
 #ifdef BIOC_BUILD
       for(samplesHave=0;samplesHave<samplesN;samplesHave+=samplesDo){
          samplesDo = min(samplesN - samplesHave, samplesAtOnce);
-         subCounter;
          #pragma omp parallel for private(subCounter)
          for(i=0;i<chainsN;i++){
             for(subCounter=0;subCounter<samplesDo; subCounter++){
