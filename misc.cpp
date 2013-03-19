@@ -23,7 +23,6 @@ double logSumExp(const vector<double> &vals){ //{{{
 } // namespace ns_math
 
 namespace ns_misc {
-
 long getSeed(const ArgumentParser &args){//{{{
    long seed;
    if(args.isSet("seed"))seed=args.getL("seed");
