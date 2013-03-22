@@ -519,7 +519,7 @@ string programDescription =
    if(args.verbose)message("Reading data.\n");
    if((!args.isSet("trInfoFileName"))||(!trInfo.readInfo(args.getS("trInfoFileName")))){
       if(outTypeI==RPKM){
-         error("Main: Missing transcript info file. This will cause problems if producing RPKM.");
+         error("Main: Missing transcript info file. This will cause problems if producing RPKM.\n");
          return 1;
       }
    }else{
