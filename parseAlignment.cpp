@@ -1,29 +1,28 @@
 // DECLARATIONS: {{{
 #include<cmath>
-#include<set>
 #include<omp.h>
+#include<set>
 
 using namespace std;
 
-#include "MyTimer.h"
 #include "ArgumentParser.h"
+#include "common.h"
+#include "MyTimer.h"
+#include "ReadDistribution.h"
+#include "TranscriptExpression.h"
 #include "TranscriptInfo.h"
 #include "TranscriptSequence.h"
-#include "TranscriptExpression.h"
-#include "ReadDistribution.h"
-#include "common.h"
 
-
-#define Sof(x) (long)x.size()
 //}}}
+#define Sof(x) (long)x.size()
 
-string toLower(string str){//{{{
-   for(long i=0;i<Sof(str);i++)
-      if((str[i]>='A')&&(str[i]<='Z'))str[i]=str[i]-'A'+'a';
-   return str;
-}//}}}
+// Read is not marked as not mapped, and is either not marked as paired, or it is marked as proper pair. 
+#define FRAG_IS_ALIGNED(x) \
+   ( !(x->first->core.flag & BAM_FUNMAP) && \
+     ( !(x->first->core.flag & BAM_FPAIRED) || \
+       (x->first->core.flag & BAM_FPROPER_PAIR) ) )
 
-
+namespace ns_parseAlignment {
 class TagAlignment{//{{{
    protected:
       int_least32_t trId;
@@ -42,49 +41,12 @@ class TagAlignment{//{{{
       void setProb(double p){prob=p;}
 }; //}}}
 
-// Read is not marked as not mapped, and is either not marked as paired, or it is marked as proper pair. 
-#define FRAG_IS_ALIGNED(x) \
-   ( !(x->first->core.flag & BAM_FUNMAP) && \
-     ( !(x->first->core.flag & BAM_FPAIRED) || \
-       (x->first->core.flag & BAM_FPROPER_PAIR) ) )
+string toLower(string str);
 
+bool readNextFragment(samfile_t* samData, fragmentP &cur, fragmentP &next);
 
-
-bool readNextFragment(samfile_t* samData, fragmentP &cur, fragmentP &next){//{{{
-   static fragmentP tmpF = NULL;
-   bool currentOK = true;
-   // switch current to next:
-   tmpF = cur;
-   cur = next;
-   next = tmpF;
-   // check if current fragment is valid
-   if( !cur->first->data || ( *(cur->first->data) == '\0')){
-      // current fragment is invalid
-      currentOK = false;
-   }
-   // try reading next fragment:
-   if(samread(samData,next->first)<0){
-      // read failed: set next reads name to empty string
-      *(next->first->data) = '\0';
-      return currentOK;
-   }
-   // if paired then try reading second pair
-   if( !( next->first->core.flag & BAM_FPAIRED) || 
-       (samread(samData,next->second)<0)){
-      next->paired = false;
-   }else{
-      /* look for last read 
-      ignored -- expecting always only singles and pairs
-      THIS WOULD NOT WORK 
-        - because SAM FLAG does not indicate whether it's first or last read of a pair, but which "file" is the read from 
-        - this was observed from bowtie alignment data
-      while( !(next->second->core.flag & BAM_FREAD2) &&
-             (samread(samData,next->second)>=0)) ;
-      */
-      next->paired = true;
-   }
-   return currentOK;
-}//}}}
+string getInputFormat(const ArgumentParser &args);
+} // namespace ns_parseAlignment
 
 extern "C" int parseAlignment(int *argc,char* argv[]){
 string programDescription =
@@ -101,7 +63,7 @@ string programDescription =
    // Set options {{{
    ArgumentParser args(programDescription,"[alignment file]",1);
    args.addOptionS("o","outFile","outFileName",1,"Name of the output file.");
-   args.addOptionS("f","format","format",0,"Input format: either SAM, BAM.","SAM");
+   args.addOptionS("f","format","format",0,"Input format: either SAM, BAM.");
    args.addOptionS("t","trInfoFile","trInfoFileName",0,"If transcript(reference sequence) information is contained within SAM file, program will write this information into <trInfoFile>, otherwise it will look for this information in <trInfoFile>.");
    args.addOptionS("s","trSeqFile","trSeqFileName",1,"Transcript sequence in FASTA format --- for non-uniform read distribution estimation.");
    args.addOptionS("e","expressionFile","expFileName",0,"Transcript relative expression estimates --- for better non-uniform read distribution estimation.");
@@ -125,48 +87,41 @@ string programDescription =
    }*/
    // }}}
    // Read transcriptInfo and initialize alignment file {{{
-   if(toLower(args.getS("format"))=="map"){
-      error("MAP format not implemented, please use parseAlignment.py to parse this format.\n");
-      return 0;
-   }else if((toLower(args.getS("format"))=="bam")||(toLower(args.getS("format"))=="sam")){
-      if(toLower(args.getS("format"))=="bam")
-         samData = samopen(args.args()[0].c_str(), "rb" , NULL);
-      else 
-         samData = samopen(args.args()[0].c_str(), "r" , NULL);
-      if(samData == NULL){
-         error("Failed reading alignments.\n");
-         return 1;
-      }
-      if(samData->header == NULL){
-         if(! args.isSet("trInfoFileName")){
-            //error("Main: %s file does not contain header.\n   Need transcript information file containing lines with <gene name> <transcript name> <transcript length>.\n   Use option --trInfoFile\n",(args.getS("format")).c_str());
-            //return 1;
-         }else{
-            if(args.verbose)message("Using %s for transcript information.\n",(args.getS("trInfoFileName")).c_str());
-            if(! ( trInfo = new TranscriptInfo(args.getS("trInfoFileName")))){
-               error("Main: Can't get transcript information\n");
-               return 1;
-            }
-            M=trInfo->getM();
-         }
+   string inFormat=ns_parseAlignment::getInputFormat(args);
+   if(inFormat=="bam")
+      samData = samopen(args.args()[0].c_str(), "rb" , NULL);
+   else 
+      samData = samopen(args.args()[0].c_str(), "r" , NULL);
+   if(samData == NULL){
+      error("Failed reading alignments from %s.\n",args.args()[0].c_str());
+      return 1;
+   }
+   if(samData->header == NULL){
+      if(! args.isSet("trInfoFileName")){
+         //error("Main: %s file does not contain header.\n   Need transcript information file containing lines with <gene name> <transcript name> <transcript length>.\n   Use option --trInfoFile\n",(args.getS("format")).c_str());
+         //return 1;
       }else{
-         if(args.verbose)message("Using %s header for transcript information.\n",(args.getS("format")).c_str());
-         M = samData->header->n_targets;
-         vector<string> trNames(M);
-         vector<long> trLengths(M);
-         for(i=0;i<M;i++){
-            trNames[i] = samData->header->target_name[i];
-            trLengths[i] = samData->header->target_len[i]; 
-         }
-         trInfo = new TranscriptInfo();
-         if(! trInfo->setInfo(vector<string>(M,"none"), trNames, trLengths)){
-            error("TranscriptInfo not initialized.\n");
+         if(args.verbose)message("Using %s for transcript information.\n",(args.getS("trInfoFileName")).c_str());
+         if(! ( trInfo = new TranscriptInfo(args.getS("trInfoFileName")))){
+            error("Main: Can't get transcript information\n");
             return 1;
          }
+         M=trInfo->getM();
       }
-   }else {
-      error("Unknown alignment format.\n");
-      return 1;
+   }else{
+      if(args.verbose)message("Using %s header for transcript information.\n",(args.getS("format")).c_str());
+      M = samData->header->n_targets;
+      vector<string> trNames(M);
+      vector<long> trLengths(M);
+      for(i=0;i<M;i++){
+         trNames[i] = samData->header->target_name[i];
+         trLengths[i] = samData->header->target_len[i]; 
+      }
+      trInfo = new TranscriptInfo();
+      if(! trInfo->setInfo(vector<string>(M,"none"), trNames, trLengths)){
+         error("TranscriptInfo not initialized.\n");
+         return 1;
+      }
    }//}}}
    // Read expression and initialize transcript sequence {{{
    if(args.verbose)message("Initializing fasta sequence reader.\n");
@@ -237,10 +192,10 @@ string programDescription =
       readD.setLowProbMismatches(args.getL("numNoiseMismatches"));
    }
    // fill in "next" fragment:
-   readNextFragment(samData, curF, nextF);
+   ns_parseAlignment::readNextFragment(samData, curF, nextF);
    long alN = 0, alGoodN = 0;
    // start counting (and possibly estimating):
-   while(readNextFragment(samData,curF,nextF)){
+   while(ns_parseAlignment::readNextFragment(samData,curF,nextF)){
       alN ++;
       if( FRAG_IS_ALIGNED(curF) ) alGoodN++;
       // Next read is different.
@@ -266,7 +221,7 @@ string programDescription =
 
    // Re-opening alignment file {{{
    samclose(samData);
-   if(toLower(args.getS("format"))=="bam")
+   if(inFormat=="bam")
       samData = samopen(args.args()[0].c_str(), "rb" , NULL);
    else 
       samData = samopen(args.args()[0].c_str(), "r" , NULL);
@@ -281,7 +236,7 @@ string programDescription =
    double prob,probNoise,minProb;
    prob = probNoise = 0;
    set<string> failedReads;
-   vector<TagAlignment> alignments;
+   vector<ns_parseAlignment::TagAlignment> alignments;
    // Open and initialize output file {{{
    ofstream outF(args.getS("outFileName").c_str());
    if(!outF.is_open()){
@@ -295,19 +250,19 @@ string programDescription =
    // }}}
    
    // fill in "next" fragment:
-   readNextFragment(samData, curF, nextF);
+   ns_parseAlignment::readNextFragment(samData, curF, nextF);
    // start reading:
    long readC = 0;
    timer.start(1);
    long pairedN = 0;
    long singleN = 0;
-   while(readNextFragment(samData,curF,nextF)){
+   while(ns_parseAlignment::readNextFragment(samData,curF,nextF)){
 //      if(curF->paired)message("P %s %s\n",bam1_qname(curF->first),bam1_qname(curF->second));
       if( FRAG_IS_ALIGNED(curF) ){
          if(curF->paired)pairedN++;
          else singleN++;
          readD.getP(curF, prob, probNoise);
-         alignments.push_back(TagAlignment(curF->first->core.tid+1, prob, probNoise));
+         alignments.push_back(ns_parseAlignment::TagAlignment(curF->first->core.tid+1, prob, probNoise));
       }
       // next fragment has different name
       if(strcmp(bam1_qname(curF->first), bam1_qname(nextF->first))!=0){
@@ -375,3 +330,53 @@ int main(int argc,char* argv[]){
    return parseAlignment(&argc,argv);
 }
 #endif
+
+namespace ns_parseAlignment {
+
+string toLower(string str){//{{{
+   for(long i=0;i<Sof(str);i++)
+      if((str[i]>='A')&&(str[i]<='Z'))str[i]=str[i]-'A'+'a';
+   return str;
+}//}}}
+
+bool readNextFragment(samfile_t* samData, fragmentP &cur, fragmentP &next){//{{{
+   static fragmentP tmpF = NULL;
+   bool currentOK = true;
+   // switch current to next:
+   tmpF = cur;
+   cur = next;
+   next = tmpF;
+   // check if current fragment is valid
+   if( !cur->first->data || ( *(cur->first->data) == '\0')){
+      // current fragment is invalid
+      currentOK = false;
+   }
+   // try reading next fragment:
+   if(samread(samData,next->first)<0){
+      // read failed: set next reads name to empty string
+      *(next->first->data) = '\0';
+      return currentOK;
+   }
+   // if paired then try reading second pair
+   if( !( next->first->core.flag & BAM_FPAIRED) || 
+       (samread(samData,next->second)<0)){
+      next->paired = false;
+   }else{
+      /* look for last read 
+      ignored -- expecting always only singles and pairs
+      THIS WOULD NOT WORK 
+        - because SAM FLAG does not indicate whether it's first or last read of a pair, but which "file" is the read from 
+        - this was observed from bowtie alignment data
+      while( !(next->second->core.flag & BAM_FREAD2) &&
+             (samread(samData,next->second)>=0)) ;
+      */
+      next->paired = true;
+   }
+   return currentOK;
+}//}}}
+
+string getInputFormat(const ArgumentParser &args){
+   return "sam";
+}
+
+} // namespace ns_parseAlignment
