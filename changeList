@@ -4,6 +4,9 @@ Improvements:
 Bug fixes:
 - fixed broken extractTranscriptInfo.py and added new 'type' that looks for "gene=<gene name>"
 
+Internals:
+- replacing Boost headers with the latest stable version 1.53.0
+
 0.5.0:
 Improvements:
 - parse alignment can extract and save gene names from Ensembl type reference

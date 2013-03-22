@@ -17,7 +17,7 @@ ifeq ($(HOSTNAME), chopok)
 endif
 
 DBGFLAGS = -ggdb -U_FORTIFY_SOURCE
-COFLAGS = $(ARCH) -O3 -pipe
+COFLAGS = $(ARCH) -O2 -pipe
 # -ffast-math segfaults with old gcc
 #COFLAGS = $(ARCH) -O3 -ffast-math -pipe
 CXXFLAGS = -DPACKAGE_VERSION=\"$(VERSION)\" -Wall -Wvla $(COFLAGS)
