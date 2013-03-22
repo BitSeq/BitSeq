@@ -1,6 +1,33 @@
-- subset of boost-1.47.0
+Subset of boost libraries, version 1.53.0. (22.3.2013)
+------------------------------------------------------
+
+DEPENDENCY:
+-----------
+ boost/random/gamma_distribution.hpp
+ boost/random/mersenne_twister.hpp
+ boost/random/normal_distribution.hpp
+ boost/random/uniform_01.hpp
 
 CHANGES:
+--------
 random/uniform_01.hpp
  -> commented out line 19:
    #include<iostream>
+
+CREATED VIA:
+------------
+[ no need to build all libraries, just use bcp tool to copy relevant headers ]
+1) download boost sources from (http://sourceforge.net/projects/boost/)
+2) unpack
+3) bootstrap and build bcp:
+cd <path_to_boost>/boost_1_53_0
+./bootstrap.sh
+./bjam tools/bcp
+4) run bcp to extract relevant files and save them in directory boost in <destination dir>
+./dist/bin/bcp \
+   boost/random/gamma_distribution.hpp \
+   boost/random/mersenne_twister.hpp \
+   boost/random/normal_distribution.hpp \
+   boost/random/uniform_01.hpp \
+   <destination dir>
+5) copy LICENSE_1_0.txt and create README
