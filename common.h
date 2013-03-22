@@ -16,7 +16,7 @@ const char bitseq_version[] = PACKAGE_VERSION;
 
 #define message(...) Rprintf(__VA_ARGS__)
 
-const long samplesAtOnce = 20;
+const long samplesAtOnce = 50;
 
 #else
 
