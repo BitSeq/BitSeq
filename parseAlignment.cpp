@@ -50,9 +50,12 @@ string toLower(string str);
 bool readNextFragment(samfile_t* samData, fragmentP &cur, fragmentP &next);
 
 // Determine input format base either on --format flag or on the file extension.
-// Returns either sam/bam or unknown.
-string getInputFormat(const ArgumentParser &args);
+// Sets format to bam/sam and returns true, or returns false if format is unknown.
+bool setInputFormat(const ArgumentParser &args, string *format);
 
+bool openSamFile(const string &name, const string &inFormat, samfile_t **samFile);
+
+bool initializeInfoFile(const ArgumentParser &args, samfile_t *samFile, TranscriptInfo **trInfo, long *M);
 } // namespace ns_parseAlignment
 
 extern "C" int parseAlignment(int *argc,char* argv[]){
@@ -65,6 +68,7 @@ string programDescription =
    MyTimer timer;
    timer.start();
    long M=0,i;
+   string inFormat;
    samfile_t *samData=NULL;
    // Intro: {{{
    // Set options {{{
@@ -88,48 +92,10 @@ string programDescription =
 #ifdef SUPPORT_OPENMP
    omp_set_num_threads(args.getL("procN"));
 #endif
-   /*if((! args.flag("uniform"))&&(! args.isSet("trSeqFileName"))){
-      error("Please provide transcript sequence file in fasta format (option --trSeqFile) for non-uniform read distribution estimation.\n");
-      return 1;
-   }*/
    // }}}
-   // Read transcriptInfo and initialize alignment file {{{
-   string inFormat=ns_parseAlignment::getInputFormat(args);
-   if(inFormat=="bam")
-      samData = samopen(args.args()[0].c_str(), "rb" , NULL);
-   else 
-      samData = samopen(args.args()[0].c_str(), "r" , NULL);
-   if(samData == NULL){
-      error("Failed reading alignments from %s.\n",args.args()[0].c_str());
-      return 1;
-   }
-   if(samData->header == NULL){
-      if(! args.isSet("trInfoFileName")){
-         //error("Main: %s file does not contain header.\n   Need transcript information file containing lines with <gene name> <transcript name> <transcript length>.\n   Use option --trInfoFile\n",(args.getS("format")).c_str());
-         //return 1;
-      }else{
-         if(args.verbose)message("Using %s for transcript information.\n",(args.getS("trInfoFileName")).c_str());
-         if(! ( trInfo = new TranscriptInfo(args.getS("trInfoFileName")))){
-            error("Main: Can't get transcript information\n");
-            return 1;
-         }
-         M=trInfo->getM();
-      }
-   }else{
-      if(args.verbose)message("Using %s header for transcript information.\n",(args.getS("format")).c_str());
-      M = samData->header->n_targets;
-      vector<string> trNames(M);
-      vector<long> trLengths(M);
-      for(i=0;i<M;i++){
-         trNames[i] = samData->header->target_name[i];
-         trLengths[i] = samData->header->target_len[i]; 
-      }
-      trInfo = new TranscriptInfo();
-      if(! trInfo->setInfo(vector<string>(M,"none"), trNames, trLengths)){
-         error("TranscriptInfo not initialized.\n");
-         return 1;
-      }
-   }//}}}
+   if(!ns_parseAlignment::setInputFormat(args, &inFormat))return 1;
+   if(!ns_parseAlignment::openSamFile(args.args()[0], inFormat, &samData))return 1;
+   if(!ns_parseAlignment::initializeInfoFile(args, samData, &trInfo, &M))return 1;
    // Read expression and initialize transcript sequence {{{
    if(args.verbose)message("Initializing fasta sequence reader.\n");
    // Initialize fasta sequence reader.
@@ -137,7 +103,7 @@ string programDescription =
    trSeq->readSequence(args.getS("trSeqFileName")); 
    // Check numbers for transcripts match.
    if(trSeq->getM() != M){
-      error("Main: Number of transcripts in the alignment(%s) file and the sequence file are different: %ld vs %ld\n",args.getS("format").c_str(),M,trSeq->getM());
+      error("Main: Number of transcripts in the alignment file and the sequence file are different: %ld vs %ld\n",M,trSeq->getM());
       return 1;
    }
    // Check that length of each transcript matches.
@@ -166,7 +132,7 @@ string programDescription =
          if(args.verbose)message("Loading transcript initial expression data.\n");
          trExp = new TranscriptExpression(args.getS("expFileName"));
          if(trExp->getM() != M){
-            error("Main: Number of transcripts in the alignment(%s) file and the expression are different: %ld vs %ld\n",args.getS("format").c_str(),M,trExp->getM());
+            error("Main: Number of transcripts in the alignment file and the expression are different: %ld vs %ld\n",M,trExp->getM());
             return 1;
          }
       }
@@ -226,20 +192,12 @@ string programDescription =
       readD.logProfiles(args.getS("distributionFileName"));
    }
 
-   // Re-opening alignment file {{{
-   samclose(samData);
-   if(inFormat=="bam")
-      samData = samopen(args.args()[0].c_str(), "rb" , NULL);
-   else 
-      samData = samopen(args.args()[0].c_str(), "r" , NULL);
-   if(samData == NULL){
-      error("Failed re-reading alignments.\n");
-      return 1;
-   }//}}}
    // }}}
 
    // Writing probabilities: {{{
-   if(args.verbose)message("Writing alignment probabilities\n");
+   // Re-opening alignment file 
+   if(!ns_parseAlignment::openSamFile(args.args()[0], inFormat, &samData))return 1;
+   if(args.verbose)message("Writing alignment probabilities.\n");
    double prob,probNoise,minProb;
    prob = probNoise = 0;
    set<string> failedReads;
@@ -382,24 +340,68 @@ bool readNextFragment(samfile_t* samData, fragmentP &cur, fragmentP &next){//{{{
    return currentOK;
 }//}}}
 
-string getInputFormat(const ArgumentParser &args){//{{{
+bool setInputFormat(const ArgumentParser &args, string *format){//{{{
    if(args.isSet("format")){
-      string format = toLower(args.getS("format"));
-      if((format =="sam")||(format == "bam")){
-         return format;
+      *format = toLower(args.getS("format"));
+      if((*format =="sam")||(*format == "bam")){
+         return true;
       }
-      warning("Unknown format '%s'.\n",format.c_str());
+      warning("Unknown format '%s'.\n",format->c_str());
    }
    string fileName = args.args()[0];
    string extension = fileName.substr(fileName.rfind(".")+1);
-   if((toLower(extension)=="sam")||(toLower(extension)=="bam")){
-      if(args.verb())
-         message("Assuming alignment file in '%s' format.\n",toLower(extension).c_str());
-      return toLower(extension);
-   } else {
-      message("Unknown extension '%s'.\n",extension.c_str());
+   *format = toLower(extension);
+   if((*format =="sam")||(*format == "bam")){
+      if(args.verb())message("Assuming alignment file in '%s' format.\n",format->c_str());
+      return true;
    }
-   return "unknown";
+   message("Unknown extension '%s'.\n",extension.c_str());
+   error("Couldn't determine the type of input file, please use --format and check your input.\n");
+   return false;
+}//}}}
+
+bool openSamFile(const string &name, const string &inFormat, samfile_t **samFile){//{{{
+   if(*samFile != NULL)samclose(*samFile);
+   if(inFormat=="bam") *samFile = samopen(name.c_str(), "rb" , NULL);
+   else *samFile = samopen(name.c_str(), "r" , NULL);
+   if(*samFile == NULL){
+      error("Failed re-reading alignments.\n");
+      return false;
+   }
+   return true;
+}//}}}
+
+bool initializeInfoFile(const ArgumentParser &args, samfile_t *samFile, TranscriptInfo **trInfo, long *M){//{{{
+   if(samFile->header == NULL){
+      if(! args.isSet("trInfoFileName")){
+         error("Main: alignment file does not contain header.\n"
+               "  Please either include header in alignment file or provide transcript information file.\n"
+               "  (option --trInfoFile, file should contain lines with <gene name> <transcript name> <transcript length>.\n");
+         return false;
+      }else{
+         if(args.verb())message("Using %s for transcript information.\n",(args.getS("trInfoFileName")).c_str());
+         if(! ( *trInfo = new TranscriptInfo(args.getS("trInfoFileName")))){
+            error("Main: Can't get transcript information.\n");
+            return false;
+         }
+         *M=(*trInfo)->getM();
+      }
+   }else{
+      if(args.verbose)message("Using alignments' header for transcript information.\n");
+      *M = samFile->header->n_targets;
+      vector<string> trNames(*M);
+      vector<long> trLengths(*M);
+      for(long i=0;i<*M;i++){
+         trNames[i] = samFile->header->target_name[i];
+         trLengths[i] = samFile->header->target_len[i]; 
+      }
+      *trInfo = new TranscriptInfo();
+      if(! (*trInfo)->setInfo(vector<string>(*M,"none"), trNames, trLengths)){
+         error("TranscriptInfo not initialized.\n");
+         return false;
+      }
+   }
+   return true;
 }//}}}
 
 } // namespace ns_parseAlignment

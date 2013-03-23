@@ -1,5 +1,6 @@
 0.5.1:
 Improvements:
+- parseAlignment tries to determine input type based on extension (no need to use --format parameter in most cases)
 
 Bug fixes:
 - fixed broken extractTranscriptInfo.py and added new 'type' that looks for "gene=<gene name>"
