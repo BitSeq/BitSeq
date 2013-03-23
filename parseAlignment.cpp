@@ -41,11 +41,18 @@ class TagAlignment{//{{{
       void setProb(double p){prob=p;}
 }; //}}}
 
+// Convert string into lower case.
 string toLower(string str);
 
+// Read Fragment from SAM file.
+// Copies data from 'next' fragment into 'cur' fragment and reads new fragment information into 'next'.
+// Fragment is either both paired-ends or just single read.
 bool readNextFragment(samfile_t* samData, fragmentP &cur, fragmentP &next);
 
+// Determine input format base either on --format flag or on the file extension.
+// Returns either sam/bam or unknown.
 string getInputFormat(const ArgumentParser &args);
+
 } // namespace ns_parseAlignment
 
 extern "C" int parseAlignment(int *argc,char* argv[]){
@@ -375,8 +382,24 @@ bool readNextFragment(samfile_t* samData, fragmentP &cur, fragmentP &next){//{{{
    return currentOK;
 }//}}}
 
-string getInputFormat(const ArgumentParser &args){
-   return "sam";
-}
+string getInputFormat(const ArgumentParser &args){//{{{
+   if(args.isSet("format")){
+      string format = toLower(args.getS("format"));
+      if((format =="sam")||(format == "bam")){
+         return format;
+      }
+      warning("Unknown format '%s'.\n",format.c_str());
+   }
+   string fileName = args.args()[0];
+   string extension = fileName.substr(fileName.rfind(".")+1);
+   if((toLower(extension)=="sam")||(toLower(extension)=="bam")){
+      if(args.verb())
+         message("Assuming alignment file in '%s' format.\n",toLower(extension).c_str());
+      return toLower(extension);
+   } else {
+      message("Unknown extension '%s'.\n",extension.c_str());
+   }
+   return "unknown";
+}//}}}
 
 } // namespace ns_parseAlignment
