@@ -99,14 +99,14 @@ class ReadDistribution{
       vector<vector<vector<double> > > posProb;
       vector<vector<VlmmNode> > seqProb;
    
-      double getLengthP(double len);
-      double getLengthNorm(double trLen);
+      double getLengthLP(double len);
+      double getLengthLNorm(double trLen);
       void updatePosBias(long pos, biasT bias, long tid, double Iexp);
       void updateSeqBias(long pos, biasT bias, long tid, double Iexp);
       double getPosBias(long pos, readT read, long tid);
       double getSeqBias(long pos, readT read, long tid);
       double getWeightNorm(long len, readT, long tid);
-      pair<double, double> getSequenceProb(bam1_t *samA);
+      pair<double, double> getSequenceLProb(bam1_t *samA);
    public:
       ReadDistribution(long m);
       bool init(TranscriptInfo* trI, TranscriptSequence* trS, TranscriptExpression* trE, bool verb = true);
