@@ -328,7 +328,7 @@ void ReadDistribution::logProfiles(string logFileName){//{{{
 pair<double,double> ReadDistribution::getSequenceProb(bam1_t *samA){//{{{
    if(! samA) return pair<double, double>(1,1);
    //return pair<double, double>(1,0.00000001);
-   double prob=1,lowProb=1,probMis;
+   double l_prob=0,lowL_prob=0,l_probMis;
    bam1_core_t *samC = &samA->core;
    uint8_t *qualP=bam1_qual(samA);
    long i,j,misses,len=samC->l_qseq;
@@ -394,24 +394,24 @@ pair<double,double> ReadDistribution::getSequenceProb(bam1_t *samA){//{{{
          case BAM_CEQUAL:
          case BAM_CDIFF:*/
       }
-      probMis = pow((double)10.0,((double) qualP[j])/-10.0 );
+      l_probMis = (((double) qualP[j])/-10.0) * log(10.0);
          
       if((base2int(seq[i]) == -1)||(base2int(seq[i]) != bamBase2int(bam1_seqi(bam1_seq(samA),j)))){
-         prob *= probMis;
-         lowProb *= probMis;
+         l_prob += l_probMis;
+         lowL_prob += l_probMis;
       }else{
-         prob *= 1 - probMis;
+         l_prob += log1p(-exp(l_probMis));
          if(misses>0){
-            lowProb *= probMis;
+            lowL_prob += l_probMis;
             misses--;
          }else{
-            lowProb *= 1.0 - probMis;
+            lowL_prob += log1p(-exp(l_probMis));
          }
       }
       i--;
       j--;
    }
-   return pair<double, double>(prob,lowProb);
+   return pair<double, double>(l_prob,lowL_prob);
 }//}}}
 void ReadDistribution::getP(fragmentP frag,double &prob,double &probNoise){ //{{{
    double P = 1;
@@ -421,6 +421,11 @@ void ReadDistribution::getP(fragmentP frag,double &prob,double &probNoise){ //{{
    // Get probability based on base mismatches: {{{
    pSeq1 = getSequenceProb(frag->first);
    pSeq2 = getSequenceProb(frag->second);
+   pSeq1.first = exp(pSeq1.first);
+   pSeq1.second = exp(pSeq1.second);
+   pSeq2.first = exp(pSeq2.first);
+   pSeq2.second = exp(pSeq2.second);
+
    long tid = frag->first->core.tid;
    if((tid==-1)||((frag->paired)&&(frag->second->core.tid != tid))){
       if(warnTIDmismatch){
