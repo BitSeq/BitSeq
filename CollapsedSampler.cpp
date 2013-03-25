@@ -2,6 +2,7 @@
 
 #include "CollapsedSampler.h"
 #include "common.h"
+#include "misc.h"
 
 #define DEBUG(x) 
 
@@ -36,27 +37,27 @@ void CollapsedSampler::sampleZ(){//{{{
    struct timeval start, end;
    gettimeofday(&start, NULL);
 #endif
-   vector<double> phi(m,0); 
+   vector<double> lphi(m,0); 
    // phi of size M should be enough 
    // because of summing the probabilities for each isoform when reading the data
-   double probNorm,r,sum,const1;
+   double lProbNorm,r,sum,const1;
+   int_least32_t readsAlignmentsN;
 
    const1=m * dir->alpha + Nmap - 1;
    // randomize order: ???
    for(i=0;i<Nmap;i++){  // XXX Nmap-1 ?
-      probNorm=0;
       C[Z[i]]--; // use counts without the current one 
-
-      for(j=0, k=alignments->getReadsI(i); k < alignments->getReadsI(i+1); j++, k++){
+      readsAlignmentsN = alignments->getReadsI(i+1) - alignments->getReadsI(i);
+      for(j=0, k=alignments->getReadsI(i); j<readsAlignmentsN; j++, k++){
          //message("%ld %lf ",(*alignments)[k].getTrId(),(*alignments)[k].getProb());
          if(alignments->getTrId(k) == 0){
-            phi[j] = alignments->getProb(k) *
-               (beta->beta + Nunmap + C[0]) * 
-               (const1 - C[0]); // this comes from division in "false part"
+            lphi[j] = alignments->getProb(k) +
+               log(beta->beta + Nunmap + C[0]) + 
+               log(const1 - C[0]); // this comes from division in "false part"
          }else{
-            phi[j] = alignments->getProb(k) * 
-               (beta->alpha + Nmap - 1 - C[0]) * 
-               (dir->alpha + C[ alignments->getTrId(k) ]); 
+            lphi[j] = alignments->getProb(k) + 
+               log(beta->alpha + Nmap - 1 - C[0]) + 
+               log(dir->alpha + C[ alignments->getTrId(k) ]); 
                /* 
                / (m * dir->alpha + Nmap - 1 - C[0]) ;
                this term was replaced by (const1 - C[0]) 
@@ -64,20 +65,20 @@ void CollapsedSampler::sampleZ(){//{{{
                */
          }
          //message("%lf\n",phi[j]);
-         probNorm += phi[j];
       }
+      // Normalization constant:
+      lProbNorm = ns_math::logSumExp(lphi);
       r = uniformDistribution(rng_mt);
-      r*=probNorm;
-      for(j = 0, sum = 0 ; sum<r; j++){
-         sum += phi[j];
-//         sum += phi[j] / probNorm; instead of each divide do r*probNorm
+      for(j = 0, sum = 0 ; (sum<r) && (j<=readsAlignmentsN); j++){
+         sum += exp(lphi[j] - lProbNorm);
       }
       if(j==0){
          // e.g. if probNorm == 0
-         // assign to noise
-         j = alignments->getReadsI(i+1)-alignments->getReadsI(i);
+         // assign to noise.
+         Z[i] = 0;
+      } else {
+         Z[i] = alignments->getTrId(alignments->getReadsI(i) + j -1);
       }
-      Z[i] = alignments->getTrId(alignments->getReadsI(i) + j -1);
       C[ Z[i] ]++;
    }
 #ifdef DoSTATS
