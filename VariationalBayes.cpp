@@ -38,8 +38,7 @@ VariationalBayes::VariationalBayes(SimpleSparse *_beta,double *_alpha,long seed,
    T=beta->T;
    
    //logBeta= new SimpleSparse(beta);
-   #pragma omp parallel for
-   for(i=0;i<T;i++)beta->val[i] = log(beta->val[i]);
+   //beta already contains log probabilities.
    
    if(_alpha){
       alpha = _alpha;

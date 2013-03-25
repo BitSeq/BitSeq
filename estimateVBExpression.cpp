@@ -29,12 +29,13 @@ SimpleSparse* readData(ArgumentParser &args){//{{{
    inFile.open(args.args()[0].c_str());
    FileHeader fh(&inFile);
    bool newformat=true;
-   if((!fh.probHeader(&Nmap,&Ntotal,&newformat)) || (Nmap ==0)){//{{{
+   ns_fileHeader::AlignmentFileType format;
+   if((!fh.probHeader(&Nmap,&Ntotal,&format)) || (Nmap ==0)){//{{{
       error("Prob file header read failed.\n");
       return NULL;
    }//}}}
-   if(! newformat){
-      error("Please use new format of probfile.");
+   if(format == ns_fileHeader::OLD_FORMAT){
+      error("Please use new/log format of probfile.");
       return NULL;
    }
    message("Mappings: %ld\n",Nmap);
@@ -49,6 +50,7 @@ SimpleSparse* readData(ArgumentParser &args){//{{{
      //    message("%s %ld\n",(readId).c_str(),num);
       for(j = 0; j < num; j++) {
          inFile>>tid>>prb;
+         if(format != ns_fileHeader::LOG_FORMAT) prb = log(prb);
          if(inFile.fail()){
             inFile.clear();
             // ignore rest of line
@@ -57,7 +59,7 @@ SimpleSparse* readData(ArgumentParser &args){//{{{
             j=num;
             // this read goes to noise
             tid=0;
-            prb=100;
+            prb=log(1000);
             bad++;
          }
          alignments->pushAlignment(tid, prb);         
