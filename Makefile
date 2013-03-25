@@ -20,7 +20,7 @@ DBGFLAGS = -ggdb -U_FORTIFY_SOURCE
 COFLAGS = $(ARCH) -O2 -pipe
 # -ffast-math segfaults with old gcc
 #COFLAGS = $(ARCH) -O3 -ffast-math -pipe
-CXXFLAGS = -DPACKAGE_VERSION=\"$(VERSION)\" -Wall -Wvla $(COFLAGS)
+CXXFLAGS = -DBS_VERSION=\"$(VERSION)\" -Wall -Wvla $(COFLAGS)
 LDFLAGS = -Wl,-gc-sections
 BOOSTFLAGS = -I .
 OPENMP = -fopenmp -DSUPPORT_OPENMP
