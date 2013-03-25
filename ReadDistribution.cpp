@@ -1,9 +1,10 @@
 #include<cmath>
 #include<omp.h>
 
-#include "ReadDistribution.h"
-#include "MyTimer.h"
 #include "common.h"
+#include "misc.h"
+#include "MyTimer.h"
+#include "ReadDistribution.h"
 
 void inline progressLogRD(long cur,long outOf) {//{{{
    // output progress status every 10%
@@ -416,18 +417,14 @@ pair<double,double> ReadDistribution::getSequenceLProb(bam1_t *samA){//{{{
    }
    return pair<double, double>(lProb,lowLProb);
 }//}}}
-void ReadDistribution::getP(fragmentP frag,double &prob,double &probNoise){ //{{{
-   double P = 1;
-   prob = 0;
-   probNoise = 0;
-   pair<double, double> pSeq1,pSeq2;
+void ReadDistribution::getP(fragmentP frag,double &lProb,double &lProbNoise){ //{{{
+   double lP = 0;
+   lProb = ns_misc::LOG_ZERO;
+   lProbNoise = ns_misc::LOG_ZERO;
+   pair<double, double> lpSeq1,lpSeq2;
    // Get probability based on base mismatches: {{{
-   pSeq1 = getSequenceLProb(frag->first);
-   pSeq2 = getSequenceLProb(frag->second);
-   pSeq1.first = exp(pSeq1.first);
-   pSeq1.second = exp(pSeq1.second);
-   pSeq2.first = exp(pSeq2.first);
-   pSeq2.second = exp(pSeq2.second);
+   lpSeq1 = getSequenceLProb(frag->first);
+   lpSeq2 = getSequenceLProb(frag->second);
 
    long tid = frag->first->core.tid;
    if((tid==-1)||((frag->paired)&&(frag->second->core.tid != tid))){
@@ -453,14 +450,16 @@ void ReadDistribution::getP(fragmentP frag,double &prob,double &probNoise){ //{{
          len = frag_first_endPos - frag->second->core.pos;
       }
       // compute length probability and normalize by probability of all possible lengths (cdf):
-      if(validLength) P *= exp(getLengthLP(len) - getLengthLNorm(trLen));
+      // P*=lengthP/lengthNorm
+      if(validLength) lP += getLengthLP(len) - getLengthLNorm(trLen);
       // }}}
    }else{
       len = frag_first_endPos - frag->first->core.pos;
    }
    if(uniform){
       // Get probability of position for uniform distribution
-      P *= 1./(trLen-len+1);
+      // P*=1/(trLen-len+1)
+      lP -= log(trLen-len+1);
    }else{ // Positional & Sequence bias {{{
       // Get probability of position given read bias model
       // check mates' relative position:
@@ -479,31 +478,35 @@ void ReadDistribution::getP(fragmentP frag,double &prob,double &probNoise){ //{{
       }
       if(!frag->paired){
          if(frag->first->core.flag & BAM_FREVERSE){
-            P *= getPosBias(frag_first_endPos, mate_5, tid) *
-               getSeqBias(frag_first_endPos, mate_5, tid ) /
-               getWeightNorm( (long) len, mate_5, tid);
+            // P*=posBias5'*seqBias5'/weightNorm5'
+            lP += log(getPosBias(frag_first_endPos, mate_5, tid)) +
+               log(getSeqBias(frag_first_endPos, mate_5, tid )) -
+               log(getWeightNorm( (long) len, mate_5, tid));
          }else{
-            P *= getPosBias(frag->first->core.pos , mate_3, tid) *
-               getSeqBias(frag->first->core.pos , mate_3, tid ) /
-               getWeightNorm( (long) len, mate_3, tid);
+            // P*=posBias3'*seqBias3'/weightNorm3'
+            lP += log(getPosBias(frag->first->core.pos , mate_3, tid)) +
+               log(getSeqBias(frag->first->core.pos , mate_3, tid )) -
+               log(getWeightNorm( (long) len, mate_3, tid));
          }
       }else{
 //#pragma omp parallel sections num_threads (2) reduction(*:P)
 //{
 //   #pragma omp section
-         P *= 1.0/getWeightNorm( (long) len, FullPair, tid);
+         // P*=1/weightNormFull
+         lP -= log(getWeightNorm( (long) len, FullPair, tid));
 //   #pragma omp section
 //   {
-         P *= getPosBias(frag_second_endPos, mate_5, tid)
-          * getPosBias(frag->first->core.pos , mate_3, tid)
-          * getSeqBias(frag_second_endPos, mate_5, tid )
-          * getSeqBias(frag->first->core.pos , mate_3, tid ); 
+         // P*=posBias5'*posBias3'*seqBias5'*seqBias3'
+         lP += log(getPosBias(frag_second_endPos, mate_5, tid))
+          + log(getPosBias(frag->first->core.pos , mate_3, tid))
+          + log(getSeqBias(frag_second_endPos, mate_5, tid ))
+          + log(getSeqBias(frag->first->core.pos , mate_3, tid )); 
 //   }
 //}
       }
    } //}}}
-   prob = P * pSeq1.first*pSeq2.first;
-   probNoise = P * pSeq1.second*pSeq2.second;
+   lProb = lP + lpSeq1.first+lpSeq2.first;
+   lProbNoise = lP + lpSeq1.second+lpSeq2.second;
 }//}}}
 void ReadDistribution::updatePosBias(long pos, biasT bias, long tid, double Iexp){ //{{{
    if((bias==readM_5)||(bias==uniformM_5))pos--;

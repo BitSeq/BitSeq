@@ -77,8 +77,8 @@ getVariance: getVariance.cpp $(COMMON_DEPS) PosteriorSamples.o
 getWithinGeneExpression: getWithinGeneExpression.cpp $(COMMON_DEPS) PosteriorSamples.o TranscriptInfo.o
 	$(CXX) $(CXXFLAGS) getWithinGeneExpression.cpp $(COMMON_DEPS) PosteriorSamples.o TranscriptInfo.o -o getWithinGeneExpression
 
-parseAlignment: parseAlignment.cpp $(COMMON_DEPS) ReadDistribution.o samtools/sam.o TranscriptExpression.o TranscriptInfo.o TranscriptSequence.o
-	$(CXX) $(CXXFLAGS) $(OPENMP) -Isamtools parseAlignment.cpp $(COMMON_DEPS) ReadDistribution.o samtools/*.o TranscriptExpression.o TranscriptInfo.o TranscriptSequence.o -lz -o parseAlignment
+parseAlignment: parseAlignment.cpp $(COMMON_DEPS) misc.o ReadDistribution.o samtools/sam.o TranscriptExpression.o TranscriptInfo.o TranscriptSequence.o
+	$(CXX) $(CXXFLAGS) $(OPENMP) $(LDFLAGS) -Isamtools parseAlignment.cpp $(COMMON_DEPS) misc.o ReadDistribution.o samtools/*.o TranscriptExpression.o TranscriptInfo.o TranscriptSequence.o -lz -o parseAlignment
 
 transposeLargeFile: transposeLargeFile.cpp $(COMMON_DEPS) transposeFiles.o
 	$(CXX) $(CXXFLAGS) transposeLargeFile.cpp $(COMMON_DEPS) transposeFiles.o -o transposeLargeFile

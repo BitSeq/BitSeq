@@ -209,7 +209,7 @@ string programDescription =
       return 1;
    }
    outF<<"# Ntotal "<<Ntotal<<"\n# Nmap "<<Nmap<<endl;
-   outF<<"# NEWFORMAT \n# r_name num_alignments (tr_id prob )^*{num_alignments}"<<endl;
+   outF<<"# LOGFORMAT (probabilities saved on log scale.)\n# r_name num_alignments (tr_id prob )^*{num_alignments}"<<endl;
    outF.precision(9);
    outF<<scientific;
    // }}}
