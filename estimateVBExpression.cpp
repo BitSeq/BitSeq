@@ -28,7 +28,6 @@ SimpleSparse* readData(ArgumentParser &args){//{{{
    // Read alignment probabilities {{{
    inFile.open(args.args()[0].c_str());
    FileHeader fh(&inFile);
-   bool newformat=true;
    ns_fileHeader::AlignmentFileType format;
    if((!fh.probHeader(&Nmap,&Ntotal,&format)) || (Nmap ==0)){//{{{
       error("Prob file header read failed.\n");

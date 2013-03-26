@@ -94,7 +94,7 @@ bool FileHeader::transcriptsHeader(long *m, long *colN){//{{{
    return true;
 }//}}}
 
-bool FileHeader::probHeader(long *Nmap,long *Ntotal, ns_fileHeader::AlignmentFileType *format){//{{{
+bool FileHeader::probHeader(long *Nmap,long *Ntotal, AlignmentFileType *format){//{{{
    if(!readValues()){
       *Nmap=0;
       return false;

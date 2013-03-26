@@ -68,7 +68,7 @@ TagAlignments* readData(ArgumentParser &args) {//{{{
       for(j = 0; j < num; j++) {
          if(format == ns_fileHeader::OLD_FORMAT)inFile>>tid>>strand>>prb;
          else inFile>>tid>>prb;
-         if(format != ns_fileHeader::LOG_FORMAT)prb = log(prb)
+         if(format != ns_fileHeader::LOG_FORMAT)prb = log(prb);
          if(inFile.fail()){
             inFile.clear();
             // ignore rest of line
