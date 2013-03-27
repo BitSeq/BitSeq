@@ -11,8 +11,8 @@ namespace ns_math {
 // For a=log(x), b=log(y); compute log(x+y).
 double logAddExp(double a, double b);
 
-// For vals_i = log(x_i); compute log(sum(x_i)).
-double logSumExp(const vector<double> &vals);
+// For vals_i = log(x_i); compute log(sum(x_i)) of first n positions.
+double logSumExp(const vector<double> &vals, long n = -1);
 
 }
 

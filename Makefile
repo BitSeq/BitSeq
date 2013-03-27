@@ -24,10 +24,6 @@ LDFLAGS = -Wl,-gc-sections
 BOOSTFLAGS = -I .
 OPENMP = -fopenmp -DSUPPORT_OPENMP
 
-LDFLAGS = -Wl,-gc-sections
-BOOSTFLAGS = -I .
-OPENMP = -fopenmp -DSUPPORT_OPENMP
-
 PROGRAMS = \
    convertSamples \
    estimateDE \

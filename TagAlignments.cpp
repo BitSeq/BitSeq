@@ -106,7 +106,7 @@ void TagAlignments::finalizeRead(long *M, long *Nreads, long *Ntotal){//{{{
 }//}}}
 int_least32_t TagAlignments::getTrId(long i) const {//{{{
    if(i<Ntotal)return trIds[i];
-   return -1;
+   return 0;
 }//}}}
 double TagAlignments::getProb(long i) const {//{{{
    if(i<Ntotal)return probs[i];

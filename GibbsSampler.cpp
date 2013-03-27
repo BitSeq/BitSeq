@@ -50,9 +50,9 @@ void GibbsSampler::sampleZ(){//{{{
          }
       }
       // Normalization constant:
-      lProbNorm = ns_math::logSumExp(lphi);
+      lProbNorm = ns_math::logSumExp(lphi, readsAlignmentsN);
       r = uniformDistribution(rng_mt);
-      for(j = 0, sum = 0 ; (sum<r) && (j<=readsAlignmentsN); j++){
+      for(j = 0, sum = 0 ; (sum<r) && (j<readsAlignmentsN); j++){
          sum += exp(lphi[j] - lProbNorm);
       }
       if(j==0){
