@@ -173,7 +173,7 @@ string programDescription =
    long RE_noEndInfo, RE_weirdPairdInfo;
    long maxAlignments = 0;
    if(args.isSet("maxAlignments") && (args.getL("maxAlignments")>0))
-      maxAlignments = args.getL("maxAlignments")>0;
+      maxAlignments = args.getL("maxAlignments");
    // start counting (and possibly estimating):
    pairedGA = firstGA = secondGA = singleGA = weirdGA = 0;
    RE_noEndInfo = RE_weirdPairdInfo = 0;
