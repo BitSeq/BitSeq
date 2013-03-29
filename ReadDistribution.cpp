@@ -823,7 +823,7 @@ double VlmmNode::getP(char b, char bp, char bpp) {//{{{
                   if((base2int(bp) == j) || (base2int(bp) == -1))
                      prob += probs[pows4[2]*i + pows4[1]*j+ k];
       }else if(parentsN==1){
-         // there was a an unknown => we know that parent is unknown
+         // there was an unknown => we know that parent is unknown
          k = base2int(b);
          for(j=0;j<4;j++)
             prob += probs[pows4[1]*j+ k];

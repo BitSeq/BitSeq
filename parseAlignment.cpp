@@ -92,7 +92,7 @@ string programDescription =
    args.addOptionL("P","procN","procN",0,"Maximum number of threads to be used. This provides parallelization only when computing non-uniform read distribution (i.e. runs without --uniform flag).",3);
    args.addOptionB("V","veryVerbose","veryVerbose",0,"Very verbose output.");
    args.addOptionL("","noiseMismatches","numNoiseMismatches",0,"Number of mismatches to be considered as noise.",LOW_PROB_MISSES);
-   args.addOptionL("l","limitA","maxAlignments",0,"Limit maximum number of alignments per read. (Reads with more alignments are skiped.)");
+   args.addOptionL("l","limitA","maxAlignments",0,"Limit maximum number of alignments per read. (Reads with more alignments are skipped.)");
    if(!args.parse(*argc,argv))return 0;
    if(args.verbose)buildTime(argv[0],__DATE__,__TIME__);
 #ifdef SUPPORT_OPENMP
@@ -168,7 +168,7 @@ string programDescription =
       readD.setLowProbMismatches(args.getL("numNoiseMismatches"));
    }
    // fill in "next" fragment:
-   // Counters for all, Good Alignments; and weird alignemnts
+   // Counters for all, Good Alignments; and weird alignments
    long pairedGA, firstGA, secondGA, singleGA, weirdGA, allGA;
    long RE_noEndInfo, RE_weirdPairdInfo;
    long maxAlignments = 0;
@@ -224,8 +224,8 @@ string programDescription =
    timer.split(0,'m');
    message("Reads: all(Ntotal): %ld  mapped(Nmap): %ld\n",Ntotal,Nmap);
    if(ignoredReads.size()>0)message("  %ld reads are skipped due to having more than %ld alignments.\n",ignoredReads.size(), maxAlignments);
-   if(RE_noEndInfo)warning("  %ld reads that were paired, but do not have \"end\" information.\n  (is your alignemnt file valid?)", RE_noEndInfo);
-   if(RE_weirdPairdInfo)warning("  %ld reads that were reported as both paired and single end.\n  (is your alignemnt file valid?)", RE_weirdPairdInfo);
+   if(RE_noEndInfo)warning("  %ld reads that were paired, but do not have \"end\" information.\n  (is your alignment file valid?)", RE_noEndInfo);
+   if(RE_weirdPairdInfo)warning("  %ld reads that were reported as both paired and single end.\n  (is your alignment file valid?)", RE_weirdPairdInfo);
    readD.writeWarnings();
    // Normalize read distribution:
    if(args.flag("veryVerbose"))timer.split(0,'m');
@@ -366,10 +366,14 @@ string programDescription =
    if(args.isSet("trInfoFileName")){
       if(args.verbose)message("Computing effective lengths.\n");
       trInfo->setEffectiveLength(readD.getEffectiveLengths());
-      if(args.verbose)message("Writing transcript information into %s.\n",(args.getS("trInfoFileName")).c_str());
       if(! trInfo->writeInfo(args.getS("trInfoFileName"))){
-         warning("Main: writing to %s failed.\nWill try %s-NEW but you should rename it afterwards if you're planning to use it.\n",(args.getS("trInfoFileName")).c_str(),(args.getS("trInfoFileName")).c_str());
-         trInfo->writeInfo(args.getS("trInfoFileName")+"-NEW", true); // DO OVERWRITE
+         warning("Main: File %s probably already exists.\n"
+                 "   Will save new transcript info into %s-NEW.\n",(args.getS("trInfoFileName")).c_str(),(args.getS("trInfoFileName")).c_str());
+         if(! trInfo->writeInfo(args.getS("trInfoFileName")+"-NEW", true)){ // DO OVERWRITE
+            warning("Main: Writing into %s failed!.",(args.getS("trInfoFileName")+"-NEW").c_str());
+         }
+      }else {
+         if(args.verbose)message("Transcript information saved into %s.\n",(args.getS("trInfoFileName")).c_str());
       }
       if(args.verbose)timer.split(0,'m');
    } //}}}
