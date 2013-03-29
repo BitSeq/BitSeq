@@ -1,2 +1,0 @@
-This is subset of samtools program, which is used as API for reading SAM and BAM files.
-These files were taken from samtools version 0.1.18.
