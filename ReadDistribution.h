@@ -87,7 +87,8 @@ class ReadDistribution{
       double lMu,lSigma,logLengthSum,logLengthSqSum;
       long lowProbMismatches;
       bool verbose,uniform,lengthSet,gotExpression,normalized;
-      bool warnPos, warnTIDmismatch, validLength;
+      bool validLength;
+      long warnPos, warnTIDmismatch, warnUnknownTID, noteFirstMateDown;
       TranscriptInfo* trInf;
       TranscriptSequence* trSeq;
       TranscriptExpression* trExp;
@@ -108,15 +109,16 @@ class ReadDistribution{
       double getWeightNorm(long len, readT, long tid);
       pair<double, double> getSequenceLProb(bam1_t *samA);
    public:
-      ReadDistribution(long m);
-      bool init(TranscriptInfo* trI, TranscriptSequence* trS, TranscriptExpression* trE, bool verb = true);
-      bool initUniform(TranscriptInfo* trI, TranscriptSequence* trS, bool verb = true);
+      ReadDistribution();
+      void writeWarnings();
+      bool init(long m, TranscriptInfo* trI, TranscriptSequence* trS, TranscriptExpression* trE, bool verb = true);
+      bool initUniform(long m, TranscriptInfo* trI, TranscriptSequence* trS, bool verb = true);
       void setLowProbMismatches(long m);
       void setLength(double mu, double sigma);
       void observed(fragmentP frag);
       void normalize();
       void logProfiles(string logFileName = "");
-      void getP(fragmentP frag,double &prob,double &probNoise);
+      bool getP(fragmentP frag,double &prob,double &probNoise);
       vector<double> getEffectiveLengths();
 }; 
 

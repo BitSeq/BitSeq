@@ -104,7 +104,7 @@ string programDescription =
       message("Sampling condition mean expression.\n");
    }//}}}
    for(m=0;m<M;m++){
-      if(progressLog(m,M))timer.split();
+      if(progressLog(m,M,10,' '))timer.split();
       // Read into tr and assign hyperparameters into curParams, initialize mu_00.
       // cond does not really change, just reads more data from file.
       ns_estimateDE::readNextTranscript(m, C, N, &cond, params, &tr, &curParams, &mu_00);

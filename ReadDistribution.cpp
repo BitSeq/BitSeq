@@ -47,10 +47,10 @@ inline void mapAdd(map<long,double > &m, long key, double val){//{{{
       m[key] += val;
 }//}}}
 
-ReadDistribution::ReadDistribution(long m){ //{{{
-   M=m;
+ReadDistribution::ReadDistribution(){ //{{{
+   M=0;
    uniform = lengthSet = gotExpression = normalized = validLength = false;
-   warnPos = warnTIDmismatch = true;
+   warnPos = warnTIDmismatch = warnUnknownTID = noteFirstMateDown = 0;
    lMu=100;
    lSigma=10;
    verbose = true;
@@ -58,10 +58,23 @@ ReadDistribution::ReadDistribution(long m){ //{{{
    minFragLen=10000;
    lowProbMismatches = LOW_PROB_MISSES;
 }//}}}
-void ReadDistribution::setLowProbMismatches(long m){//{{{
-   lowProbMismatches = m>1 ? m:1;
+void ReadDistribution::writeWarnings() {//{{{
+   if(warnPos>0){
+      warning("ReadDistribution: %ld upstream reads from a pair did not align to the sense strand of transcript.\n", warnPos);
+   }
+   if(warnTIDmismatch>0){
+      warning("ReadDistribution: %ld pair reads were aligned to different transcripts.\n", warnTIDmismatch);
+   }
+   if(warnUnknownTID>0){
+      warning("ReadDistribution: %ld fragments were aligned to unknown transcripts.\n", warnUnknownTID);
+   }
+   if(noteFirstMateDown){
+      message("NOTE: ReadDistribution: First mate from a pair was downstream (%ld times).\n", noteFirstMateDown);
+   }
+   warnPos = warnTIDmismatch = warnUnknownTID = noteFirstMateDown = 0;
 }//}}}
-bool ReadDistribution::init(TranscriptInfo* trI, TranscriptSequence* trS, TranscriptExpression* trE, bool verb){ //{{{
+bool ReadDistribution::init(long m, TranscriptInfo* trI, TranscriptSequence* trS, TranscriptExpression* trE, bool verb){ //{{{
+   M = m;
    verbose = verb;
    if(trI==NULL){
       error("ReadDistribution: Missing TranscriptInfo.\n");
@@ -94,7 +107,8 @@ bool ReadDistribution::init(TranscriptInfo* trI, TranscriptSequence* trS, Transc
    }
    return true;
 }//}}}
-bool ReadDistribution::initUniform(TranscriptInfo* trI, TranscriptSequence* trS, bool verb){ //{{{
+bool ReadDistribution::initUniform(long m, TranscriptInfo* trI, TranscriptSequence* trS, bool verb){ //{{{
+   M = m;
    verbose = verb;
    if(trI==NULL){
       error("ReadDistribution: Missing TranscriptInfo.\n");
@@ -110,6 +124,9 @@ bool ReadDistribution::initUniform(TranscriptInfo* trI, TranscriptSequence* trS,
    fragSeen = 0;
    return true;
 }//}}}
+void ReadDistribution::setLowProbMismatches(long m){//{{{
+   lowProbMismatches = m>1 ? m:1;
+}//}}}
 void ReadDistribution::setLength(double mu, double sigma){ //{{{
    lMu=mu;
    lSigma=sigma;
@@ -118,7 +135,14 @@ void ReadDistribution::setLength(double mu, double sigma){ //{{{
 void ReadDistribution::observed(fragmentP frag){ //{{{
    DEBUG(message("%s===%s\n",bam1_qname(frag->first),bam1_qname(frag->second));)
    long tid = frag->first->core.tid;
-   if((tid == -1)||((frag->paired)&&(tid!=frag->second->core.tid))) return;
+   if((frag->paired)&&(tid!=frag->second->core.tid)){
+      warnTIDmismatch++;
+      return;
+   }
+   if((tid < 0)||(tid>=M)){
+      warnUnknownTID++;
+      return;
+   }
    // Set inverse expression
    double Iexp = (gotExpression)? 1.0/trExp->exp(tid) : 1.0;
    // Calculate reads' true end position:
@@ -151,16 +175,13 @@ void ReadDistribution::observed(fragmentP frag){ //{{{
 
    // check mates relative position: {{{
    if((frag->paired) && (frag->first->core.pos > frag->second->core.pos)){
-      if(verbose)message("NOTE: ReadDistribution: SAM - first mate from a pair was downstream.\n");
+      noteFirstMateDown ++;
       bam1_t *tmp = frag->second;
       frag->second = frag->first;
       frag->first = tmp;
    }
    if((frag->paired) && (frag->first->core.flag & BAM_FREVERSE)){
-      if(warnPos){
-         warning("ReadDistribution: Upstream mate from a pair has to align to the sense strand of transcript.\n");
-         warnPos=false;
-      }
+      warnPos ++;
       return;
    }//}}}
    // positional bias:
@@ -417,7 +438,7 @@ pair<double,double> ReadDistribution::getSequenceLProb(bam1_t *samA){//{{{
    }
    return pair<double, double>(lProb,lowLProb);
 }//}}}
-void ReadDistribution::getP(fragmentP frag,double &lProb,double &lProbNoise){ //{{{
+bool ReadDistribution::getP(fragmentP frag,double &lProb,double &lProbNoise){ //{{{
    double lP = 0;
    lProb = ns_misc::LOG_ZERO;
    lProbNoise = ns_misc::LOG_ZERO;
@@ -425,14 +446,14 @@ void ReadDistribution::getP(fragmentP frag,double &lProb,double &lProbNoise){ //
    // Get probability based on base mismatches: {{{
    lpSeq1 = getSequenceLProb(frag->first);
    lpSeq2 = getSequenceLProb(frag->second);
-
    long tid = frag->first->core.tid;
-   if((tid==-1)||((frag->paired)&&(frag->second->core.tid != tid))){
-      if(warnTIDmismatch){
-         warning("ReadDistribution: Read pair fragments are aligned to different transcripts.\n");
-         warnTIDmismatch=false;
-      }
-      return;
+   if((frag->paired)&&(tid!=frag->second->core.tid)){
+      warnTIDmismatch++;
+      return false;
+   }
+   if((tid < 0)||(tid>=M)){
+      warnUnknownTID++;
+      return false;
    }
    // Calculate reads' true end position:
    long frag_first_endPos, frag_second_endPos=0;
@@ -464,17 +485,15 @@ void ReadDistribution::getP(fragmentP frag,double &lProb,double &lProbNoise){ //
       // Get probability of position given read bias model
       // check mates' relative position:
       if( frag->paired && (frag->first->core.pos > frag->second->core.pos)){
+         noteFirstMateDown ++;
          bam1_t *tmp = frag->second;
          frag->second = frag->first;
          frag->first = tmp;
       }
       // check strand of the first read:
       if(frag->paired && (frag->first->core.flag & BAM_FREVERSE)){
-         if(warnPos){
-            warning("ReadDistribution: Upstream mate from a pair has to align to the sense strand of transcript.\n");
-            warnPos=false;
-         }
-         return;
+         warnPos++;
+         return false;
       }
       if(!frag->paired){
          if(frag->first->core.flag & BAM_FREVERSE){
@@ -507,6 +526,7 @@ void ReadDistribution::getP(fragmentP frag,double &lProb,double &lProbNoise){ //
    } //}}}
    lProb = lP + lpSeq1.first+lpSeq2.first;
    lProbNoise = lP + lpSeq1.second+lpSeq2.second;
+   return true;
 }//}}}
 void ReadDistribution::updatePosBias(long pos, biasT bias, long tid, double Iexp){ //{{{
    if((bias==readM_5)||(bias==uniformM_5))pos--;
@@ -637,7 +657,7 @@ vector<double> ReadDistribution::getEffectiveLengths(){ //{{{
       if(verbose && (m!=0) && (m%(M/10)==0)){
 #pragma omp critical
          {
-            message("# %ld done.\n",m);
+            message("# %ld done. ",m);
             timer.current();
          }
       }

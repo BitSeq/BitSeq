@@ -32,6 +32,6 @@ const long samplesAtOnce = 50;
 
 void buildTime(char *argv0, string compileDate, string compileTime, const char *version = bitseq_version);
 
-bool progressLog(long cur,long outOf, long steps = 10);
+bool progressLog(long cur,long outOf, long steps = 10, char nl = '\n');
 
 #endif
