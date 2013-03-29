@@ -18,7 +18,7 @@ endif
 
 DBGFLAGS = -ggdb -U_FORTIFY_SOURCE
 COFLAGS = $(ARCH) -O2 -pipe
-CXXFLAGS = -DBS_VERSION=\"$(VERSION)\" -Wall -Wvla $(COFLAGS)
+CXXFLAGS = -DBS_VERSION=\"$(VERSION)\" -Wall -Wvla $(DBGFLAGS)
 # -ffast-math segfaults with old gcc, don't use.
 LDFLAGS = -Wl,-gc-sections
 BOOSTFLAGS = -I .
@@ -76,8 +76,8 @@ getVariance: getVariance.cpp $(COMMON_DEPS) PosteriorSamples.o
 getWithinGeneExpression: getWithinGeneExpression.cpp $(COMMON_DEPS) PosteriorSamples.o TranscriptInfo.o
 	$(CXX) $(CXXFLAGS) getWithinGeneExpression.cpp $(COMMON_DEPS) PosteriorSamples.o TranscriptInfo.o -o getWithinGeneExpression
 
-parseAlignment: parseAlignment.cpp $(COMMON_DEPS) misc.o ReadDistribution.o TranscriptExpression.o TranscriptInfo.o TranscriptSequence.o
-	$(CXX) $(CXXFLAGS) $(OPENMP) $(LDFLAGS) -Isamtools parseAlignment.cpp $(COMMON_DEPS) misc.o ReadDistribution.o samtools2/*.o TranscriptExpression.o TranscriptInfo.o TranscriptSequence.o -lz -o parseAlignment
+parseAlignment: parseAlignment.cpp $(COMMON_DEPS) misc.o ReadDistribution.o samtools/sam.o TranscriptExpression.o TranscriptInfo.o TranscriptSequence.o
+	$(CXX) $(CXXFLAGS) $(OPENMP) $(LDFLAGS) -Isamtools parseAlignment.cpp $(COMMON_DEPS) misc.o ReadDistribution.o samtools/*.o TranscriptExpression.o TranscriptInfo.o TranscriptSequence.o -lz -o parseAlignment
 
 transposeLargeFile: transposeLargeFile.cpp $(COMMON_DEPS) transposeFiles.o
 	$(CXX) $(CXXFLAGS) transposeLargeFile.cpp $(COMMON_DEPS) transposeFiles.o -o transposeLargeFile
