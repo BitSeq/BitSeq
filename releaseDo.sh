@@ -32,6 +32,6 @@ echo "==================" >> $DIR/README
 date >> $DIR/README
 svn info | grep -e "^Revision:" >> $DIR/README
 
+echo "REMINDERs:"
 echo "Delete licensing line about asa libs from README."
-echo "REMINDER:"
-echo "File common.h contains current version of BitSeq, please update if haven't done already."
+echo "File Makefile contains current version of BitSeq, please update if haven't done already."
