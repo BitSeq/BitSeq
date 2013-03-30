@@ -1,5 +1,7 @@
 CC=		gcc
-CFLAGS=		-Wall -O3 #-m64 #-arch ppc
+# CFLAGS=		-Wall -O3 #-m64 #-arch ppc
+# Edit: we don't need warnings and prefere -O2 optimization, with architecture specific tuning.
+CFLAGS=		-Wno-unused-result -O2 -mtune=generic
 DFLAGS=		-D_FILE_OFFSET_BITS=64 -D_LARGEFILE64_SOURCE -D_USE_KNETFILE -D_CURSES_LIB=1
 INCLUDES=	-I.
 
