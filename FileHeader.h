@@ -9,6 +9,10 @@ using namespace std;
 
 const long no_value = -4747;
 
+namespace ns_fileHeader {
+enum AlignmentFileType { OLD_FORMAT, NEW_FORMAT, LOG_FORMAT };
+} // namespace ns_fileHeader
+
 // FileHeader class parses file headers (lines starting with # at the beginning of the file).
 // Every word (space separated string) is considered a possible FLAG.
 // If a FLAG is followed by a numeric value, than the value is stored as the FLAG's value.
@@ -34,8 +38,8 @@ class FileHeader {
    }
    bool samplesHeader(long *n, long *m, bool *transposed, bool *logged = NULL);
    bool transcriptsHeader(long *m, long *colN);
-   bool probHeader(long *Nmap,long *Ntotal,bool *newformat);
-   bool varianceHeader(long *m,bool *logged);
+   bool probHeader(long *Nmap, long *Ntotal, ns_fileHeader::AlignmentFileType *format);
+   bool varianceHeader(long *m, bool *logged);
    bool paramsHeader(long *parN, ofstream *outF);
 };
 

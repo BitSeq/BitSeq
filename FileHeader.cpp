@@ -3,6 +3,8 @@
 #include "FileHeader.h"
 #include "common.h"
 
+using namespace ns_fileHeader;
+
 void FileHeader::skipEmptyLines() {//{{{
    if(!file) return;
    while(file->good() &&
@@ -92,13 +94,14 @@ bool FileHeader::transcriptsHeader(long *m, long *colN){//{{{
    return true;
 }//}}}
 
-bool FileHeader::probHeader(long *Nmap,long *Ntotal,bool *newformat){//{{{
+bool FileHeader::probHeader(long *Nmap,long *Ntotal, AlignmentFileType *format){//{{{
    if(!readValues()){
       *Nmap=0;
       return false;
    }
-   *newformat=false; 
-   if(values.count("NEWFORMAT"))*newformat = true;
+   if(values.count("LOGFORMAT")){*format = LOG_FORMAT;}
+   else if(values.count("NEWFORMAT")){*format = NEW_FORMAT;}
+   else *format = OLD_FORMAT;
    if(values.count("Ntotal") && (values["Ntotal"]!=no_value))*Ntotal = values["Ntotal"];
    if(values.count("Nmap") && (values["Nmap"]!=no_value))*Nmap = values["Nmap"];
    return true;

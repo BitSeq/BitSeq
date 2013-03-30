@@ -1,6 +1,8 @@
 
 #include "TagAlignments.h"
+
 #include "common.h"
+#include "misc.h"
 
 //#define MEM_USAGE
 
@@ -40,12 +42,11 @@ void TagAlignments::pushAlignment(long trId, double prob){//{{{
       M=trId+1;
       readsInIsoform.resize(M,-1);
    }
-   if(prob<=0)return;
    if(readsInIsoform[trId] == currentRead){
       // the read has already one alignement to this isoform
      for(long i=readIndex[currentRead];i<(long)trIds.size();i++)
         if(trIds[i] == trId){
-           probs[i] += prob;
+           probs[i] = ns_math::logAddExp(probs[i], prob);
            break;
         }
    }else{
@@ -85,10 +86,12 @@ void TagAlignments::pushAlignment(long trId, double prob){//{{{
    }
 }//}}}
 void TagAlignments::pushRead(){//{{{
+   // Check whether there were any valid alignments added for this read:
    if(readIndex[currentRead] == (int_least32_t) probs.size()){
-      // no nonzero alignments for this read
+      // If no new alignments, do nothing.
       return;
    }
+   // Otherwise move to next read.
    currentRead++;
    readIndex.push_back(probs.size());
 }//}}}
@@ -103,7 +106,7 @@ void TagAlignments::finalizeRead(long *M, long *Nreads, long *Ntotal){//{{{
 }//}}}
 int_least32_t TagAlignments::getTrId(long i) const {//{{{
    if(i<Ntotal)return trIds[i];
-   return -1;
+   return 0;
 }//}}}
 double TagAlignments::getProb(long i) const {//{{{
    if(i<Ntotal)return probs[i];

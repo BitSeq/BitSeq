@@ -50,6 +50,8 @@ if options.type and options.type=="ensembl":
          for it in lSplit:
             if "gene:" in it:
                geneName=it[5:];
+            if geneName == "":
+               geneName = seqName;
          seqCount+=1;
       else: seqLen+=len(line)-1;
    if seqName!="":
@@ -67,6 +69,8 @@ elif options.type and options.type=="cuff":
          for it in lSplit:
             if "gene=" in it:
                geneName=it[5:];
+            if geneName == "":
+               geneName = seqName;
          seqCount+=1;
       else: seqLen+=len(line)-1;
    if seqName!="":

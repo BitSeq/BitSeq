@@ -159,7 +159,7 @@ string programDescription =
                m++;
             }
             curM++;
-            if(args.flag("veryVerbose"))if(progressLog(curM,M))timer.split(0,'m');
+            if(args.flag("veryVerbose"))if(progressLog(curM,M,10,' '))timer.split(0,'m');
             if((m>=subM_MIN)&&(exDelta<exLast-trExp.exp(curM-1)))break;
          }
          exLast = trExp.exp(curM-1);

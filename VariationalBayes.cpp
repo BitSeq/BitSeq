@@ -38,8 +38,7 @@ VariationalBayes::VariationalBayes(SimpleSparse *_beta,double *_alpha,long seed,
    T=beta->T;
    
    //logBeta= new SimpleSparse(beta);
-   #pragma omp parallel for
-   for(i=0;i<T;i++)beta->val[i] = log(beta->val[i]);
+   //beta already contains log probabilities.
    
    if(_alpha){
       alpha = _alpha;
@@ -289,7 +288,7 @@ double *VariationalBayes::getAlphas(){//{{{
    return alphas;
 }//}}}
 
-void VariationalBayes::generateSamples(long samplesN, ofstream *outF) {
+void VariationalBayes::generateSamples(long samplesN, ofstream *outF) {//{{{
    vector<double> gamma(M,0);
    vector<gDP> alphaParam;
    long n,m;
@@ -312,4 +311,4 @@ void VariationalBayes::generateSamples(long samplesN, ofstream *outF) {
       // Don't want space at the end of line.
       (*outF)<<gamma[M-1]/gammaSum<<endl;
    }
-}
+}//}}}

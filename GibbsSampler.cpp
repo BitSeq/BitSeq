@@ -4,6 +4,7 @@
 
 #include "GibbsSampler.h"
 #include "common.h"
+#include "misc.h"
 
 GibbsSampler::GibbsSampler(){ //{{{
 //   message("GIBBS\n");
@@ -24,36 +25,44 @@ void GibbsSampler::sampleZ(){//{{{
    gettimeofday(&start, NULL);
 #endif
    long i,j,k;
-   vector<double> phi(m,0); 
+   vector<double> lphi(m,0); 
+   vector<double> logTheta(m,0);
    // phi of size M should be enough 
    // because of summing the probabilities for each isoform when reading the data
-   double probNorm,r,sum;
+   double lProbNorm,r,sum, logThetaAct, logInvThetaAct;
+   int_least32_t readsAlignmentsN;
 
    C.assign(Sof(C),0);
+   // Precompute logs:
+   logThetaAct = log(thetaAct);
+   logInvThetaAct = log(1-thetaAct);
+   for(j=0;j<m;j++) logTheta[j] = log(theta[j]);
+   // Assign reads.
    for(i=0;i<Nmap;i++){
-      probNorm=0;
-      for(j=0, k=alignments->getReadsI(i); k < alignments->getReadsI(i+1); j++, k++){
+      readsAlignmentsN = alignments->getReadsI(i+1) - alignments->getReadsI(i);
+      for(j=0, k=alignments->getReadsI(i); j < readsAlignmentsN; j++, k++){
          if(alignments->getTrId(k) == 0){
-            phi[j] = alignments->getProb(k) *
-               (1-thetaAct);
+            lphi[j] = alignments->getProb(k) + logInvThetaAct;
          }else{
-            phi[j] = alignments->getProb(k) * 
-               thetaAct * 
-               theta[alignments->getTrId(k)];
+            lphi[j] = alignments->getProb(k) +
+               logThetaAct +
+               logTheta[alignments->getTrId(k)];
          }
-         probNorm += phi[j];
       }
+      // Normalization constant:
+      lProbNorm = ns_math::logSumExp(lphi, readsAlignmentsN);
       r = uniformDistribution(rng_mt);
-      r*=probNorm;
-      for(j = 0, sum = 0 ; sum<r; j++)
-         sum += phi[j];
-//         sum += phi[j] / probNorm; // probNorm; instead of each divide do r*probNorm
+      for(j = 0, sum = 0 ; (sum<r) && (j<readsAlignmentsN); j++){
+         sum += exp(lphi[j] - lProbNorm);
+      }
       if(j==0){
          // e.g. if probNorm == 0
-         // assign to noise
-         j = alignments->getReadsI(i+1)-alignments->getReadsI(i);
+         // assign to noise.
+         C[0]++;
+      }else{
+         // Assign to the chosen transcript.
+         C[ alignments->getTrId( alignments->getReadsI(i)+j-1 ) ]++;
       }
-      C[ alignments->getTrId( alignments->getReadsI(i)+j-1 ) ]++;
    }
 #ifdef DoSTATS
    gettimeofday(&end, NULL);

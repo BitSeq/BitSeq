@@ -1,7 +1,7 @@
 CXX = g++
 HOSTNAME = $(shell hostname)
 ARCH = -mtune=generic
-VERSION = 0.5.1
+VERSION = 0.5.2
 
 ifeq ($(HOSTNAME), valiant)
 	ARCH = -march=core2
@@ -18,9 +18,8 @@ endif
 
 DBGFLAGS = -ggdb -U_FORTIFY_SOURCE
 COFLAGS = $(ARCH) -O2 -pipe
-# -ffast-math segfaults with old gcc
-#COFLAGS = $(ARCH) -O3 -ffast-math -pipe
-CXXFLAGS = -DPACKAGE_VERSION=\"$(VERSION)\" -Wall -Wvla $(COFLAGS)
+CXXFLAGS = -DBS_VERSION=\"$(VERSION)\" -Wall -Wvla $(COFLAGS)
+# -ffast-math segfaults with old gcc, don't use.
 LDFLAGS = -Wl,-gc-sections
 BOOSTFLAGS = -I .
 OPENMP = -fopenmp -DSUPPORT_OPENMP
@@ -50,8 +49,8 @@ convertSamples: convertSamples.cpp $(COMMON_DEPS) TranscriptInfo.o
 estimateDE: estimateDE.cpp $(COMMON_DEPS) misc.o PosteriorSamples.o
 	$(CXX) $(CXXFLAGS) $(BOOSTFLAGS) $(LDFLAGS) estimateDE.cpp $(COMMON_DEPS) misc.o PosteriorSamples.o -o estimateDE
 
-estimateExpression: estimateExpression.cpp $(COMMON_DEPS) CollapsedSampler.o GibbsParameters.o GibbsSampler.o Sampler.o TagAlignments.o TranscriptInfo.o transposeFiles.o
-	$(CXX) $(CXXFLAGS) $(BOOSTFLAGS) $(OPENMP) estimateExpression.cpp $(COMMON_DEPS) CollapsedSampler.o GibbsParameters.o GibbsSampler.o Sampler.o TagAlignments.o TranscriptInfo.o transposeFiles.o -o estimateExpression
+estimateExpression: estimateExpression.cpp $(COMMON_DEPS) CollapsedSampler.o GibbsParameters.o GibbsSampler.o misc.o Sampler.o TagAlignments.o TranscriptInfo.o transposeFiles.o
+	$(CXX) $(CXXFLAGS) $(BOOSTFLAGS) $(OPENMP) $(LDFLAGS) estimateExpression.cpp $(COMMON_DEPS) CollapsedSampler.o GibbsParameters.o GibbsSampler.o misc.o Sampler.o TagAlignments.o TranscriptInfo.o transposeFiles.o -o estimateExpression
 
 estimateHyperPar: estimateHyperPar.cpp $(COMMON_DEPS) lowess.o misc.o PosteriorSamples.o TranscriptExpression.o 
 	$(CXX) $(CXXFLAGS) $(BOOSTFLAGS) $(LDFLAGS) estimateHyperPar.cpp $(COMMON_DEPS) lowess.o misc.o PosteriorSamples.o TranscriptExpression.o -o estimateHyperPar
@@ -77,8 +76,8 @@ getVariance: getVariance.cpp $(COMMON_DEPS) PosteriorSamples.o
 getWithinGeneExpression: getWithinGeneExpression.cpp $(COMMON_DEPS) PosteriorSamples.o TranscriptInfo.o
 	$(CXX) $(CXXFLAGS) getWithinGeneExpression.cpp $(COMMON_DEPS) PosteriorSamples.o TranscriptInfo.o -o getWithinGeneExpression
 
-parseAlignment: parseAlignment.cpp $(COMMON_DEPS) ReadDistribution.o samtools/sam.o TranscriptExpression.o TranscriptInfo.o TranscriptSequence.o
-	$(CXX) $(CXXFLAGS) $(OPENMP) -Isamtools parseAlignment.cpp $(COMMON_DEPS) ReadDistribution.o samtools/*.o TranscriptExpression.o TranscriptInfo.o TranscriptSequence.o -lz -o parseAlignment
+parseAlignment: parseAlignment.cpp $(COMMON_DEPS) misc.o ReadDistribution.o samtools/sam.o TranscriptExpression.o TranscriptInfo.o TranscriptSequence.o
+	$(CXX) $(CXXFLAGS) $(OPENMP) $(LDFLAGS) -Isamtools parseAlignment.cpp $(COMMON_DEPS) misc.o ReadDistribution.o samtools/*.o TranscriptExpression.o TranscriptInfo.o TranscriptSequence.o -lz -o parseAlignment
 
 transposeLargeFile: transposeLargeFile.cpp $(COMMON_DEPS) transposeFiles.o
 	$(CXX) $(CXXFLAGS) transposeLargeFile.cpp $(COMMON_DEPS) transposeFiles.o -o transposeLargeFile

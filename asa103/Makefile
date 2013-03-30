@@ -1,6 +1,6 @@
-CXX=g++
+CXX = g++
 ARCH = -mtune=generic
-COFLAGS = $(ARCH) -O3 -pipe
-CXXFLAGS = -Wall $(COFLAGS)
+COFLAGS = $(ARCH) -O2 -pipe
+CXXFLAGS = -Wall -Wno-unused-but-set-variable $(COFLAGS)
 
 all: asa103.o

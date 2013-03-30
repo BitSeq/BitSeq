@@ -14,9 +14,10 @@ double logAddExp(double a, double b){ //{{{
       return b+log1p(exp(a-b));
    }
 } //}}}
-double logSumExp(const vector<double> &vals){ //{{{
-   double sumE = 0, m = *max_element(vals.begin(),vals.end());
-   for(size_t i=0;i<vals.size();i++)
+double logSumExp(const vector<double> &vals, long n){ //{{{
+   if((n==-1)||(n>(long)vals.size())) n=vals.size();
+   double sumE = 0, m = *max_element(vals.begin(),vals.begin()+n);
+   for(long i=0;i<n;i++)
       sumE += exp(vals[i]-m);
    return  m + log(sumE);
 } //}}}

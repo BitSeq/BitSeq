@@ -6,6 +6,8 @@
 
 using namespace std;
 
+// Probabilities are stored in log scale.
+
 class TagAlignments{
    private:
       vector<int_least32_t> trIds;

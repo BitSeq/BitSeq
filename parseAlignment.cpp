@@ -67,9 +67,14 @@ string programDescription =
    TranscriptExpression *trExp=NULL;
    MyTimer timer;
    timer.start();
-   long M=0,i;
+   timer.start(7);
+   long Ntotal = 0, Nmap = 0, M=0, i;
    string inFormat;
    samfile_t *samData=NULL;
+   ReadDistribution readD;
+   fragmentP curF = new fragmentT, nextF = new fragmentT;
+   // This could be changed to either GNU's hash_set or C++11's unsorted_set, once it's safe.
+   set<string> ignoredReads;
    // Intro: {{{
    // Set options {{{
    ArgumentParser args(programDescription,"[alignment file]",1);
@@ -87,6 +92,7 @@ string programDescription =
    args.addOptionL("P","procN","procN",0,"Maximum number of threads to be used. This provides parallelization only when computing non-uniform read distribution (i.e. runs without --uniform flag).",3);
    args.addOptionB("V","veryVerbose","veryVerbose",0,"Very verbose output.");
    args.addOptionL("","noiseMismatches","numNoiseMismatches",0,"Number of mismatches to be considered as noise.",LOW_PROB_MISSES);
+   args.addOptionL("l","limitA","maxAlignments",0,"Limit maximum number of alignments per read. (Reads with more alignments are skipped.)");
    if(!args.parse(*argc,argv))return 0;
    if(args.verbose)buildTime(argv[0],__DATE__,__TIME__);
 #ifdef SUPPORT_OPENMP
@@ -138,12 +144,9 @@ string programDescription =
       }
    }
    //}}}
-   //}}}
    timer.split(0,'m');
+   //}}}
 
-   fragmentP curF = new fragmentT, nextF = new fragmentT;
-   long Ntotal=0, Nmap=0;
-   ReadDistribution readD(M);
    // Estimating probabilities {{{
    bool analyzeReads = false;
 
@@ -154,44 +157,83 @@ string programDescription =
    }
    if(args.flag("uniform")){
       if(args.verbose)message("Using uniform read distribution.\n");
-      readD.initUniform(trInfo,trSeq,args.flag("veryVerbose"));
+      readD.initUniform(M,trInfo,trSeq,args.flag("veryVerbose"));
    }else{
       if(args.verbose)message("Estimating non-uniform read distribution.\n");
-      readD.init(trInfo,trSeq,trExp,args.flag("veryVerbose"));
-      message("Init done\n");
+      readD.init(M,trInfo,trSeq,trExp,args.flag("veryVerbose"));
+      if(args.flag("veryVerbose"))message(" ReadDistribution initialization done.\n");
       analyzeReads = true;
    }
    if(args.isSet("numNoiseMismatches")){
       readD.setLowProbMismatches(args.getL("numNoiseMismatches"));
    }
    // fill in "next" fragment:
-   ns_parseAlignment::readNextFragment(samData, curF, nextF);
-   long alN = 0, alGoodN = 0;
+   // Counters for all, Good Alignments; and weird alignments
+   long pairedGA, firstGA, secondGA, singleGA, weirdGA, allGA;
+   long RE_noEndInfo, RE_weirdPairdInfo;
+   long maxAlignments = 0;
+   if(args.isSet("maxAlignments") && (args.getL("maxAlignments")>0))
+      maxAlignments = args.getL("maxAlignments");
    // start counting (and possibly estimating):
+   pairedGA = firstGA = secondGA = singleGA = weirdGA = 0;
+   RE_noEndInfo = RE_weirdPairdInfo = 0;
+   ns_parseAlignment::readNextFragment(samData, curF, nextF);
    while(ns_parseAlignment::readNextFragment(samData,curF,nextF)){
-      alN ++;
-      if( FRAG_IS_ALIGNED(curF) ) alGoodN++;
-      // Next read is different.
+      R_INTERUPT;
+      if( !(curF->first->core.flag & BAM_FUNMAP) ){
+         // (at least) The first read was mapped.
+         if( curF->paired ) {
+            // Fragment's both reads are mapped as a pair.
+            pairedGA++;
+         }else {
+            if (curF->first->core.flag & BAM_FPAIRED) {
+               // Read was part of pair (meaning that the other is unmapped).
+               if (curF->first->core.flag & BAM_FREAD1) {
+                  firstGA++;
+               } else if (curF->first->core.flag & BAM_FREAD2) {
+                  secondGA++;
+               } else weirdGA ++;
+            } else {
+               // Read is single end, with valid alignment.
+               singleGA++;
+            }
+         }
+      }
+      // Next fragment is different.
       if(strcmp(bam1_qname(curF->first), bam1_qname(nextF->first))!=0){
          Ntotal++;
-         if( alGoodN > 0 ) Nmap ++;
-         // If it's good uniquely aligned read, add it to the observation.
-         if(( alGoodN == 1) && ( alN == 1 )  && analyzeReads)
-               readD.observed(curF);
-         alN = 0;
-         alGoodN = 0;
+         allGA = singleGA + pairedGA + firstGA +secondGA+ weirdGA;
+         if( allGA == 0 ){ 
+            // No good alignment.
+            continue;
+         }
+         Nmap ++;
+         if(weirdGA)RE_noEndInfo++;
+         if((singleGA>0) && (pairedGA>0)) RE_weirdPairdInfo++;
+         // If it's good uniquely aligned fragment/read, add it to the observation.
+         if(( allGA == 1) && analyzeReads){
+            readD.observed(curF);
+         }else if(maxAlignments && (allGA>maxAlignments)) {
+            // This read will be ignored.
+            ignoredReads.insert(bam1_qname(curF->first));
+            Nmap --;
+         }
+         pairedGA = firstGA = secondGA = singleGA = weirdGA = 0;
       }
    }
-   if(args.verbose)message("Ntotal: %ld  Nmap: %ld\n",Ntotal,Nmap);
+   timer.split(0,'m');
+   message("Reads: all(Ntotal): %ld  mapped(Nmap): %ld\n",Ntotal,Nmap);
+   if(ignoredReads.size()>0)message("  %ld reads are skipped due to having more than %ld alignments.\n",ignoredReads.size(), maxAlignments);
+   if(RE_noEndInfo)warning("  %ld reads that were paired, but do not have \"end\" information.\n  (is your alignment file valid?)", RE_noEndInfo);
+   if(RE_weirdPairdInfo)warning("  %ld reads that were reported as both paired and single end.\n  (is your alignment file valid?)", RE_weirdPairdInfo);
+   readD.writeWarnings();
    // Normalize read distribution:
-   timer.split(0,'m');
-   if(args.verbose)message("Normalizing read distribution.\n");
+   if(args.flag("veryVerbose"))timer.split(0,'m');
+   if(args.flag("veryVerbose"))message("Normalizing read distribution.\n");
    readD.normalize();
-   timer.split(0,'m');
    if(args.isSet("distributionFileName")){
       readD.logProfiles(args.getS("distributionFileName"));
    }
-
    // }}}
 
    // Writing probabilities: {{{
@@ -209,30 +251,64 @@ string programDescription =
       return 1;
    }
    outF<<"# Ntotal "<<Ntotal<<"\n# Nmap "<<Nmap<<endl;
-   outF<<"# NEWFORMAT \n# r_name num_alignments (tr_id prob )^*{num_alignments}"<<endl;
+   outF<<"# LOGFORMAT (probabilities saved on log scale.)\n# r_name num_alignments (tr_id prob )^*{num_alignments}"<<endl;
    outF.precision(9);
    outF<<scientific;
    // }}}
    
+   // start reading:
+   timer.start(1);
+   bool invalidAlignment = false;
+   long readC, pairedN, singleN, firstN, secondN, weirdN, invalidN, noN;
+   readC = pairedN = singleN = firstN = secondN = weirdN = invalidN = noN = 0;
    // fill in "next" fragment:
    ns_parseAlignment::readNextFragment(samData, curF, nextF);
-   // start reading:
-   long readC = 0;
-   timer.start(1);
-   long pairedN = 0;
-   long singleN = 0;
    while(ns_parseAlignment::readNextFragment(samData,curF,nextF)){
-//      if(curF->paired)message("P %s %s\n",bam1_qname(curF->first),bam1_qname(curF->second));
-      if( FRAG_IS_ALIGNED(curF) ){
-         if(curF->paired)pairedN++;
-         else singleN++;
-         readD.getP(curF, prob, probNoise);
-         alignments.push_back(ns_parseAlignment::TagAlignment(curF->first->core.tid+1, prob, probNoise));
+      R_INTERUPT;
+      // Skip all alignments of this read.
+      if(ignoredReads.count(bam1_qname(curF->first))>0){
+         // Read reads while the name is the same.
+         while(ns_parseAlignment::readNextFragment(samData,curF,nextF)){
+            if(strcmp(bam1_qname(curF->first), bam1_qname(nextF->first))!=0)
+               break;
+         }
+         readC++;
+         if(args.verbose){ if(progressLog(readC,Ntotal,10,' '))timer.split(1,'m');}
+         continue;
+      }
+      if( !(curF->first->core.flag & BAM_FUNMAP) ){
+         // (at least) The first read was mapped.
+         if(readD.getP(curF, prob, probNoise)){
+            // We calculated valid probabilities for this alignment.   
+            // Add alignment:
+            alignments.push_back(ns_parseAlignment::TagAlignment(curF->first->core.tid+1, prob, probNoise));
+            // Update counters:
+            if( curF->paired ) {
+               // Fragment's both reads are mapped as a pair.
+               pairedN++;
+            }else {
+               if (curF->first->core.flag & BAM_FPAIRED) {
+                  // Read was part of pair (meaning that the other is unmapped).
+                  if (curF->first->core.flag & BAM_FREAD1) {
+                     firstN++;
+                  } else if (curF->first->core.flag & BAM_FREAD2) {
+                     secondN++;
+                  } else weirdN ++;
+               } else {
+                  // Read is single end, with valid alignment.
+                  singleN++;
+               }
+            }
+         } else {
+            // Calculation of alignment probabilities failed.
+            invalidN++;
+            invalidAlignment = true;
+         }
       }
       // next fragment has different name
       if(strcmp(bam1_qname(curF->first), bam1_qname(nextF->first))!=0){
          readC++;
-         if(args.verbose){ if(progressLog(readC,Ntotal,10))timer.split(1,'m');}
+         if(args.verbose){ if(progressLog(readC,Ntotal,10,' '))timer.split(1,'m');}
          if(Sof(alignments)>0){
             outF<<bam1_qname(curF->first)<<" "<<Sof(alignments)+1;
             minProb = 1;
@@ -246,16 +322,38 @@ string programDescription =
             alignments.clear();
          }else{
             // read has no valid alignments:
-            failedReads.insert(bam1_qname(curF->first));
-            if(curF->paired)failedReads.insert(bam1_qname(curF->second));
+            if(invalidAlignment){
+               // If there were invalid alignments, write a mock record in order to keep Nmap consistent.
+               outF<<bam1_qname(curF->first)<<" 1 0 0"<<endl;
+            }else {
+               noN++;
+            }
+            if(args.isSet("failed")){
+               // Save failed reads.
+               failedReads.insert(bam1_qname(curF->first));
+               if(curF->paired)failedReads.insert(bam1_qname(curF->second));
+            }
          }
+         invalidAlignment = false;
       }
-      R_INTERUPT;
    }
-   if(args.verbose)message("Analyzed %ld single reads and %ld paired-end reads.\n",singleN,pairedN);
    outF.close();
-   if(args.verbose)message("Found %ld single reads without proper alignment.\n",Sof(failedReads));
-   // Deal with reads that failed to align
+   timer.split(0,'m');
+   if(args.verbose){
+      message("Analyzed %ld reads:\n",readC);
+      if(Sof(ignoredReads)>0)message(" %ld ignored due to --limitA flag\n",Sof(ignoredReads));
+      if(invalidN>0)message(" %ld had only invalid alignments (see warnings)\n",invalidN);
+      if(noN>0)message(" %ld had no alignments\n",noN);
+      message("The rest had %ld alignments:\n",pairedN+singleN+firstN+secondN+weirdN);
+      if(pairedN>0)message(" %ld paired alignments\n",pairedN);
+      if(firstN+secondN+weirdN>0)
+         message(" %ld half alignments (paired-end mates aligned independently)\n",firstN+secondN+weirdN);
+      if(singleN>0)message(" %ld single-read alignments\n",singleN);
+   }else {
+      message("Alignments: %ld.\n",pairedN+singleN+firstN+secondN+weirdN);
+   }
+   readD.writeWarnings();
+   // Deal with reads that failed to align {{{
    if(args.isSet("failed")){
       outF.open(args.getS("failed").c_str());
       if(outF.is_open()){
@@ -263,19 +361,22 @@ string programDescription =
             outF<<*setIt<<endl;
          outF.close();
       }
-   }
-   timer.split(0,'m');
-   // Compute effective length and save transcript info
+   } //}}}
+   // Compute effective length and save transcript info {{{
    if(args.isSet("trInfoFileName")){
       if(args.verbose)message("Computing effective lengths.\n");
       trInfo->setEffectiveLength(readD.getEffectiveLengths());
-      if(args.verbose)message("Writing transcript information into %s.\n",(args.getS("trInfoFileName")).c_str());
       if(! trInfo->writeInfo(args.getS("trInfoFileName"))){
-         warning("Main: writing to %s failed.\nWill try %s-NEW but you should rename it afterwards if you're planning to use it.\n",(args.getS("trInfoFileName")).c_str(),(args.getS("trInfoFileName")).c_str());
-         trInfo->writeInfo(args.getS("trInfoFileName")+"-NEW", true); // DO OVERWRITE
+         warning("Main: File %s probably already exists.\n"
+                 "   Will save new transcript info into %s-NEW.\n",(args.getS("trInfoFileName")).c_str(),(args.getS("trInfoFileName")).c_str());
+         if(! trInfo->writeInfo(args.getS("trInfoFileName")+"-NEW", true)){ // DO OVERWRITE
+            warning("Main: Writing into %s failed!.",(args.getS("trInfoFileName")+"-NEW").c_str());
+         }
+      }else {
+         if(args.verbose)message("Transcript information saved into %s.\n",(args.getS("trInfoFileName")).c_str());
       }
-      timer.split(0,'m');
-   }
+      if(args.verbose)timer.split(0,'m');
+   } //}}}
    // Close, free and write failed reads if filename provided {{{
    delete curF;
    delete nextF;
@@ -285,8 +386,8 @@ string programDescription =
    samclose(samData);
    // }}}
    // }}}
-   if(args.verbose)message("DONE.\n");
-   timer.split(0,'m');
+   if(args.verbose)message("DONE. ");
+   timer.split(7,'m');
    return 0;
 }
 
@@ -323,7 +424,7 @@ bool readNextFragment(samfile_t* samData, fragmentP &cur, fragmentP &next){//{{{
       return currentOK;
    }
    // if paired then try reading second pair
-   if( !( next->first->core.flag & BAM_FPAIRED) || 
+   if( !(next->first->core.flag & BAM_FPROPER_PAIR) || 
        (samread(samData,next->second)<0)){
       next->paired = false;
    }else{
@@ -372,19 +473,20 @@ bool openSamFile(const string &name, const string &inFormat, samfile_t **samFile
 }//}}}
 
 bool initializeInfoFile(const ArgumentParser &args, samfile_t *samFile, TranscriptInfo **trInfo, long *M){//{{{
-   if(samFile->header == NULL){
+   if((samFile->header == NULL)||(samFile->header->n_targets == 0)){
       if(! args.isSet("trInfoFileName")){
-         error("Main: alignment file does not contain header.\n"
+         error("Main: alignment file does not contain header, or the header is empty.\n"
                "  Please either include header in alignment file or provide transcript information file.\n"
                "  (option --trInfoFile, file should contain lines with <gene name> <transcript name> <transcript length>.\n");
          return false;
       }else{
          if(args.verb())message("Using %s for transcript information.\n",(args.getS("trInfoFileName")).c_str());
-         if(! ( *trInfo = new TranscriptInfo(args.getS("trInfoFileName")))){
+         if((*trInfo = new TranscriptInfo(args.getS("trInfoFileName"))) && (*trInfo)->isOK()){
+            *M=(*trInfo)->getM();
+         }else {
             error("Main: Can't get transcript information.\n");
             return false;
          }
-         *M=(*trInfo)->getM();
       }
    }else{
       if(args.verbose)message("Using alignments' header for transcript information.\n");

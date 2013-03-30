@@ -20,7 +20,6 @@
 #define SS second
 
 //#define LOG_NEED
-
 TranscriptInfo trInfo;
 
 long  M;//, mAll; // M : number of transcripts (include transcript 0 ~ Noise)
@@ -48,8 +47,8 @@ TagAlignments* readData(ArgumentParser &args) {//{{{
    // Read alignment probabilities {{{
    inFile.open(args.args()[0].c_str());
    FileHeader fh(&inFile);
-   bool newformat=true;
-   if((!fh.probHeader(&Nmap,&Ntotal,&newformat)) || (Nmap ==0)){//{{{
+   ns_fileHeader::AlignmentFileType format;
+   if((!fh.probHeader(&Nmap,&Ntotal,&format)) || (Nmap ==0)){//{{{
       error("Prob file header read failed.\n");
       return NULL;
    }//}}}
@@ -63,26 +62,27 @@ TagAlignments* readData(ArgumentParser &args) {//{{{
    timer.start();
    for(i = 0; i < Nmap; i++) {
       inFile>>readId>>num;
-      if(!newformat)inFile>>blank;
+      if(format==ns_fileHeader::OLD_FORMAT)inFile>>blank;
       if(!inFile.good())break;
      //    message("%s %ld\n",(readId).c_str(),num);
       for(j = 0; j < num; j++) {
-         if(newformat) inFile>>tid>>prb;
-         else inFile>>tid>>strand>>prb;
+         if(format == ns_fileHeader::OLD_FORMAT)inFile>>tid>>strand>>prb;
+         else inFile>>tid>>prb;
+         if(format != ns_fileHeader::LOG_FORMAT)prb = log(prb);
          if(inFile.fail()){
             inFile.clear();
             // ignore rest of line
             //inFile.ignore(10000000,'\n');
             // ignore other read's alignments
             j=num;
-            // this read goes to noise
+            // this read goes to noise assigning
             tid=0;
-            prb=100;
+            prb=log(1000);
             bad++;
          }
-         if((!newformat) && (tid!=0)){
+         if((format==ns_fileHeader::OLD_FORMAT) && (tid!=0)){
             // these lengths are not shifted
-            prb /= trInfo.L(tid-1);
+            prb -= log(trInfo.L(tid-1));
          }
          alignments->pushAlignment(tid, prb);         
       }
