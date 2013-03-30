@@ -100,7 +100,7 @@ SimpleSparse* readData(ArgumentParser &args){//{{{
 extern "C" int estimateVBExpression(int *argc, char* argv[]) {//{{{
 string programDescription =
 "Estimates expression given precomputed probabilities of (observed) reads' alignments.\n\
-   Uses Variational Bayes algorithm to produce parameters for distribution  of relative abundances.\n";
+   Uses Variational Bayes algorithm to produce parameters for distribution of relative abundances.\n";
    // Set options {{{
    ArgumentParser args;
    args.init(programDescription,"[prob file]",1);
