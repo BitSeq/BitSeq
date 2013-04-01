@@ -16,12 +16,6 @@ using namespace std;
 //}}}
 #define Sof(x) (long)x.size()
 
-// Read is not marked as not mapped, and is either not marked as paired, or it is marked as proper pair. 
-#define FRAG_IS_ALIGNED(x) \
-   ( !(x->first->core.flag & BAM_FUNMAP) && \
-     ( !(x->first->core.flag & BAM_FPAIRED) || \
-       (x->first->core.flag & BAM_FPROPER_PAIR) ) )
-
 namespace ns_parseAlignment {
 class TagAlignment{//{{{
    protected:
@@ -301,7 +295,6 @@ string programDescription =
             }
          } else {
             // Calculation of alignment probabilities failed.
-            invalidN++;
             invalidAlignment = true;
          }
       }
@@ -324,6 +317,7 @@ string programDescription =
             // read has no valid alignments:
             if(invalidAlignment){
                // If there were invalid alignments, write a mock record in order to keep Nmap consistent.
+               invalidN++;
                outF<<bam1_qname(curF->first)<<" 1 0 0"<<endl;
             }else {
                noN++;
