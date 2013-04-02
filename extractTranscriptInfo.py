@@ -36,59 +36,49 @@ seqLen=0;
 seqCount=0;
 
 result = [];
+li = 0;
 
-if options.type and options.type=="ensembl":
-   print "Expecting header line format:\n>[tr Name] .* gene:[gene Name] .*";
-   for line in inF:
-      if line[0] == '>':
-         if seqName!="":
-            result.append([geneName,seqName,str(seqLen)]);
-         seqLen=0;
-         # Split line after >
-         lSplit = line[1:].split()
-         seqName = lSplit[0];
-         for it in lSplit:
-            if "gene:" in it:
-               geneName=it[5:];
-            if geneName == "":
-               geneName = seqName;
-         seqCount+=1;
-      else: seqLen+=len(line)-1;
-   if seqName!="":
-      result.append([geneName,seqName,str(seqLen)]);
-elif options.type and options.type=="cuff":
-   print "Expecting header line format:\n>[tr Name] .* gene=[gene Name] .*";
-   for line in inF:
-      if line[0] == '>':
-         if seqName!="":
-            result.append([geneName,seqName,str(seqLen)]);
-         seqLen=0;
-         # Split line after >
-         lSplit = line[1:].split()
-         seqName = lSplit[0];
-         for it in lSplit:
-            if "gene=" in it:
-               geneName=it[5:];
-            if geneName == "":
-               geneName = seqName;
-         seqCount+=1;
-      else: seqLen+=len(line)-1;
-   if seqName!="":
-      result.append([geneName,seqName,str(seqLen)]);
+if options.type:
+   if options.type=="ensembl": 
+      itype = "ens";
+      print "Expecting header line format:\n>[tr Name] .* gene:[gene Name] .*";
+   elif options.type=="cuff":
+      itype = "cuf";
+      print "Expecting header line format:\n>[tr Name] .* gene=[gene Name] .*";
+   else:
+      itype = "non";
+      print "Expecting header line format:\n>[tr Name] .*\n -> using \"none\" as gene names";
 else:
+   itype = "non";
    print "Expecting header line format:\n>[tr Name] .*\n -> using \"none\" as gene names";
-   for line in inF:
-      if line[0] == '>':
-         if seqName!="":
-            result.append(["none",seqName,str(seqLen)]);
-         seqLen=0;
-         # Split line after >
-         lSplit = line[1:].split()
-         seqName = lSplit[0];
-         seqCount+=1;
-      else: seqLen+=len(line)-1;
-   if seqName!="":
-      result.append(["none",seqName,str(seqLen)]);
+
+for line in inF:
+   li+=1;
+   if line[0] == '>':
+      if seqName!="":
+         result.append([geneName,seqName,str(seqLen)]);
+      seqLen=0;
+      seqCount+=1;
+      # Split line after >
+      lSplit = line[1:].split()
+      seqName = lSplit[0];
+      if seqName == "":
+         seqName = "unknown-tr"+str(seqCount);
+         print "Warning: no name on line ",li,". Using '",seqName,"'.";
+      if itype == "non":
+         geneName = "none";
+      else:
+         geneName = ""
+         for it in lSplit:
+            if (itype=="ens" and "gene:" in it) or (itype=="cuf" and "gene=" in it) :
+               geneName=it[5:];
+         if geneName == "":
+            geneName = seqName;
+   else:
+      seqLen+=len(line)-1;
+if seqName!="":
+   result.append([geneName,seqName,str(seqLen)]);
+
 inF.close();
 
 verbose(str(seqCount)+" sequences processed.");
