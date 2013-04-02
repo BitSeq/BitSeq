@@ -76,6 +76,34 @@ void computeCI(double cf, vector<double> *difs, double *ciLow, double *ciHigh){/
 }//}}}
 } // namespace ns_misc
 
+namespace ns_genes {
+
+bool getLog(const ArgumentParser &args){// {{{
+   if(args.flag("log")){
+      if(args.verb())message("Using logged values.\n");
+      return true;
+   }
+   if(args.verb())message("NOT using logged values.\n");
+   return false;
+}// }}}
+
+bool prepareInput(const ArgumentParser &args, TranscriptInfo *trInfo, PosteriorSamples *samples, long *M, long *N, long *G){// {{{
+   if(! trInfo->readInfo(args.getS("trInfoFileName"))) return false;
+   *G = trInfo->getG();
+   if((! samples->initSet(M,N,args.args()[0]))||(*M<=0)||(*N<=0)){//XXX
+      error("Main: Failed loading MCMC samples.\n");
+      return false;
+   }
+   if(*M!=trInfo->getM()){
+      error("Main: Number of transcripts in the info file and samples file are different: %ld vs %ld\n",trInfo->getM(),*M);
+      return false;
+   }
+   if(args.verb())message("Genes: %ld\nTranscripts: %ld\n",*G,*M);
+   return true;
+}// }}}
+
+} // namespace ns_genes
+
 namespace ns_params {
 bool readParams(const string &name, vector<paramT> *params, ofstream *outF){//{{{
    long parN;

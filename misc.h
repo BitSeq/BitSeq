@@ -5,6 +5,7 @@
 
 #include "ArgumentParser.h"
 #include "PosteriorSamples.h"
+#include "TranscriptInfo.h"
 
 namespace ns_math {
 
@@ -36,6 +37,12 @@ bool readConditions(const ArgumentParser &args, long *C, long *M, long *N, Condi
 void computeCI(double cf, vector<double> *difs, double *ciLow, double *ciHigh);
 
 }
+
+namespace ns_genes {
+bool getLog(const ArgumentParser &args);
+
+bool prepareInput(const ArgumentParser &args, TranscriptInfo *trInfo, PosteriorSamples *samples, long *M, long *N, long *G);
+} // namespace ns_genes
 
 namespace ns_params{
 

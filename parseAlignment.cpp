@@ -132,7 +132,7 @@ string programDescription =
          if(args.verbose)message("Loading transcript initial expression data.\n");
          trExp = new TranscriptExpression(args.getS("expFileName"));
          if(trExp->getM() != M){
-            error("Main: Number of transcripts in the alignment file and the expression are different: %ld vs %ld\n",M,trExp->getM());
+            error("Main: Number of transcripts in the alignment file and the expression file are different: %ld vs %ld\n",M,trExp->getM());
             return 1;
          }
       }

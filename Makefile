@@ -1,7 +1,7 @@
 CXX = g++
 HOSTNAME = $(shell hostname)
 ARCH = -mtune=generic
-VERSION = 0.5.2
+VERSION = 0.5.3
 
 ifeq ($(HOSTNAME), valiant)
 	ARCH = -march=core2
@@ -18,7 +18,7 @@ endif
 
 DBGFLAGS = -ggdb -U_FORTIFY_SOURCE
 COFLAGS = $(ARCH) -O2 -pipe
-CXXFLAGS = -DBS_VERSION=\"$(VERSION)\" -Wall -Wvla $(COFLAGS)
+CXXFLAGS = -DBS_VERSION=\"$(VERSION)\" -Wall -Wvla $(DBGFLAGS)
 # -ffast-math segfaults with old gcc, don't use.
 LDFLAGS = -Wl,-gc-sections
 BOOSTFLAGS = -I .
@@ -64,8 +64,8 @@ extractSamples: extractSamples.cpp $(COMMON_DEPS) PosteriorSamples.o
 getFoldChange: getFoldChange.cpp $(COMMON_DEPS) PosteriorSamples.o 
 	$(CXX) $(CXXFLAGS) $(LDFLAGS) getFoldChange.cpp $(COMMON_DEPS) PosteriorSamples.o -o getFoldChange
 
-getGeneExpression: getGeneExpression.cpp $(COMMON_DEPS) PosteriorSamples.o TranscriptInfo.o
-	$(CXX) $(CXXFLAGS) $(LDFLAGS) getGeneExpression.cpp $(COMMON_DEPS) PosteriorSamples.o TranscriptInfo.o -o getGeneExpression
+getGeneExpression: getGeneExpression.cpp $(COMMON_DEPS) misc.o PosteriorSamples.o TranscriptInfo.o
+	$(CXX) $(CXXFLAGS) $(LDFLAGS) getGeneExpression.cpp $(COMMON_DEPS) misc.o PosteriorSamples.o TranscriptInfo.o -o getGeneExpression
 
 getPPLR: getPPLR.cpp $(COMMON_DEPS) misc.o PosteriorSamples.o
 	$(CXX) $(CXXFLAGS) $(LDFLAGS) getPPLR.cpp $(COMMON_DEPS) misc.o PosteriorSamples.o -o getPPLR
@@ -73,8 +73,8 @@ getPPLR: getPPLR.cpp $(COMMON_DEPS) misc.o PosteriorSamples.o
 getVariance: getVariance.cpp $(COMMON_DEPS) PosteriorSamples.o
 	$(CXX) $(CXXFLAGS) getVariance.cpp $(COMMON_DEPS) PosteriorSamples.o -o getVariance
 
-getWithinGeneExpression: getWithinGeneExpression.cpp $(COMMON_DEPS) PosteriorSamples.o TranscriptInfo.o
-	$(CXX) $(CXXFLAGS) getWithinGeneExpression.cpp $(COMMON_DEPS) PosteriorSamples.o TranscriptInfo.o -o getWithinGeneExpression
+getWithinGeneExpression: getWithinGeneExpression.cpp $(COMMON_DEPS) misc.o PosteriorSamples.o TranscriptInfo.o
+	$(CXX) $(CXXFLAGS) $(LDFLAGS) getWithinGeneExpression.cpp $(COMMON_DEPS) misc.o PosteriorSamples.o TranscriptInfo.o -o getWithinGeneExpression
 
 parseAlignment: parseAlignment.cpp $(COMMON_DEPS) misc.o ReadDistribution.o samtools/sam.o TranscriptExpression.o TranscriptInfo.o TranscriptSequence.o
 	$(CXX) $(CXXFLAGS) $(OPENMP) $(LDFLAGS) -Isamtools parseAlignment.cpp $(COMMON_DEPS) misc.o ReadDistribution.o samtools/*.o TranscriptExpression.o TranscriptInfo.o TranscriptSequence.o -lz -o parseAlignment
