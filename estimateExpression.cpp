@@ -166,7 +166,7 @@ void MCMC(TagAlignments *alignments,gibbsParameters &gPar,ArgumentParser &args){
    timer.start();;
    if(args.isSet("seed"))seed=args.getL("seed");
    else seed = time(NULL);
-   if(args.verbose)message("seed: %ld\n",seed);
+   if(args.verbose)message("Init (seed: %ld)",seed); // No EOL because of timer.split() after the loop.
    for(i=0;i<chainsN;i++){
       // Init samplers
       DEBUG(message("Sampler %ld init.\n",i);)
@@ -176,6 +176,7 @@ void MCMC(TagAlignments *alignments,gibbsParameters &gPar,ArgumentParser &args){
       DEBUG(message("   seed: %ld\n",seed);)
       // sampler is initialized with 'seed' and then sets 'seed' to new random seed for the next sampler
    }
+   timer.split();
    // parallel block: 
    // make sure that all functions used are CONST and variables are beaing READ or private
    // private: samplesHave (or subCounter)
