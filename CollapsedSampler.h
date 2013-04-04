@@ -5,6 +5,7 @@
 class CollapsedSampler : public Sampler{
    private:
    vector<int_least32_t> Z;
+   vector<double> par1, par2, par3;
 
    void sampleZ();
 
@@ -15,7 +16,7 @@ class CollapsedSampler : public Sampler{
    CollapsedSampler();
    virtual ~CollapsedSampler();
    
-   //virtual void init(long n, long m, long samplesTotal, long samplesOut, long Nmap, long Nunmap, const vector<long> &alignI, const vector<TagAlignment> &alignments, const distributionParameters &betaPar, const distributionParameters &dirPar);
+   virtual void init(long m, long samplesTotal, long samplesOut, long Nunmap,const TagAlignments *alignments, const distributionParameters &betaPar, const distributionParameters &dirPar, long &seed);
    virtual void update();
    virtual void sample();
    

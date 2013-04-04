@@ -59,7 +59,7 @@ class Sampler{
 
    Sampler();
    virtual ~Sampler();
-   void init(long m, long samplesTotal, long samplesOut, long Nunmap,const TagAlignments *alignments, const distributionParameters &betaPar, const distributionParameters &dirPar, long &seed);
+   virtual void init(long m, long samplesTotal, long samplesOut, long Nunmap,const TagAlignments *alignments, const distributionParameters &betaPar, const distributionParameters &dirPar, long &seed);
    
    void resetSampler(long samplesTotal);
    long getAverageC0();
