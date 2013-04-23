@@ -132,7 +132,7 @@ string programDescription =
          if(args.verbose)message("Loading transcript initial expression data.\n");
          trExp = new TranscriptExpression(args.getS("expFileName"));
          if(trExp->getM() != M){
-            error("Main: Number of transcripts in the alignment file and the expression are different: %ld vs %ld\n",M,trExp->getM());
+            error("Main: Number of transcripts in the alignment file and the expression file are different: %ld vs %ld\n",M,trExp->getM());
             return 1;
          }
       }
@@ -163,13 +163,13 @@ string programDescription =
    }
    // fill in "next" fragment:
    // Counters for all, Good Alignments; and weird alignments
-   long pairedGA, firstGA, secondGA, singleGA, weirdGA, allGA;
+   long observeN, pairedGA, firstGA, secondGA, singleGA, weirdGA, allGA;
    long RE_noEndInfo, RE_weirdPairdInfo;
    long maxAlignments = 0;
    if(args.isSet("maxAlignments") && (args.getL("maxAlignments")>0))
       maxAlignments = args.getL("maxAlignments");
    // start counting (and possibly estimating):
-   pairedGA = firstGA = secondGA = singleGA = weirdGA = 0;
+   observeN = pairedGA = firstGA = secondGA = singleGA = weirdGA = 0;
    RE_noEndInfo = RE_weirdPairdInfo = 0;
    ns_parseAlignment::readNextFragment(samData, curF, nextF);
    while(ns_parseAlignment::readNextFragment(samData,curF,nextF)){
@@ -206,7 +206,7 @@ string programDescription =
          if((singleGA>0) && (pairedGA>0)) RE_weirdPairdInfo++;
          // If it's good uniquely aligned fragment/read, add it to the observation.
          if(( allGA == 1) && analyzeReads){
-            readD.observed(curF);
+            if(readD.observed(curF))observeN++;
          }else if(maxAlignments && (allGA>maxAlignments)) {
             // This read will be ignored.
             ignoredReads.insert(bam1_qname(curF->first));
@@ -217,6 +217,7 @@ string programDescription =
    }
    timer.split(0,'m');
    message("Reads: all(Ntotal): %ld  mapped(Nmap): %ld\n",Ntotal,Nmap);
+   if(args.verbose)message("  %ld reads were used to estimate non-uniform distribution.\n",observeN);
    if(ignoredReads.size()>0)message("  %ld reads are skipped due to having more than %ld alignments.\n",ignoredReads.size(), maxAlignments);
    if(RE_noEndInfo)warning("  %ld reads that were paired, but do not have \"end\" information.\n  (is your alignment file valid?)", RE_noEndInfo);
    if(RE_weirdPairdInfo)warning("  %ld reads that were reported as both paired and single end.\n  (is your alignment file valid?)", RE_weirdPairdInfo);

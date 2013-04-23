@@ -49,19 +49,23 @@ SimpleSparse* readData(ArgumentParser &args){//{{{
      //    message("%s %ld\n",(readId).c_str(),num);
       for(j = 0; j < num; j++) {
          inFile>>tid>>prb;
-         if(format != ns_fileHeader::LOG_FORMAT) prb = log(prb);
          if(inFile.fail()){
             inFile.clear();
             // ignore rest of line
-            //inFile.ignore(10000000,'\n');
-            // ignore other read's alignments
             j=num;
             // this read goes to noise
             tid=0;
-            prb=log(1000);
+            // 10 means either 10 or exp(10), but should be still be large enough
+            prb=10;
             bad++;
          }
-         alignments->pushAlignment(tid, prb);         
+         switch(format){
+            case ns_fileHeader::NEW_FORMAT:
+               alignments->pushAlignment(tid, prb);
+               break;
+            case ns_fileHeader::LOG_FORMAT:
+               alignments->pushAlignmentL(tid, prb);
+         } 
       }
       // ignore rest of line
       inFile.ignore(10000000,'\n');
@@ -75,7 +79,7 @@ SimpleSparse* readData(ArgumentParser &args){//{{{
          mod*=10;
       }
    }
-   //message("Bad: %ld\n",bad);
+   if(bad>0)warning("Main: %ld reads' alignment information were corrupted.\n",bad);
    inFile.close();
    long Nhits,NreadsReal;
    alignments->finalizeRead(&M, &NreadsReal, &Nhits);

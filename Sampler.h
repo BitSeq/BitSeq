@@ -12,11 +12,9 @@ using namespace std;
 #include "GibbsParameters.h"
 #include "TagAlignments.h"
 
-#define Sof(x) (long)x.size()
 // compute statistics
 //#define DoSTATS
 //#define DoDebug
-
 
 typedef pair<double,double> pairD;
 
@@ -24,13 +22,12 @@ class Sampler{
    protected:
    long m, samplesN, samplesLogged, samplesTotal, samplesOut, Nmap, Nunmap;
    const distributionParameters *beta,*dir;
-//   distributionParameters *dir;
    const TagAlignments *alignments;
    const vector<double> *isoformLengths;
    boost::random::mt11213b rng_mt;
    boost::random::gamma_distribution<double> gammaDistribution;
    typedef boost::random::gamma_distribution<double>::param_type gDP;
-   // for kids only:
+   // Need by children:
    boost::random::uniform_01<double> uniformDistribution;
    
    bool doLog,save;
@@ -50,30 +47,50 @@ class Sampler{
    vector<pairD> thetaSqSum;
    pairD sumNorm;
 
+   // Sample theta.
    void sampleTheta();
+   // Compute tau.
    void getTau(vector <double> &tau, double norm);
+   // Append current expression samples into file opened for saving samples.
    void appendFile();
+   // Update sums of theta and theta^2.
    void updateSums();
 
    public:
 
    Sampler();
    virtual ~Sampler();
-   void init(long m, long samplesTotal, long samplesOut, long Nunmap,const TagAlignments *alignments, const distributionParameters &betaPar, const distributionParameters &dirPar, long &seed);
-   
+   // Initialize sampler, set seed and use it to generate new seed.
+   void init(long m, long samplesTotal, long samplesOut, long Nunmap,
+             const TagAlignments *alignments,
+             const distributionParameters &betaPar, 
+             const distributionParameters &dirPar, 
+             long &seed);
+   // Reset sampler's stats before new iteration
    void resetSampler(long samplesTotal);
+   // Return mean C[0].
    long getAverageC0();
+   // Get vector of mean theta expression. Has "two columns" first is calculated
+   // from all samples, the second only from the "thinned" samples.
    void getAverage(vector<pairD> &av);
+   // Get mean for transcript i.
    pairD getAverage(long i);
+   // Get calculated within variance.
    void getWithinVariance(vector<pairD> &va);
+   // Get within variance for transcript i.
    pairD getWithinVariance(long i);
-   void saveSamples(ofstream *outFile, const vector<double> *isoformLengths, outputType saveType, double norm = 0);
+   // Set sampler into state where samples are saved into the outFile.
+   void saveSamples(ofstream *outFile, const vector<double> *isoformLengths,
+                    outputType saveType, double norm = 0);
+   // Stop saving samples into the file.
    void noSave();
+   // Get theta act logged values.
    const vector<double>& getThetaActLog(){return thetaActLog;}
 
-   
-   virtual void sample(); // produces new McMc samples
-   virtual void update(); // samples theta if necessary and updates sums
+   // Produce new McMc samples.
+   virtual void sample();
+   // If necessary ("thinned sample") sample theta; update sums.
+   virtual void update();
 };
 
 
