@@ -1,7 +1,8 @@
-0.5.2:
+0.5.3:
 Improvements:
 - parseAlignment should be compatible with bowtie 2 output + new flag (-l/--limit) to limit maximum number of alignments
 - parseAlignment tries to determine input type based on extension (no need to use --format parameter in most cases)
+- more helpful error messages in get[Within]GeneExpression programs
 
 Bug fixes:
 - fixed broken extractTranscriptInfo.py and added new 'type' that looks for "gene=<gene name>"

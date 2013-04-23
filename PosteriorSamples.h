@@ -31,7 +31,7 @@ class PosteriorSamples{//{{{
       return *this;
    } //}}}
    void clear();
-   bool initSet(long &m, long &n, string fileName);
+   bool initSet(long *m, long *n, string fileName);
    bool getTranscript(long tr, vector<double> &trSamples);
    void close();
    bool logged(){return areLogged;}

@@ -39,19 +39,18 @@ bool PosteriorSamples::open(string fileName){//{{{
    }
    return true;
 }//}}}
-bool PosteriorSamples::initSet(long &m,long &n, string fileName){//{{{
+bool PosteriorSamples::initSet(long *m,long *n, string fileName){//{{{
    failed=false;
    if(! open(fileName))return false;
    
    FileHeader fh(&samplesF);
-   if(!fh.samplesHeader(&N,&M,&transposed,&areLogged)){
+   if(!fh.samplesHeader(n,m,&transposed,&areLogged)){
       error("PosteriorSamples: File header reading failed.\n");
       failed=true;
       return false;
    }
-   n=N;
-   m=M;
-//   message("%ld %ld %ld\n",n,m,transposed);
+   N=*n;
+   M=*m;
    return read();
 }//}}}
 bool PosteriorSamples::read(){//{{{
@@ -171,7 +170,7 @@ bool Conditions::init(string trFileName, vector<string> filesGot, long *c, long 
    samples.resize(CN);
    Ms.resize(CN);
    Ns.resize(CN);
-   if(! samples[0].initSet(Ms[0],Ns[0],files[0])){
+   if(! samples[0].initSet(&Ms[0],&Ns[0],files[0])){
       error("Conditions: file %s failed to open.\n",(files[0]).c_str());
       return false;
    }
@@ -179,7 +178,7 @@ bool Conditions::init(string trFileName, vector<string> filesGot, long *c, long 
    N=Ns[0];
    M=Ms[0];
    for(i=1;i<CN;i++){
-      if(! samples[i].initSet(Ms[i],Ns[i],files[i])){
+      if(! samples[i].initSet(&Ms[i],&Ns[i],files[i])){
          error("Conditions: file %s failed to open.\n",(files[i]).c_str());
          return false;
       }

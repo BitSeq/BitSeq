@@ -5,14 +5,15 @@
 
 #include "ArgumentParser.h"
 #include "PosteriorSamples.h"
+#include "TranscriptInfo.h"
 
 namespace ns_math {
 
 // For a=log(x), b=log(y); compute log(x+y).
 double logAddExp(double a, double b);
 
-// For vals_i = log(x_i); compute log(sum(x_i)) of first n positions.
-double logSumExp(const vector<double> &vals, long n = -1);
+// For vals_i = log(x_i); compute log(sum(x_i)) for st<=i<en.
+double logSumExp(const vector<double> &vals, long st = 0, long en = -1);
 
 }
 
@@ -36,6 +37,12 @@ bool readConditions(const ArgumentParser &args, long *C, long *M, long *N, Condi
 void computeCI(double cf, vector<double> *difs, double *ciLow, double *ciHigh);
 
 }
+
+namespace ns_genes {
+bool getLog(const ArgumentParser &args);
+
+bool prepareInput(const ArgumentParser &args, TranscriptInfo *trInfo, PosteriorSamples *samples, long *M, long *N, long *G);
+} // namespace ns_genes
 
 namespace ns_params{
 

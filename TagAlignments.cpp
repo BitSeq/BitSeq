@@ -1,3 +1,4 @@
+#include<cmath>
 
 #include "TagAlignments.h"
 
@@ -6,11 +7,12 @@
 
 //#define MEM_USAGE
 
-TagAlignments::TagAlignments(){//{{{
+TagAlignments::TagAlignments(bool storeL){//{{{
    knowNtotal=false;
    knowNreads=false;
    Ntotal=0;
    Nreads=0;
+   storeLog = storeL;
 }//}}}
 void TagAlignments::init(long Nreads,long Ntotal, long M){//{{{
    currentRead = 0;
@@ -38,15 +40,18 @@ void TagAlignments::init(long Nreads,long Ntotal, long M){//{{{
    }
 }//}}}
 void TagAlignments::pushAlignment(long trId, double prob){//{{{
+   pushAlignmentL(trId, log(prob));
+}//}}}
+void TagAlignments::pushAlignmentL(long trId, double lProb){//{{{
    if(trId>=M){
       M=trId+1;
       readsInIsoform.resize(M,-1);
    }
    if(readsInIsoform[trId] == currentRead){
-      // the read has already one alignement to this isoform
+      // The read has already one alignment to this transcript.
      for(long i=readIndex[currentRead];i<(long)trIds.size();i++)
         if(trIds[i] == trId){
-           probs[i] = ns_math::logAddExp(probs[i], prob);
+           probs[i] = ns_math::logAddExp(probs[i], lProb);
            break;
         }
    }else{
@@ -81,7 +86,8 @@ void TagAlignments::pushAlignment(long trId, double prob){//{{{
          }
       }
       trIds.push_back(trId);
-      probs.push_back(prob);
+      probs.push_back(lProb);
+      // Mark that transcript trId already has alignment from this read.
       readsInIsoform[trId] = currentRead;
    }
 }//}}}
@@ -91,7 +97,13 @@ void TagAlignments::pushRead(){//{{{
       // If no new alignments, do nothing.
       return;
    }
-   // Otherwise move to next read.
+   // If there are alignments transform from log space if necessary and move to next read.
+   if(!storeLog){
+      double logSum = ns_math::logSumExp(probs, readIndex[currentRead], probs.size());
+      for(long i = readIndex[currentRead]; i<(long)probs.size(); i++)
+         probs[i] = exp(probs[i]-logSum);
+   }
+   // Move to the next read.
    currentRead++;
    readIndex.push_back(probs.size());
 }//}}}
@@ -116,8 +128,3 @@ int_least32_t TagAlignments::getReadsI(long i) const {//{{{
    if(i<=Nreads)return readIndex[i];
    return 0;
 }//}}}
-
-/*void TagAlignments::setProb(long i,double p){//{{{
-   if(i<Ntotal)probs[i]=p;
-}//}}}*/
-

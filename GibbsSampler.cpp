@@ -4,56 +4,45 @@
 
 #include "GibbsSampler.h"
 #include "common.h"
-#include "misc.h"
 
 GibbsSampler::GibbsSampler(){ //{{{
-//   message("GIBBS\n");
    thetaAct=0;
 }//}}}
-GibbsSampler::~GibbsSampler(){ //{{{
-//   message("GIBBS DIE\n");
-//   Sampler::~Sampler();
-}//}}}
-/*void GibbsSampler::init(long n, long m, long samplesTotal, long samplesOut, long Nmap, long Nunmap, const vector<long> &alignI, const vector<TagAlignment> &alignments, const distributionParameters &betaPar, const distributionParameters &dirPar, long seed){//{{{
-   Sampler::init(n,m,samplesTotal,samplesOut,Nmap,Nunmap,alignI,alignments,betaPar,dirPar,seed);
-
-}//}}} */
 void GibbsSampler::sampleZ(){//{{{
+   // TimeStats {{{
 #ifdef DoSTATS
    nZ++;
    struct timeval start, end;
    gettimeofday(&start, NULL);
 #endif
+   // }}}
    long i,j,k;
-   vector<double> lphi(m,0); 
-   vector<double> logTheta(m,0);
+   vector<double> phi(m,0); 
    // phi of size M should be enough 
    // because of summing the probabilities for each isoform when reading the data
-   double lProbNorm,r,sum, logThetaAct, logInvThetaAct;
+   double probNorm,r,sum;
    int_least32_t readsAlignmentsN;
 
-   C.assign(Sof(C),0);
-   // Precompute logs:
-   logThetaAct = log(thetaAct);
-   logInvThetaAct = log(1-thetaAct);
-   for(j=0;j<m;j++) logTheta[j] = log(theta[j]);
+   // Reset C to zeros.
+   C.assign(C.size(),0);
    // Assign reads.
    for(i=0;i<Nmap;i++){
+      probNorm=0;
       readsAlignmentsN = alignments->getReadsI(i+1) - alignments->getReadsI(i);
       for(j=0, k=alignments->getReadsI(i); j < readsAlignmentsN; j++, k++){
          if(alignments->getTrId(k) == 0){
-            lphi[j] = alignments->getProb(k) + logInvThetaAct;
+            phi[j] = alignments->getProb(k) * (1 - thetaAct);
          }else{
-            lphi[j] = alignments->getProb(k) +
-               logThetaAct +
-               logTheta[alignments->getTrId(k)];
+            phi[j] = alignments->getProb(k) *
+               thetaAct * theta[alignments->getTrId(k)];
          }
+         probNorm += phi[j];
       }
-      // Normalization constant:
-      lProbNorm = ns_math::logSumExp(lphi, readsAlignmentsN);
       r = uniformDistribution(rng_mt);
+      // Apply Normalization constant:
+      r *= probNorm;
       for(j = 0, sum = 0 ; (sum<r) && (j<readsAlignmentsN); j++){
-         sum += exp(lphi[j] - lProbNorm);
+         sum += phi[j];
       }
       if(j==0){
          // e.g. if probNorm == 0
@@ -64,10 +53,12 @@ void GibbsSampler::sampleZ(){//{{{
          C[ alignments->getTrId( alignments->getReadsI(i)+j-1 ) ]++;
       }
    }
+   // TimeStats {{{
 #ifdef DoSTATS
    gettimeofday(&end, NULL);
    tZ += (end.tv_sec-start.tv_sec)*1000*1000+(end.tv_usec-start.tv_usec);
 #endif
+   // }}}
 }//}}}
 void GibbsSampler::sampleThetaAct(){//{{{
 #ifdef DoSTATS

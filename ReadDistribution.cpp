@@ -132,16 +132,16 @@ void ReadDistribution::setLength(double mu, double sigma){ //{{{
    lSigma=sigma;
    lengthSet=true;
 }//}}}
-void ReadDistribution::observed(fragmentP frag){ //{{{
+bool ReadDistribution::observed(fragmentP frag){ //{{{
    DEBUG(message("%s===%s\n",bam1_qname(frag->first),bam1_qname(frag->second));)
    long tid = frag->first->core.tid;
    if((frag->paired)&&(tid!=frag->second->core.tid)){
       warnTIDmismatch++;
-      return;
+      return false;
    }
    if((tid < 0)||(tid>=M)){
       warnUnknownTID++;
-      return;
+      return false;
    }
    // Set inverse expression
    double Iexp = (gotExpression)? 1.0/trExp->exp(tid) : 1.0;
@@ -171,7 +171,7 @@ void ReadDistribution::observed(fragmentP frag){ //{{{
       if(singleReadLength<minFragLen)minFragLen = singleReadLength;
    } //}}}
    // for uniform distribution ignore other estimation:
-   if(uniform) return;
+   if(uniform) return true;
 
    // check mates relative position: {{{
    if((frag->paired) && (frag->first->core.pos > frag->second->core.pos)){
@@ -182,7 +182,7 @@ void ReadDistribution::observed(fragmentP frag){ //{{{
    }
    if((frag->paired) && (frag->first->core.flag & BAM_FREVERSE)){
       warnPos ++;
-      return;
+      return false;
    }//}}}
    // positional bias:
    // sequence bias:
@@ -211,6 +211,7 @@ void ReadDistribution::observed(fragmentP frag){ //{{{
       updateSeqBias( frag_second_endPos, readM_5, tid, Iexp);
       mapAdd(trFragSeen5[tid], (long)len, Iexp);
    }
+   return true;
 }//}}}
 void ReadDistribution::normalize(){ //{{{
    // length distribution: {{{
@@ -652,6 +653,7 @@ vector<double> ReadDistribution::getEffectiveLengths(){ //{{{
    double eL, lCdfNorm,lenP, wNorm;
    MyTimer timer;
    timer.start();
+   DEBUG(message("Eff length: validLength %d ; minFragLen: %ld.\n",(int)validLength,minFragLen));
 #pragma omp parallel for private(len,trLen,pos,eL,lenP,wNorm,lCdfNorm)
    for(m=0;m<M;m++){
       if(verbose && (m!=0) && (m%(M/10)==0)){
@@ -698,15 +700,18 @@ vector<double> ReadDistribution::getEffectiveLengths(){ //{{{
          effL[m] = eL>minFragLen?eL:trLen;
       }
    }
+   DEBUG(long same = 0);
    if(! uniform){
       // normalize effective length to same sum as original length
       double effSum=0,lSum=0;
       for(m=0;m<M;m++){
+         DEBUG(if(effL[m] == trInf->L(m))same++);
          lSum+=trInf->L(m);
          effSum+=effL[m];
       }
       for(m=0;m<M;m++)effL[m] *= lSum/effSum;
    }
+   DEBUG(message(" same: %ld.\n",same));
    for(m=0;m<M;m++)if(effL[m]<=0) effL[m]=1;
    return effL;
 }//}}}

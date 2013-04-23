@@ -5,6 +5,7 @@
 #include "Sampler.h"
 #include "common.h"
 
+#define Sof(x) (long)x.size()
 
 Sampler::Sampler(){ //{{{
    m=samplesN=samplesLogged=samplesTotal=samplesOut=Nmap=Nunmap=0;
@@ -56,12 +57,6 @@ void Sampler::resetSampler(long samplesTotal){//{{{
 long Sampler::getAverageC0(){//{{{
    return (long) (sumC0 / sumNorm.first);
 }//}}}
-pairD Sampler::getAverage(long i){//{{{
-   double av1,av2;
-   av1=(sumNorm.first==0)?0:thetaSum[i].first/sumNorm.first;
-   av2=(sumNorm.second==0)?0:thetaSum[i].second/sumNorm.second;
-   return pairD(av1,av2);
-}//}}}
 void Sampler::getAverage(vector<pairD> &av){//{{{
    long i;
    if(Sof(av)<m)
@@ -72,6 +67,12 @@ void Sampler::getAverage(vector<pairD> &av){//{{{
       if(sumNorm.second != 0)
          av[i].second=thetaSum[i].second/sumNorm.second;
    }
+}//}}}
+pairD Sampler::getAverage(long i){//{{{
+   double av1,av2;
+   av1=(sumNorm.first==0)?0:thetaSum[i].first/sumNorm.first;
+   av2=(sumNorm.second==0)?0:thetaSum[i].second/sumNorm.second;
+   return pairD(av1,av2);
 }//}}}
 void Sampler::getWithinVariance(vector<pairD> &va){//{{{
    long i;

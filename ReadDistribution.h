@@ -115,7 +115,7 @@ class ReadDistribution{
       bool initUniform(long m, TranscriptInfo* trI, TranscriptSequence* trS, bool verb = true);
       void setLowProbMismatches(long m);
       void setLength(double mu, double sigma);
-      void observed(fragmentP frag);
+      bool observed(fragmentP frag);
       void normalize();
       void logProfiles(string logFileName = "");
       bool getP(fragmentP frag,double &prob,double &probNoise);
