@@ -18,7 +18,8 @@ endif
 
 DBGFLAGS = -ggdb -U_FORTIFY_SOURCE
 COFLAGS = $(ARCH) -O2 -pipe
-CXXFLAGS = -DBS_VERSION=\"$(VERSION)\" -Wall -Wvla $(COFLAGS)
+CXXFLAGS = -DBS_VERSION=\"$(VERSION)\" -Wall $(COFLAGS)
+# -Wvla does not work with old gcc
 # -ffast-math segfaults with old gcc, don't use.
 LDFLAGS = -Wl,-gc-sections
 BOOSTFLAGS = -I .
