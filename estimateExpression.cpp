@@ -331,7 +331,7 @@ void MCMC(TagAlignments *alignments,gibbsParameters &gPar,ArgumentParser &args){
          }
          break;
       }//}}}
-      if(! args.flag("scaleReduction")){
+      if(! (args.flag("scaleReduction") || args.flag("MCMC_samplesDOmax"))){
          vector<double> needS(M,0);
          for(i=1;i<M;i++){
             // between variance was not multiplied by samplesHave===n
