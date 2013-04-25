@@ -40,7 +40,8 @@ void TagAlignments::init(long Nreads,long Ntotal, long M){//{{{
    }
 }//}}}
 void TagAlignments::pushAlignment(long trId, double prob){//{{{
-   pushAlignmentL(trId, log(prob));
+   if(prob<=0)pushAlignmentL(trId, ns_misc::LOG_ZERO);
+   else pushAlignmentL(trId, log(prob));
 }//}}}
 void TagAlignments::pushAlignmentL(long trId, double lProb){//{{{
    if(trId>=M){

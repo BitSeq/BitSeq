@@ -15,6 +15,7 @@ const char bitseq_version[] = BS_VERSION;
 #define R_INTERUPT R_CheckUserInterrupt()
 
 #define message(...) Rprintf(__VA_ARGS__)
+#define messageF(...) Rprintf(__VA_ARGS__)
 
 const long samplesAtOnce = 50;
 
@@ -25,8 +26,9 @@ const long samplesAtOnce = 50;
 #define R_INTERUPT
 
 #define message(...) printf(__VA_ARGS__)
-#define warning(...) {fprintf(stderr,"WARNING: ");fprintf(stderr, __VA_ARGS__);}
-#define error(...) {fprintf(stderr,"ERROR: ");fprintf(stderr, __VA_ARGS__);}
+#define messageF(...); {printf(__VA_ARGS__);fflush(stdout);}
+#define warning(...); {fprintf(stderr,"WARNING: ");fprintf(stderr, __VA_ARGS__);}
+#define error(...); {fprintf(stderr,"ERROR: ");fprintf(stderr, __VA_ARGS__);}
 
 #endif
 

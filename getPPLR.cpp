@@ -76,7 +76,7 @@ int main(int argc,char* argv[]){
    vector<double> difs;
    long subN = N;
    double frac = args.getD("subSample");
-   if((frac > 0) && (frac < 1))subN = N * frac;
+   if((frac > 0) && (frac < 1))subN = (long)(N * frac);
    if(subN<1){
       cerr<<"ERROR: The fraction of samples for sub-sampling is too small."<<endl;
       return 1;

@@ -20,7 +20,7 @@ double logSumExp(const vector<double> &vals, long st = 0, long en = -1);
 namespace ns_misc {
 
 // Value to use instead of log(0).
-const double LOG_ZERO=-1000;
+const double LOG_ZERO=-100;
 
 // Return seed; either using seed set in args, or by using time(NULL) as seed.
 long getSeed(const ArgumentParser &args);
