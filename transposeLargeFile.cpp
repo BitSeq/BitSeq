@@ -11,10 +11,10 @@ int main(int argc,char* argv[]){
    if(args.verbose)buildTime(argv[0],__DATE__,__TIME__);
 
    if(transposeFiles(args.args(),args.getS("outFileName"),args.verbose)){
-      if(args.verbose)message("DONE.");
+      if(args.verbose)message("DONE.\n");
       return 0;
    }else{
-      error("Failed.");
+      error("Failed.\n");
       return 1;
    }
 }

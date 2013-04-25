@@ -1,14 +1,15 @@
-#include<omp.h>
 #include<cmath>
 #include<cstring>
 #include<fstream>
 #include<iomanip>
-
-#include "VariationalBayes.h"
+#include<omp.h>
 #include "boost/random/normal_distribution.hpp"
 #include "boost/random/gamma_distribution.hpp"
+
 #include "asa103/asa103.hpp"
 #include "common.h"
+
+#include "VariationalBayes.h"
 
 
 #define SWAPD(x,y) {tmpD=x;x=y;y=tmpD;}
@@ -39,7 +40,7 @@ VariationalBayes::VariationalBayes(SimpleSparse *_beta,double *_alpha,long seed,
    
    //logBeta= new SimpleSparse(beta);
    //beta already contains log probabilities.
-   
+
    if(_alpha){
       alpha = _alpha;
    }else{

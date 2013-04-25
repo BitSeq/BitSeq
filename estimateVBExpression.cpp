@@ -65,6 +65,8 @@ SimpleSparse* readData(ArgumentParser &args){//{{{
                break;
             case ns_fileHeader::LOG_FORMAT:
                alignments->pushAlignmentL(tid, prb);
+               break;
+            default:;
          } 
       }
       // ignore rest of line
@@ -129,7 +131,7 @@ string programDescription =
    }else  optM = OPTT_FR;
    // }}}
    MyTimer timer;
-   timer.start(17);
+   timer.start(2);
    long M; 
    SimpleSparse *beta;
 
@@ -172,8 +174,7 @@ string programDescription =
    if(args.isSet("maxIter")) varB.optimize(false,optM,args.getL("maxIter"),1e-7,1e-7);
    else varB.optimize(false,optM);
 
-   if(args.verbose){message("DONE. "); timer.split(0,'m');}
-   timer.split(17,'m');
+   if(args.verbose){timer.split(0,'m');}
    double *alpha = varB.getAlphas();
    double alphaSum = 0 ;
    long i;
@@ -196,11 +197,14 @@ string programDescription =
    delete[] alpha;
    if(args.isSet("samples") && (args.getL("samples")>0)){
       string samplesFName = args.getS("outFilePrefix")+".VBtheta";
-      string samplesTmpName = args.getS("outFilePrefix")+".VBtheta"; 
-      if(args.verbose)message("Generating samples into temporary file %s.\n",samplesTmpName.c_str());
+      string samplesTmpName = args.getS("outFilePrefix")+".VBthetaTMP"; 
+      timer.start(0);
+      if(args.verbose)messageF("Generating samples into temporary file %s. ",samplesTmpName.c_str());
       if(!ns_misc::openOutput(samplesTmpName, &outF)) return 1;
+      outF<<"# M "<<M<<" N "<<args.getL("samples")<<endl;
       varB.generateSamples(args.getL("samples"), &outF);
       outF.close();
+      if(args.verbose)timer.split(0);
       if(transposeFiles(vector<string>(1, samplesTmpName), samplesFName, args.verbose, "")){
          if(args.verbose)message("Removing temporary file %s.\n", samplesTmpName.c_str());
          remove(samplesTmpName.c_str());
@@ -209,6 +213,7 @@ string programDescription =
          return 1;
       }
    }
+   if(args.verbose){message("DONE. "); timer.split(2,'m');}
    return 0;
 }//}}}
 
