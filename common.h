@@ -26,9 +26,9 @@ const long samplesAtOnce = 50;
 #define R_INTERUPT
 
 #define message(...) printf(__VA_ARGS__)
-#define messageF(...); {printf(__VA_ARGS__);fflush(stdout);}
-#define warning(...); {fprintf(stderr,"WARNING: ");fprintf(stderr, __VA_ARGS__);}
-#define error(...); {fprintf(stderr,"ERROR: ");fprintf(stderr, __VA_ARGS__);}
+#define messageF(...) {printf(__VA_ARGS__);fflush(stdout);}
+#define warning(...) {fprintf(stderr,"WARNING: ");fprintf(stderr, __VA_ARGS__);}
+#define error(...) {fprintf(stderr,"ERROR: ");fprintf(stderr, __VA_ARGS__);}
 
 #endif
 
