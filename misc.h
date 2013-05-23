@@ -17,6 +17,12 @@ double logSumExp(const vector<double> &vals, long st = 0, long en = -1);
 
 }
 
+namespace ns_expression {
+
+// Return output type based on the command line argument (one of theta/rpkm/counts/tau).
+string getOutputType(const ArgumentParser &args, const string &defaultType = "rpkm");
+}
+
 namespace ns_misc {
 
 // Value to use instead of log(0).
@@ -36,6 +42,8 @@ bool readConditions(const ArgumentParser &args, long *C, long *M, long *N, Condi
 // Compute confidence intervals.
 void computeCI(double cf, vector<double> *difs, double *ciLow, double *ciHigh);
 
+// Convert string into lower case.
+string toLower(string str);
 }
 
 namespace ns_genes {

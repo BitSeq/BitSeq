@@ -1,12 +1,14 @@
-#include<vector>
 #include<algorithm>
 #include<cstdlib>
+#include<vector>
 
 using namespace std;
 
-#include "PosteriorSamples.h"
-#include "FileHeader.h"
 #include "common.h"
+#include "FileHeader.h"
+#include "misc.h"
+
+#include "PosteriorSamples.h"
    
 #define Sof(x) (long)x.size()
 #define SS second
@@ -14,12 +16,6 @@ using namespace std;
 
 #define MINUS_INF -47
 #define PLUS_INF 1e10
-
-string lower(string str){
-   for(long i=0;i<Sof(str);i++)
-      if((str[i]>='A')&&(str[i]<='Z'))str[i]-='A'-'a';
-   return str;
-}
 
 void PosteriorSamples::clear(){//{{{
    N=0;
@@ -102,8 +98,8 @@ bool PosteriorSamples::getTranscript(long tr,vector<double> &trSamples){//{{{
             samplesF.clear();
             samplesF.seekg(-1,ios::cur);
             samplesF>>str;
-            if(lower(str)=="-inf")trSamples[i]=MINUS_INF;
-            else if(lower(str)=="nan")trSamples[i]=PLUS_INF;
+            if(ns_misc::toLower(str)=="-inf")trSamples[i]=MINUS_INF;
+            else if(ns_misc::toLower(str)=="nan")trSamples[i]=PLUS_INF;
             else error("PosteriorSamples: Unknown value: %s in [tr:%ld,pos:%ld]\n",(str).c_str(),tr,i);
             good=false;
          }

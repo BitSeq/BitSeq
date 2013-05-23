@@ -289,27 +289,42 @@ double *VariationalBayes::getAlphas(){//{{{
    return alphas;
 }//}}}
 
-void VariationalBayes::generateSamples(long samplesN, ofstream *outF) {//{{{
+void VariationalBayes::generateSamples(long samplesN, const string &outTypeS, const vector<double> *isoformLengths, ofstream *outF) {//{{{
    vector<double> gamma(M,0);
    vector<gDP> alphaParam;
-   long n,m;
-   double gammaSum;
    boost::random::gamma_distribution<double> gammaDistribution;
+   long n,m;
+   double gammaSum, norm, normC = 1.0;
+   // Set normalisation.
+   if(outTypeS == "counts") normC = N; // N is Nmap.
+   if(outTypeS == "rpkm") normC = 1e9;
    // Precompute dirichlet's alpha and save them as parameters for Gamma.
    for(m=0;m<M;m++)alphaParam.push_back(gDP(alpha[m] + phiHat[m], 1.0));
    // Sample.
+   outF->precision(9);
+   (*outF)<<scientific;
    for(n=0;n<samplesN;n++){
-      // Compute M gammas and normalize.
+      // Compute M gammas and sum. Ignore 0 - noise transcript.
       gammaSum = 0;
-      for(m=0;m<M;m++){
+      for(m=1;m<M;m++){
          gammaDistribution.param(alphaParam[m]);
          gamma[m] = gammaDistribution(rng_mt);
          gammaSum += gamma[m];
       }
-      for(m=0;m < M-1;m++){
-         (*outF)<<gamma[m]/gammaSum<<" ";
+      // For rpkm normalize by length.
+      if(outTypeS == "rpkm"){
+         if((long)isoformLengths->size() < M){
+            error("VariationalBayes: Too few isoform lengths for RPKM computation.");
+            return;
+         }
+         for(m=1;m<M;m++)
+            if((*isoformLengths)[m]>0)
+               gamma[m] /= (*isoformLengths)[m];
       }
-      // Don't want space at the end of line.
-      (*outF)<<gamma[M-1]/gammaSum<<endl;
+      norm = normC / gammaSum;
+      for(m=1;m < M;m++){
+         (*outF)<<gamma[m] * norm<<" ";
+      }
+      (*outF)<<endl;
    }
 }//}}}
