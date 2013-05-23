@@ -120,6 +120,7 @@ string programDescription =
    args.addOptionL("","maxIter","maxIter",0,"Maximum number of iterations.");
    args.addOptionL("P","procN","procN",0,"Limit the maximum number of threads to be used.",1);
    args.addOptionL("","samples","samples",0,"Number of samples to be sampled from the distribution.");
+   args.addOptionB("V","veryVerbose","veryVerbose",0,"Very verbose output.");
    if(!args.parse(*argc,argv))return 0;
    if(args.verbose)buildTime(argv[0],__DATE__,__TIME__);
    OPT_TYPE optM;
@@ -177,8 +178,8 @@ string programDescription =
    varB.setLog(args.getS("outFilePrefix")+".convLog",&timer);
 #endif
 
-   if(args.isSet("maxIter")) varB.optimize(false,optM,args.getL("maxIter"),1e-7,1e-7);
-   else varB.optimize(false,optM);
+   if(args.isSet("maxIter")) varB.optimize(args.flag("veryVerbose"),optM,args.getL("maxIter"),1e-7,1e-7);
+   else varB.optimize(args.flag("veryVerbose"),optM);
 
    if(args.verbose){timer.split(0,'m');}
    double *alpha = varB.getAlphas();
