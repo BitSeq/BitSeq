@@ -122,6 +122,7 @@ double VariationalBayes::getBound(){//{{{
 }//}}}
 
 void VariationalBayes::optimize(bool verbose,OPT_TYPE method,long maxIter,double ftol, double gtol){//{{{
+   bool usedSteepest;
    long iteration=0,i,r;
    double boundOld,bound,squareNorm,squareNormOld=1,valBeta=0,valBetaDiv,natGrad_i,gradGamma_i,phiGradPhiSum_r;
    double *gradPhi,*natGrad,*gradGamma,*searchDir,*tmpD,*phiOld;
@@ -204,12 +205,14 @@ void VariationalBayes::optimize(bool verbose,OPT_TYPE method,long maxIter,double
       }
 
       if(valBeta>0){
+         usedSteepest = false;
          //for(i=0;i<T;i++)searchDir[i]= -natGrad[i] + valBeta*searchDirOld[i];
          // removed need for searchDirOld:
          #pragma omp parallel for
          for(i=0;i<T;i++)
             searchDir[i]= -natGrad[i] + valBeta*searchDir[i];
       }else{
+         usedSteepest = true;
          #pragma omp parallel for
          for(i=0;i<T;i++)
             searchDir[i]= -natGrad[i];
@@ -223,6 +226,7 @@ void VariationalBayes::optimize(bool verbose,OPT_TYPE method,long maxIter,double
       iteration++;
       // make sure there is an increase in L, else revert to steepest
       if((bound<boundOld) && (valBeta>0)){
+         usedSteepest = true;
          #pragma omp parallel for
          for(i=0;i<T;i++)
             searchDir[i]= -natGrad[i];
@@ -232,9 +236,9 @@ void VariationalBayes::optimize(bool verbose,OPT_TYPE method,long maxIter,double
       }
       SWAPD(gradPhi,phiOld);
       if(verbose){
-         message("\riter: %ld  bound: %lf grad: %lf  beta: %lf\n",iteration,bound,squareNorm,valBeta);
+         message("\riter(%c): %5.ld  bound: %.3lf grad: %.7lf  beta: %.7lf\n",(usedSteepest?'s':'o'),iteration,bound,squareNorm,valBeta);
       }else{
-         message("\riter: %5.ld  bound: %.3lf grad: %.6lf  beta: %.6lf           ",iteration,bound,squareNorm,valBeta);
+         message("\riter(%c): %5.ld  bound: %.3lf grad: %.7lf  beta: %.7lf              ",(usedSteepest?'s':'o'),iteration,bound,squareNorm,valBeta);
          fflush(stdout);
       }
 #ifdef LOG_CONV
