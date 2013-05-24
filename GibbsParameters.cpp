@@ -106,5 +106,5 @@ gibbsParameters::gibbsParameters(bool verbose){//{{{
    betaP.beta=2;
    gs_samplesFile="gibbs_log.rpkmS";
    gs_meansFile="gibbs_log.thetaMeans";
-   gs_output=RPKM;
+   //gs_output=RPKM;
 }//}}}

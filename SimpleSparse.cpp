@@ -4,6 +4,17 @@
 
 #include "SimpleSparse.h"
 
+double SimpleSparse::logSumExpVal(long st, long en){//{{{
+   if(st<0)st = 0;
+   if((en == -1) || (en > T)) en = T;
+   if(st >= en) return 0;
+   long i;
+   double sumE = 0, m = val[st];
+   for(i = st; i < en; i++)if(val[i] > m)m = val[i];
+   for(i = st; i < en; i++)
+      sumE += exp(val[i] - m);
+   return  m + log(sumE);
+}//}}}
 void SimpleSparse::sumRows(double res[]){//{{{
    long i,r;
    for(r=0;r<N;r++){
@@ -19,31 +30,26 @@ void SimpleSparse::sumCols(double res[]){//{{{
 }//}}}
 
 void SimpleSparse::softmaxInplace(SimpleSparse *res){//{{{
-   double rowSum = 0;
+   double logRowSum = 0;
    long i,r;
-   #pragma omp parallel for private(i,rowSum)
+   #pragma omp parallel for private(i,logRowSum)
    for(r=0;r<N;r++){
-      rowSum = 0;
+      logRowSum = logSumExpVal(rowStart[r],rowStart[r+1]);
       for(i=rowStart[r];i<rowStart[r+1];i++){
-         res->val[i] = exp(val[i]);
-         rowSum+=res->val[i];
-      }
-      for(i=rowStart[r];i<rowStart[r+1];i++){
-         res->val[i] /= rowSum;
-         val[i] = log( res->val[i] );
+         val[i] = val[i] - logRowSum;
+         res->val[i] = exp( val[i] );
       }
    }
 }//}}}
 void SimpleSparse::softmax(SimpleSparse *res){//{{{
-   double rowSum = 0;
+   double logRowSum = 0;
    long i,r;
+   #pragma omp parallel for private(i,logRowSum)
    for(r=0;r<N;r++){
-      rowSum = 0;
+      logRowSum = logSumExpVal(rowStart[r],rowStart[r+1]);
       for(i=rowStart[r];i<rowStart[r+1];i++){
-         res->val[i] = exp(val[i]);
-         rowSum+=res->val[i];
+         res->val[i] = exp(val[i] - logRowSum);
       }
-      for(i=rowStart[r];i<rowStart[r+1];i++)res->val[i]/=rowSum;
    }
 }//}}}
 

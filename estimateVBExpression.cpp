@@ -10,7 +10,7 @@
 #include "VariationalBayes.h"
 
 
-SimpleSparse* readData(ArgumentParser &args){//{{{
+SimpleSparse* readData(ArgumentParser &args, long trM){//{{{
 /*
  As parse(filename,maxreads=None) in python
  Python diferece:
@@ -85,6 +85,8 @@ SimpleSparse* readData(ArgumentParser &args){//{{{
    inFile.close();
    long Nhits,NreadsReal;
    alignments->finalizeRead(&M, &NreadsReal, &Nhits);
+   // Increase M based on number of transcripts in trInfo file.
+   if(M<trM)M = trM;
    //}}}
    if(i<Nmap)message("Read only %ld reads.\n",NreadsReal);
    message("Finished Reading!\nTotal hits = %ld\n",Nhits);
@@ -111,14 +113,14 @@ string programDescription =
    ArgumentParser args;
    args.init(programDescription,"[prob file]",1);
    args.addOptionS("o","outPrefix","outFilePrefix",1,"Prefix for the output files.");
-   //args.addOptionS("O","outType","outputType",0,"Output type (theta, RPKM, counts, tau).","counts");
-   //args.addOptionS("p","parFile","parFileName",0,"File containing parameters for the sampler, which can be otherwise specified by --MCMC* options. As the file is checked after every MCMC iteration, the parameters can be adjusted while running.");
-   //args.addOptionS("t","trInfoFile","trInfoFileName",0,"File containing transcript information. (Necessary for RPKM)");
+   args.addOptionS("O","outType","outputType",0,"Output type (theta, RPKM, counts) of the samples sampled from the distribution.","theta");
+   args.addOptionS("t","trInfoFile","trInfoFileName",0,"File containing transcript information. (Necessary for RPKM samples)");
    args.addOptionS("m","method","optMethod",0,"Optimalization method (steepest, PR, FR, HS).","FR");
    args.addOptionL("s","seed","seed",0,"Random initialization seed.");
    args.addOptionL("","maxIter","maxIter",0,"Maximum number of iterations.");
    args.addOptionL("P","procN","procN",0,"Limit the maximum number of threads to be used.",1);
    args.addOptionL("","samples","samples",0,"Number of samples to be sampled from the distribution.");
+   args.addOptionB("V","veryVerbose","veryVerbose",0,"Very verbose output.");
    if(!args.parse(*argc,argv))return 0;
    if(args.verbose)buildTime(argv[0],__DATE__,__TIME__);
    OPT_TYPE optM;
@@ -129,24 +131,29 @@ string programDescription =
       else if(args.getS("optMethod")=="HS")optM = OPTT_HS;
       else optM = OPTT_FR;
    }else  optM = OPTT_FR;
+   args.updateS("outputType", ns_expression::getOutputType(args, "theta"));
+   if(args.getS("outputType") == "tau"){
+      error("Main: 'tau' is not valid output type.");
+      return 1;
+   }
    // }}}
    MyTimer timer;
    timer.start(2);
-   long M; 
+   long M = 0; 
    SimpleSparse *beta;
+   TranscriptInfo trInfo;
 
    // {{{ Read transcriptInfo and .prob file 
    if(args.verbose)message("Reading data.\n");
-/*   if((!args.isSet("trInfoFileName"))||(!trInfo.readInfo(args.getS("trInfoFileName")))){
-      if(outTypeI==RPKM){
-         error("Main: Missing transcript info file. This will cause problems if producing RPKM.");
+   if((!args.isSet("trInfoFileName"))||(!trInfo.readInfo(args.getS("trInfoFileName")))){
+      if(args.isSet("samples") && (args.getL("samples")>0) && (args.getS("outputType") == "rpkm")){
+         error("Main: Missing transcript info file. The file is necessary for producing RPKM samples.\n");
          return 1;
       }
-      M = 0;
    }else{
       M = trInfo.getM()+1;
-   }*/
-   beta = readData(args);
+   }
+   beta = readData(args,M);
    if(! beta){
       error("Main: Reading probabilitites failed.");
       return 1;
@@ -171,8 +178,8 @@ string programDescription =
    varB.setLog(args.getS("outFilePrefix")+".convLog",&timer);
 #endif
 
-   if(args.isSet("maxIter")) varB.optimize(false,optM,args.getL("maxIter"),1e-7,1e-7);
-   else varB.optimize(false,optM);
+   if(args.isSet("maxIter")) varB.optimize(args.flag("veryVerbose"),optM,args.getL("maxIter"),1e-7,1e-7);
+   else varB.optimize(args.flag("veryVerbose"),optM);
 
    if(args.verbose){timer.split(0,'m');}
    double *alpha = varB.getAlphas();
@@ -196,13 +203,15 @@ string programDescription =
    delete beta;
    delete[] alpha;
    if(args.isSet("samples") && (args.getL("samples")>0)){
-      string samplesFName = args.getS("outFilePrefix")+".VBtheta";
-      string samplesTmpName = args.getS("outFilePrefix")+".VBthetaTMP"; 
+      string outTypeS = args.getS("outputType");
+      string samplesFName = args.getS("outFilePrefix")+".VB" + outTypeS;
+      string samplesTmpName = args.getS("outFilePrefix")+".VB"+outTypeS+"TMP"; 
       timer.start(0);
       if(args.verbose)messageF("Generating samples into temporary file %s. ",samplesTmpName.c_str());
       if(!ns_misc::openOutput(samplesTmpName, &outF)) return 1;
-      outF<<"# M "<<M<<" N "<<args.getL("samples")<<endl;
-      varB.generateSamples(args.getL("samples"), &outF);
+      // Samples are generated without the "noise transcript".
+      outF<<"# M "<<M-1<<" N "<<args.getL("samples")<<endl;
+      varB.generateSamples(args.getL("samples"), outTypeS, trInfo.getShiftedLengths(), &outF);
       outF.close();
       if(args.verbose)timer.split(0);
       if(transposeFiles(vector<string>(1, samplesTmpName), samplesFName, args.verbose, "")){

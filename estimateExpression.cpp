@@ -3,16 +3,17 @@
 #include<omp.h>
 #include<sstream>
 
-#include "CollapsedSampler.h"
-#include "GibbsSampler.h"
-#include "Sampler.h"
-#include "FileHeader.h"
-#include "MyTimer.h"
 #include "ArgumentParser.h"
+#include "CollapsedSampler.h"
+#include "common.h"
+#include "FileHeader.h"
+#include "GibbsSampler.h"
+#include "misc.h"
+#include "MyTimer.h"
+#include "Sampler.h"
+#include "TagAlignments.h"
 #include "TranscriptInfo.h"
 #include "transposeFiles.h"
-#include "TagAlignments.h"
-#include "common.h"
 
 
 #define DEBUG(x)
@@ -26,8 +27,6 @@ long  M;//, mAll; // M : number of transcripts (include transcript 0 ~ Noise)
 //long N, 
 long Nunmap; // N: number of read, unmappable read, mappable reads
 
-string outTypeS;
-outputType outTypeI;
 vector<string> samplesFileNames;
 string failedMessage;
 
@@ -107,7 +106,7 @@ TagAlignments* readData(ArgumentParser &args) {//{{{
    // If the transcript info is initialized, check that the number of transcripts has not changed.
    // The number can't be smaller as it starts off with trInfo->M
    if((trInfo.isOK())&&(M > trInfo.getM() + 1)){
-      if(outTypeI == RPKM){
+      if(args.getS("outputType") == "rpkm"){
          error("Main: Number of transcripts in .prob file is higher than in the .tr file (%ld %ld)!\n",M,trInfo.getM() + 1);
          delete alignments;
          return NULL;
@@ -376,14 +375,14 @@ void MCMC(TagAlignments *alignments,gibbsParameters &gPar,ArgumentParser &args){
          stringstream sstr;
          for(j=0;j<chainsN;j++){
             sstr.str("");
-            sstr<<args.getS("outFilePrefix")<<"."<<outTypeS<<"S-"<<j;
+            sstr<<args.getS("outFilePrefix")<<"."<<args.getS("outputType")<<"S-"<<j;
             samplesFileNames.push_back(sstr.str());
             samplesFile[j].open(samplesFileNames[j].c_str());
             if(! samplesFile[j].is_open()){
                error("Main: Unable to open output file '%s'.\n",(sstr.str()).c_str());
             }else{
                samplesFile[j]<<"#\n# M "<<M-1<<"\n# N "<<samplesSave<<endl;
-               samplers[j]->saveSamples(&samplesFile[j],trInfo.getShiftedLengths(true),outTypeI);
+               samplers[j]->saveSamples(&samplesFile[j],trInfo.getShiftedLengths(true),args.getS("outputType"));
             }
          }
       }
@@ -497,31 +496,15 @@ string programDescription =
    if(args.isSet("parFileName")){
       gPar.setParameters(args.getS("parFileName"));
    }
-   
-   if((args.getS("outputType") == "theta")||(args.getS("outputType") == "THETA")){
-      outTypeI=THETA;
-      outTypeS="theta";
-   }else if((args.getS("outputType") == "RPKM")||(args.getS("outputType") == "rpkm")){
-      outTypeI=RPKM;
-      outTypeS="rpkm";
-   }else if(args.getS("outputType") == "tau"){
-      outTypeI=TAU;
-      outTypeS="tau";
-   }else{
-      outTypeI=COVERAGE;
-      outTypeS="counts";
-      if(args.getS("outputType") != "counts")
-         message("Using output type \"counts\"\n");
-   }
-
+   args.updateS("outputType", ns_expression::getOutputType(args));
    if(args.verbose)gPar.getAllParameters();
 
    //}}}
    // {{{ Read transcriptInfo and .prob file 
    if(args.verbose)message("Reading data.\n");
    if((!args.isSet("trInfoFileName"))||(!trInfo.readInfo(args.getS("trInfoFileName")))){
-      if(outTypeI==RPKM){
-         error("Main: Missing transcript info file. This will cause problems if producing RPKM.\n");
+      if(args.getS("outputType") == "rpkm"){
+         error("Main: Missing transcript info file. The file is necessary for producing RPKM.\n");
          return 1;
       }
    }else{
@@ -542,7 +525,7 @@ string programDescription =
    if(args.verbose)message("Starting the sampler.\n");
    MCMC(alignments,gPar,args);
    // {{{ Transpose and merge sample file 
-   if(transposeFiles(samplesFileNames,args.getS("outFilePrefix")+"."+outTypeS,args.verbose,failedMessage)){
+   if(transposeFiles(samplesFileNames,args.getS("outFilePrefix")+"."+args.getS("outputType"),args.verbose,failedMessage)){
       if(args.verbose)message("Sample files transposed. Deleting.\n");
       for(long i=0;i<(long)samplesFileNames.size();i++){
          remove(samplesFileNames[i].c_str());

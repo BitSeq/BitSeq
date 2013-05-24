@@ -122,6 +122,7 @@ double VariationalBayes::getBound(){//{{{
 }//}}}
 
 void VariationalBayes::optimize(bool verbose,OPT_TYPE method,long maxIter,double ftol, double gtol){//{{{
+   bool usedSteepest;
    long iteration=0,i,r;
    double boundOld,bound,squareNorm,squareNormOld=1,valBeta=0,valBetaDiv,natGrad_i,gradGamma_i,phiGradPhiSum_r;
    double *gradPhi,*natGrad,*gradGamma,*searchDir,*tmpD,*phiOld;
@@ -204,12 +205,14 @@ void VariationalBayes::optimize(bool verbose,OPT_TYPE method,long maxIter,double
       }
 
       if(valBeta>0){
+         usedSteepest = false;
          //for(i=0;i<T;i++)searchDir[i]= -natGrad[i] + valBeta*searchDirOld[i];
          // removed need for searchDirOld:
          #pragma omp parallel for
          for(i=0;i<T;i++)
             searchDir[i]= -natGrad[i] + valBeta*searchDir[i];
       }else{
+         usedSteepest = true;
          #pragma omp parallel for
          for(i=0;i<T;i++)
             searchDir[i]= -natGrad[i];
@@ -223,6 +226,7 @@ void VariationalBayes::optimize(bool verbose,OPT_TYPE method,long maxIter,double
       iteration++;
       // make sure there is an increase in L, else revert to steepest
       if((bound<boundOld) && (valBeta>0)){
+         usedSteepest = true;
          #pragma omp parallel for
          for(i=0;i<T;i++)
             searchDir[i]= -natGrad[i];
@@ -232,15 +236,15 @@ void VariationalBayes::optimize(bool verbose,OPT_TYPE method,long maxIter,double
       }
       SWAPD(gradPhi,phiOld);
       if(verbose){
-         message("\riter: %ld  bound: %lf grad: %lf  beta: %lf\n",iteration,bound,squareNorm,valBeta);
+         message("\riter(%c): %5.ld  bound: %.3lf grad: %.7lf  beta: %.7lf\n",(usedSteepest?'s':'o'),iteration,bound,squareNorm,valBeta);
       }else{
-         message("\riter: %5.ld  bound: %.3lf grad: %.6lf  beta: %.6lf           ",iteration,bound,squareNorm,valBeta);
+         message("\riter(%c): %5.ld  bound: %.3lf grad: %.7lf  beta: %.7lf              ",(usedSteepest?'s':'o'),iteration,bound,squareNorm,valBeta);
          fflush(stdout);
       }
 #ifdef LOG_CONV
    if(iteration%50==0){
       logF<<iteration<<" "<<bound<<" "<<squareNorm;
-      if(logTimer)logF<<" "<<logTimer->current(17,'m');
+      if(logTimer)logF<<" "<<logTimer->current(0,'m');
       logF<<endl;
    }
 #endif
@@ -266,7 +270,7 @@ void VariationalBayes::optimize(bool verbose,OPT_TYPE method,long maxIter,double
    }
 #ifdef LOG_CONV
    logF<<iteration<<" "<<bound<<" "<<squareNorm;
-   if(logTimer)logF<<" "<<logTimer->current(17,'m');
+   if(logTimer)logF<<" "<<logTimer->current(0,'m');
    logF<<endl;
    if(logTimer)logTimer->setVerbose();
    logF.close();
@@ -289,27 +293,42 @@ double *VariationalBayes::getAlphas(){//{{{
    return alphas;
 }//}}}
 
-void VariationalBayes::generateSamples(long samplesN, ofstream *outF) {//{{{
+void VariationalBayes::generateSamples(long samplesN, const string &outTypeS, const vector<double> *isoformLengths, ofstream *outF) {//{{{
    vector<double> gamma(M,0);
    vector<gDP> alphaParam;
-   long n,m;
-   double gammaSum;
    boost::random::gamma_distribution<double> gammaDistribution;
+   long n,m;
+   double gammaSum, norm, normC = 1.0;
+   // Set normalisation.
+   if(outTypeS == "counts") normC = N; // N is Nmap.
+   if(outTypeS == "rpkm") normC = 1e9;
    // Precompute dirichlet's alpha and save them as parameters for Gamma.
    for(m=0;m<M;m++)alphaParam.push_back(gDP(alpha[m] + phiHat[m], 1.0));
    // Sample.
+   outF->precision(9);
+   (*outF)<<scientific;
    for(n=0;n<samplesN;n++){
-      // Compute M gammas and normalize.
+      // Compute M gammas and sum. Ignore 0 - noise transcript.
       gammaSum = 0;
-      for(m=0;m<M;m++){
+      for(m=1;m<M;m++){
          gammaDistribution.param(alphaParam[m]);
          gamma[m] = gammaDistribution(rng_mt);
          gammaSum += gamma[m];
       }
-      for(m=0;m < M-1;m++){
-         (*outF)<<gamma[m]/gammaSum<<" ";
+      // For rpkm normalize by length.
+      if(outTypeS == "rpkm"){
+         if((long)isoformLengths->size() < M){
+            error("VariationalBayes: Too few isoform lengths for RPKM computation.");
+            return;
+         }
+         for(m=1;m<M;m++)
+            if((*isoformLengths)[m]>0)
+               gamma[m] /= (*isoformLengths)[m];
       }
-      // Don't want space at the end of line.
-      (*outF)<<gamma[M-1]/gammaSum<<endl;
+      norm = normC / gammaSum;
+      for(m=1;m < M;m++){
+         (*outF)<<gamma[m] * norm<<" ";
+      }
+      (*outF)<<endl;
    }
 }//}}}
