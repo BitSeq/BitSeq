@@ -142,7 +142,11 @@ void VariationalBayes::optimize(bool verbose,OPT_TYPE method,long maxIter,double
 #ifdef LOG_CONV
    ofstream logF(logFileName.c_str());
    logF.precision(15);
+   logF<<"# iter bound squareNorm time(m) [M*means M*vars]"<<endl;
    if(logTimer)logTimer->setQuiet();
+   #ifdef LONG_LOG
+   vector<double> dirAlpha(M);
+   #endif
 #endif
    boundOld=getBound();
    while(true){
@@ -242,9 +246,22 @@ void VariationalBayes::optimize(bool verbose,OPT_TYPE method,long maxIter,double
          fflush(stdout);
       }
 #ifdef LOG_CONV
-   if(iteration%50==0){
+   if((iteration%20==0) ||
+      ((iteration<200) && (iteration%10==0)) ||
+      ((iteration<50) && (iteration%5==0))){
       logF<<iteration<<" "<<bound<<" "<<squareNorm;
       if(logTimer)logF<<" "<<logTimer->current(0,'m');
+      #ifdef LONG_LOG
+      double alphaSum = 0, alphaVarNorm;
+      // True 'alpha' - dirichlet parameter is alpha+phiHat.
+      for(i=1;i<M;i++){
+         dirAlpha[i] = alpha[i] + phiHat[i];
+         alphaSum += dirAlpha[i];
+      }
+      for(i=1;i<M;i++)logF<< " " << dirAlpha[i] / alphaSum;
+      alphaVarNorm = alphaSum*alphaSum*(alphaSum+1);
+      for(i=1;i<M;i++)logF<<" "<<dirAlpha[i]*(alphaSum-dirAlpha[i])/alphaVarNorm;
+      #endif
       logF<<endl;
    }
 #endif
@@ -271,6 +288,17 @@ void VariationalBayes::optimize(bool verbose,OPT_TYPE method,long maxIter,double
 #ifdef LOG_CONV
    logF<<iteration<<" "<<bound<<" "<<squareNorm;
    if(logTimer)logF<<" "<<logTimer->current(0,'m');
+   #ifdef LONG_LOG
+   double alphaSum = 0, alphaVarNorm;
+   // True 'alpha' - dirichlet parameter is alpha+phiHat.
+   for(i=1;i<M;i++){
+      dirAlpha[i] = alpha[i] + phiHat[i];
+      alphaSum += dirAlpha[i];
+   }
+   for(i=1;i<M;i++)logF<< " " << dirAlpha[i] / alphaSum;
+   alphaVarNorm = alphaSum*alphaSum*(alphaSum+1);
+   for(i=1;i<M;i++)logF<<" "<<dirAlpha[i]*(alphaSum-dirAlpha[i])/alphaVarNorm;
+   #endif
    logF<<endl;
    if(logTimer)logTimer->setVerbose();
    logF.close();

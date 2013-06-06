@@ -7,6 +7,7 @@
 #include "SimpleSparse.h"
 
 #define LOG_CONV
+#define LONG_LOG
 
 enum OPT_TYPE { OPTT_STEEPEST, OPTT_PR, OPTT_FR, OPTT_HS};
 
