@@ -102,6 +102,15 @@ pairD Sampler::getWithinVariance(long i){//{{{
    if(va1<0)message("minus %lg %lg %lg\n",thetaSqSum[i].first,thetaSum[i].first,sumNorm.first);
    return pairD(va1,va2);
 }//}}}
+void Sampler::getThetaSums(long i, double *thSqSum, double *thSum, double *sumN){//{{{
+   if(i >= m){
+      (*thSqSum) = (*thSum) = (*sumN) = 0;
+      return;
+   }
+   *thSqSum = thetaSqSum[i].first;
+   *thSum = thetaSum[i].first;
+   *sumN = sumNorm.first;
+}//}}}
 void Sampler::getTau(vector<double> &tau, double norm){//{{{
    long i;
    double tauSum=0;

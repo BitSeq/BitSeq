@@ -79,6 +79,8 @@ class Sampler{
    void getWithinVariance(vector<pairD> &va);
    // Get within variance for transcript i.
    pairD getWithinVariance(long i);
+   // Get sum of theta^2, sum of theta, and their norm for transcript i.
+   void getThetaSums(long i, double *thSqSum, double *thSum, double *sumN);
    // Set sampler into state where samples are saved into the outFile.
    void saveSamples(ofstream *outFile, const vector<double> *isoformLengths,
                     const string &saveType, double norm = 0);
