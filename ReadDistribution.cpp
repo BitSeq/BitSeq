@@ -57,6 +57,12 @@ ReadDistribution::ReadDistribution(){ //{{{
    singleReadLength = 0;
    minFragLen=10000;
    lowProbMismatches = LOW_PROB_MISSES;
+   lProbMis.resize(230,0);
+   lProbHit.resize(230,0);
+   for(long i=0; i<230; i++){
+      lProbMis[i] = - i / 10.0 * log(10.0);
+      lProbHit[i] = log1p(-exp(lProbMis[i]));
+   }
 }//}}}
 void ReadDistribution::writeWarnings() {//{{{
    if(warnPos>0){
@@ -350,7 +356,7 @@ void ReadDistribution::logProfiles(string logFileName){//{{{
 }//}}}
 pair<double,double> ReadDistribution::getSequenceLProb(bam1_t *samA){//{{{
    if(! samA) return pair<double, double>(0,0);
-   double lProb=0,lowLProb=0,lProbMis;
+   double lProb=0,lowLProb=0;
    bam1_core_t *samC = &samA->core;
    uint8_t *qualP=bam1_qual(samA);
    long i,j,misses,len=samC->l_qseq;
@@ -416,22 +422,19 @@ pair<double,double> ReadDistribution::getSequenceLProb(bam1_t *samA){//{{{
          case BAM_CEQUAL:
          case BAM_CDIFF:*/
       }
-      lProbMis = (((double) qualP[j])/-10.0) * log(10.0);
-         
       if((base2int(seq[i]) == -1)||(base2int(seq[i]) != bamBase2int(bam1_seqi(bam1_seq(samA),j)))){
          // If bases don't match, multiply probability by probability of error.
-         lProb += lProbMis;
-         lowLProb += lProbMis;
+         lProb += lProbMis[qualP[j]];
+         lowLProb += lProbMis[qualP[j]];
       }else{
          // If bases do match, multiple probability by inverse of probability of error.
-         double lProbHit = log1p(-exp(lProbMis));
-         lProb += lProbHit;
+         lProb += lProbHit[qualP[j]];
          if(misses>0){
             // If there are some misses left add a 'miss' to the 'low probability'.
-            lowLProb += lProbMis;
+            lowLProb += lProbMis[qualP[j]];
             misses--;
          }else{
-            lowLProb += lProbHit;
+            lowLProb += lProbHit[qualP[j]];
          }
       }
       i--;
@@ -561,7 +564,7 @@ void ReadDistribution::updateSeqBias(long pos, biasT bias, long tid, double Iexp
       seqProb[bias][i].update( Iexp, seq[i+2], seq[i+1], seq[i]);
    }
 }//}}}
-double ReadDistribution::getPosBias(long pos, readT read, long tid){ //{{{
+double ReadDistribution::getPosBias(long pos, readT read, long tid) const { //{{{
    long group, rel, trLen;
    if(read == mate_5)pos--;
    trLen = trInf->L(tid);

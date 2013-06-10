@@ -3,7 +3,7 @@
 #include "common.h"
 #include"TranscriptInfo.h"
 
-bool TranscriptInfo::writeInfo(string fileName, bool force){//{{{
+bool TranscriptInfo::writeInfo(string fileName, bool force) const{//{{{
    ofstream trF;
    if(! force){
       ifstream testF(fileName.c_str());
@@ -123,29 +123,29 @@ bool TranscriptInfo::readInfo(string fileName){//{{{
    setGeneInfo();
    return isInitialized;
 }//}}}
-long TranscriptInfo::getM(){//{{{
+long TranscriptInfo::getM() const{//{{{
    return M;
 }//}}}
-long TranscriptInfo::getG(){//{{{
+long TranscriptInfo::getG() const{//{{{
    return G;
 }//}}}
-const vector<long>* TranscriptInfo::getGtrs(long i){//{{{
+const vector<long>* TranscriptInfo::getGtrs(long i) const{//{{{
    if(i>G) return NULL;
    return &genes[i].trs;
 }//}}}
-double TranscriptInfo::effL(long i){//{{{
+double TranscriptInfo::effL(long i) const{//{{{
    if(isInitialized && (i<M))return transcripts[i].effL;
    return 0;
 }//}}}
-long TranscriptInfo::L(long i){//{{{
+long TranscriptInfo::L(long i) const{//{{{
    if(isInitialized && (i<M))return transcripts[i].l;
    return 0;
 }//}}}
-string TranscriptInfo::trName(long i){//{{{
+string TranscriptInfo::trName(long i) const{//{{{
    if(isInitialized && (i<M))return transcripts[i].t;
    return "";
 }//}}}
-string TranscriptInfo::geName(long i){//{{{
+string TranscriptInfo::geName(long i) const{//{{{
    if(isInitialized && (i<M))return transcripts[i].g;
    return "";
 }//}}}
@@ -167,7 +167,7 @@ void TranscriptInfo::setEffectiveLength(vector<double> effL){//{{{
       transcripts[i].effL = effL[i] * norm;
    }
 }//}}}
-vector<double> *TranscriptInfo::getShiftedLengths(bool effective){//{{{
+vector<double> *TranscriptInfo::getShiftedLengths(bool effective) const{//{{{
    vector<double> *Ls = new vector<double>(M+1);
    for(long i=0;i<M;i++){
       if(effective)(*Ls)[i+1] = transcripts[i].effL;

@@ -94,17 +94,21 @@ class ReadDistribution{
       TranscriptExpression* trExp;
       // for each transcript, remember seen fragments in map: length->(sum of probs)
       vector<map<long,double> > trFragSeen5,trFragSeen3;
-      // cache for already computed weight norms for single reads 4',3', Pair x Transcript x Length
+      // cache for already computed weight norms for:
+      //    (single reads 5',3', Pair) x Transcript x Length
       vector<vector<map<long, double> > > weightNorms;
       // position probability arrays (RE-FACTOR to array of 4 vectors)
       vector<vector<vector<double> > > posProb;
       vector<vector<VlmmNode> > seqProb;
+      // Cache probabilities for Phred score.
+      vector<double> lProbMis;
+      vector<double> lProbHit;
    
       double getLengthLP(double len);
       double getLengthLNorm(double trLen);
       void updatePosBias(long pos, biasT bias, long tid, double Iexp);
       void updateSeqBias(long pos, biasT bias, long tid, double Iexp);
-      double getPosBias(long pos, readT read, long tid);
+      double getPosBias(long pos, readT read, long tid) const;
       double getSeqBias(long pos, readT read, long tid);
       double getWeightNorm(long len, readT, long tid);
       pair<double, double> getSequenceLProb(bam1_t *samA);
