@@ -74,8 +74,8 @@ class VlmmNode{//{{{
       void setParentsN(long p);
       void update(double Iexp, char b, char bp, char bpp);
       void normalize();
-      double getP(char b, char bp, char bpp);
-      double getPsum(char b);
+      double getP(char b, char bp, char bpp) const;
+      double getPsum(char b) const;
 };//}}}
 
 enum biasT { readM_5, readM_3, uniformM_5, uniformM_3, weight_5, weight_3};

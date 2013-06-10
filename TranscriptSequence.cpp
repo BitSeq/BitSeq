@@ -1,5 +1,4 @@
 #include<algorithm>
-#include<ctime>
 #include<fstream>
 #include<sstream>
 
@@ -8,14 +7,14 @@
 #include "common.h"
 
 // Number of times we randomly probe for old cache record.
-#define WORST_SEARCH_N 10
+// CR: #define WORST_SEARCH_N 10
 
 TranscriptSequence::TranscriptSequence(){//{{{
-   srand(time(NULL));
+   // CR: srand(time(NULL));
    M=0;
    cM=0;
    gotGeneNames=false;
-   useCounter = 0;
+   // CR: useCounter = 0;
 }//}}}
 TranscriptSequence::TranscriptSequence(string fileName){//{{{
    TranscriptSequence();
@@ -28,8 +27,8 @@ bool TranscriptSequence::readSequence(string fileName){//{{{
       return false;
    }
    trSeqInfoT newTr;
-   newTr.lastUse=0;
-   newTr.cache=-1;
+   // CR: newTr.lastUse=0;
+   // CR: newTr.cache=-1;
    string trDesc,geneName;
    long pos;
    istringstream geneDesc;
@@ -60,27 +59,52 @@ bool TranscriptSequence::readSequence(string fileName){//{{{
       return false;
    }
    M = trs.size();
-   // Allocate cache.
-   cache.resize(min(M,(long)TRS_CACHE_MAX));
-   cachedTrs.resize(min(M,(long)TRS_CACHE_MAX));
+   // Allocate cache for all.
+   cache.resize(M);
+   //cache.resize(min(M,(long)TRS_CACHE_MAX));
+   //cachedTrs.resize(min(M,(long)TRS_CACHE_MAX));
    // Clear eof flag from input stream.
    fastaF.clear();
+   return loadSequence();
+}//}}}
+bool TranscriptSequence::loadSequence(){//{{{
+   cache.resize(M);
+   string seqLine;
+   for(long tr=0;tr<M;tr++){
+      // Set input stream to transcript's position.
+      fastaF.seekg(trs[tr].seek);
+      // Read line by line until reaching EOF or next header line '>'.
+      while((fastaF.peek()!='>')&&( getline(fastaF,seqLine,'\n').good())){
+         cache[tr]+=seqLine;
+      }
+      if(fastaF.bad()){
+         error("TranscriptSequence: Failed reading transcript %ld\n",tr);
+         return false;
+      }
+      // Clear flags (just in case).
+      fastaF.clear();
+   }
    return true;
 }//}}}
-const string* TranscriptSequence::getTr(long tr){//{{{
+const string* TranscriptSequence::getTr(long tr) const{//{{{
    if((tr<0)||(tr>=M))return NULL;
+   // Return pointer to the sequence in cache.
+   return &cache[tr];
+   /* Used with cacheing. {{{
+   return &cache[acquireSequence(tr)];
    // Update last use info.
    trs[tr].lastUse = useCounter++;
-   // Return pointer to the sequence in cache.
-   return &cache[acquireSequence(tr)];
+   }}} */
 }//}}}
-string TranscriptSequence::getSeq(long tr,long start,long l,bool doReverse){//{{{
+string TranscriptSequence::getSeq(long trI,long start,long l,bool doReverse) const{//{{{
    // Return empty string for unknown transcript.
-   if((tr<0)||(tr>=M))return "";
+   if((trI<0)||(trI>=M))return "";
+   /* Used with cacheing. {{{
    // Update last use info.
    trs[tr].lastUse = useCounter++;
    // Get position within cache.
    long trI = acquireSequence(tr);
+   }}} */
    
    // If position is not within the sequence, return Ns.
    if(start>=(long)cache[trI].size())return string(l,'N');
@@ -108,7 +132,7 @@ string TranscriptSequence::getSeq(long tr,long start,long l,bool doReverse){//{{
       return ret;
    }
 }//}}}
-long TranscriptSequence::acquireSequence(long tr){//{{{
+/* long TranscriptSequence::acquireSequence(long tr){//{{{
    // If the sequence is stored in cache then just return it's cache index.
    if(trs[tr].cache!=-1)return trs[tr].cache;
    long i,newP,j;
@@ -146,5 +170,4 @@ long TranscriptSequence::acquireSequence(long tr){//{{{
    trs[tr].cache=newP;
    // Return transcripts index within cache.
    return newP;
-}//}}}
-
+}//}}} */

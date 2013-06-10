@@ -594,19 +594,13 @@ double ReadDistribution::getSeqBias(long pos, readT read, long tid){ //{{{
    else start = pos + vlmmStartOffset - vlmmNodesN;
 
    if(read == mate_3){
-#pragma omp critical
-{
       seq = trSeq->getSeq(tid, start, vlmmNodesN + MAX_NODE_PAR);
-}
       for(long i=0;i<vlmmNodesN;i++)
          // FIX HERE
          B *= seqProb[readM_3][i].getP( seq[i+2], seq[i+1], seq[i]) /
               seqProb[uniformM_3][i].getP( seq[i+2], seq[i+1], seq[i]);
    }else{ // else get reverse complement
-#pragma omp critical
-{
       seq = trSeq->getSeq(tid, start, vlmmNodesN + MAX_NODE_PAR, true);
-}
       for(long i=0;i<vlmmNodesN;i++)
          // FIX HERE
          B *= seqProb[readM_5][i].getP( seq[i+2], seq[i+1], seq[i]) /
@@ -719,7 +713,7 @@ vector<double> ReadDistribution::getEffectiveLengths(){ //{{{
    return effL;
 }//}}}
 
-double VlmmNode::getPsum(char b) {//{{{
+double VlmmNode::getPsum(char b) const{//{{{
    if(base2int(b) == -1) return 1/4;
    if(parentsN == 2)return getP(b,'N','N')*16;
    if(parentsN == 1)return getP(b,'N','N')*4;
@@ -802,7 +796,7 @@ void VlmmNode::normalize() {//{{{
       for(i=0;i<pows4[parentsN+1];i++)probs[i] /= sum;
    }
 }//}}}
-double VlmmNode::getP(char b, char bp, char bpp) {//{{{
+double VlmmNode::getP(char b, char bp, char bpp) const{//{{{
    if(base2int(b) == -1)return 1.0/4.0;
    double probDiv = 1.0;
    if((parentsN>0)&&(base2int(bp) == -1))probDiv *=4.0;
