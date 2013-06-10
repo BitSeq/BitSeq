@@ -109,9 +109,9 @@ class ReadDistribution{
       void updatePosBias(long pos, biasT bias, long tid, double Iexp);
       void updateSeqBias(long pos, biasT bias, long tid, double Iexp);
       double getPosBias(long pos, readT read, long tid) const;
-      double getSeqBias(long pos, readT read, long tid);
+      double getSeqBias(long pos, readT read, long tid) const;
       double getWeightNorm(long len, readT, long tid);
-      pair<double, double> getSequenceLProb(bam1_t *samA);
+      pair<double, double> getSequenceLProb(bam1_t *samA) const;
    public:
       ReadDistribution();
       void writeWarnings();

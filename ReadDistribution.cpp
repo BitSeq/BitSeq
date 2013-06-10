@@ -354,7 +354,7 @@ void ReadDistribution::logProfiles(string logFileName){//{{{
    }
    outF.close();
 }//}}}
-pair<double,double> ReadDistribution::getSequenceLProb(bam1_t *samA){//{{{
+pair<double,double> ReadDistribution::getSequenceLProb(bam1_t *samA) const{//{{{
    if(! samA) return pair<double, double>(0,0);
    double lProb=0,lowLProb=0;
    bam1_core_t *samC = &samA->core;
@@ -584,7 +584,7 @@ double ReadDistribution::getPosBias(long pos, readT read, long tid) const { //{{
    // shouldn't happen
    return 0;
 }//}}}
-double ReadDistribution::getSeqBias(long pos, readT read, long tid){ //{{{
+double ReadDistribution::getSeqBias(long pos, readT read, long tid) const{ //{{{
    if(read==FullPair)return 0; // this should never happen
    string seq;
    long start;
