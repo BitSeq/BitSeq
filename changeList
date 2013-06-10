@@ -1,3 +1,8 @@
+0.5.4:
+Improvements:
+- thetaMeans contains variance of theta
+- proper handling of bad alignments
+
 0.5.3:
 Improvements:
 - parseAlignment should be compatible with bowtie 2 output + new flag (-l/--limit) to limit maximum number of alignments
