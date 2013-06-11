@@ -346,6 +346,9 @@ string programDescription =
       message("Alignments: %ld.\n",pairedN+singleN+firstN+secondN+weirdN);
    }
    readD.writeWarnings();
+   if(args.flag("veryVerbose")){
+      message("Number of weights cached: %ld\n",readD.getWeightNormCount());
+   }
    // Deal with reads that failed to align {{{
    if(args.isSet("failed")){
       outF.open(args.getS("failed").c_str());

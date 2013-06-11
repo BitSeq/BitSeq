@@ -126,6 +126,7 @@ class ReadDistribution{
       void normalize();
       void logProfiles(string logFileName = "");
       bool getP(fragmentP frag,double &prob,double &probNoise);
+      long getWeightNormCount() const;
       vector<double> getEffectiveLengths();
 }; 
 

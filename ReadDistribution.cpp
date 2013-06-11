@@ -675,6 +675,13 @@ double ReadDistribution::getWeightNorm(long len, readT read, long tid){ //{{{
    }
    return weightNorms[read][tid][len];
 }//}}}
+long ReadDistribution::getWeightNormCount() const{//{{{
+   long length_sum=0;
+   for(size_t i=0;i<weightNorms.size();i++)
+      for(size_t j=0;j<weightNorms[i].size();j++)
+         length_sum+=weightNorms[i][j].size();
+   return length_sum;
+}//}}}
 double ReadDistribution::getLengthLP(double len) const{//{{{
    //return 1./(len*lSigma*sqrt_2_pi)*exp(-pow(log(len) - lMu, (double)2.0)/(2 * pow(lSigma, (double)2)));
    const double log_sqrt_2_pi = .918938533192; // log(sqrt(2*pi))
@@ -690,13 +697,6 @@ double ReadDistribution::getLengthLNorm(double trLen) const{//{{{
    return log(0.5)+log(erfc(-(log(trLen)-lMu)/(lSigma*1.41421356237309)));
 }//}}}
 vector<double> ReadDistribution::getEffectiveLengths(){ //{{{
-   // WRITE LENGTHS (REMOVE)
-   long length_sum=0;
-   for(size_t i=0;i<weightNorms.size();i++)
-      for(size_t j=0;j<weightNorms[i].size();j++)
-         length_sum+=weightNorms[i][j].size();
-   message("Number of weights cached: %ld\n",length_sum);
-   // WRITE LENGTHS (REMOVE)
    vector<double> effL(M,0);
    long m,len,trLen,pos;
    double eL, lCdfNorm,lenP, wNorm;
