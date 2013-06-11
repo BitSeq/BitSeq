@@ -38,11 +38,11 @@ using namespace std;
 #define LOW_PROB_MISSES 6
 #define MAX_NODE_PAR 2
 const long trSizes [] = { 1334,2104,2977,4389};
-const long trSizesN = 4;
-const long trNumberOfBins = 20;
-const long vlmmNodeDependence [] = { 0, 0, 0, 0, 1, 1, 1, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 1, 1, 0, 0};
-const long vlmmNodesN = 21;
-const long vlmmStartOffset = 8;
+const char trSizesN = 4;
+const char trNumberOfBins = 20;
+const char vlmmNodeDependence [] = { 0, 0, 0, 0, 1, 1, 1, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 1, 1, 0, 0};
+const char vlmmNodesN = 21;
+const char vlmmStartOffset = 8;
 const long pows4 [] = {1,4,16,64,256,1024,4096};
 //}}}
 
@@ -104,12 +104,15 @@ class ReadDistribution{
       vector<double> lProbMis;
       vector<double> lProbHit;
    
-      double getLengthLP(double len);
-      double getLengthLNorm(double trLen);
+      double getLengthLP(double len) const;
+      double getLengthLNorm(double trLen) const;
       void updatePosBias(long pos, biasT bias, long tid, double Iexp);
       void updateSeqBias(long pos, biasT bias, long tid, double Iexp);
-      double getPosBias(long pos, readT read, long tid) const;
+      double getPosBias(long pos, readT read, long trLen) const;
       double getSeqBias(long pos, readT read, long tid) const;
+      inline char getBase(long pos, const string &fSeq) const;
+      double getSeqBias(long pos, readT read, const string &fSeq) const;
+      inline char complementBase(char base) const;
       double getWeightNorm(long len, readT, long tid);
       pair<double, double> getSequenceLProb(bam1_t *samA) const;
    public:

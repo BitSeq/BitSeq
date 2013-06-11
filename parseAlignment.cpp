@@ -106,8 +106,8 @@ string programDescription =
    }
    // Check that length of each transcript matches.
    for(i=0;i<M;i++){
-      if(trInfo->L(i) != (long)(trSeq->getTr(i))->size()){
-         error("Main: Transcript info length and sequence length of transcript %ld DO NOT MATCH! (%ld %d)\n",i,trInfo->L(i),(int)((trSeq->getTr(i))->size()));
+      if(trInfo->L(i) != (long)(trSeq->getTr(i).size())){
+         error("Main: Transcript info length and sequence length of transcript %ld DO NOT MATCH! (%ld %d)\n",i,trInfo->L(i),(int)(trSeq->getTr(i).size()));
          return 1;
       }
    }
@@ -213,20 +213,20 @@ string programDescription =
          pairedGA = firstGA = secondGA = singleGA = weirdGA = 0;
       }
    }
-   timer.split(0,'m');
    message("Reads: all(Ntotal): %ld  mapped(Nmap): %ld\n",Ntotal,Nmap);
    if(args.verbose)message("  %ld reads were used to estimate non-uniform distribution.\n",observeN);
    if(ignoredReads.size()>0)message("  %ld reads are skipped due to having more than %ld alignments.\n",ignoredReads.size(), maxAlignments);
    if(RE_noEndInfo)warning("  %ld reads that were paired, but do not have \"end\" information.\n  (is your alignment file valid?)", RE_noEndInfo);
    if(RE_weirdPairdInfo)warning("  %ld reads that were reported as both paired and single end.\n  (is your alignment file valid?)", RE_weirdPairdInfo);
    readD.writeWarnings();
-   // Normalize read distribution:
    if(args.flag("veryVerbose"))timer.split(0,'m');
+   // Normalize read distribution:
    if(args.flag("veryVerbose"))message("Normalizing read distribution.\n");
    readD.normalize();
    if(args.isSet("distributionFileName")){
       readD.logProfiles(args.getS("distributionFileName"));
    }
+   timer.split(0,'m');
    // }}}
 
    // Writing probabilities: {{{

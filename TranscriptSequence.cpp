@@ -86,14 +86,14 @@ bool TranscriptSequence::loadSequence(){//{{{
    }
    return true;
 }//}}}
-const string* TranscriptSequence::getTr(long tr) const{//{{{
-   if((tr<0)||(tr>=M))return NULL;
+const string &TranscriptSequence::getTr(long tr) const{//{{{
+   if((tr<0)||(tr>=M))return noneTr;
    // Return pointer to the sequence in cache.
-   return &cache[tr];
+   return cache[tr];
    /* Used with cacheing. {{{
-   return &cache[acquireSequence(tr)];
    // Update last use info.
    trs[tr].lastUse = useCounter++;
+   return cache[acquireSequence(tr)];
    }}} */
 }//}}}
 string TranscriptSequence::getSeq(long trI,long start,long l,bool doReverse) const{//{{{

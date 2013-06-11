@@ -39,6 +39,8 @@ class TranscriptSequence{
       vector<string> cache;
       // Input stream for the fasta file.
       ifstream fastaF;
+      // Empty transcript.
+      string noneTr;
 
       // Counter for the least recently used entry.
       // CR: uint_least64_t useCounter;
@@ -60,7 +62,7 @@ class TranscriptSequence{
       long getG() const{ return geneNames.size(); }
       // Return pointer to the transcript sequence. The reference is not persistent.
       // NULL for unknown transcript.
-      const string* getTr(long tr) const;
+      const string &getTr(long tr) const;
       // Return sequence from transcript <tr> starting from <start> of length <l>.
       string getSeq(long trI, long start, long l,bool doReverse = false) const; 
       // Reports whether gene names were extracted from the sequence file.
