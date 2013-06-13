@@ -694,7 +694,10 @@ double ReadDistribution::getLengthLP(double len) const{//{{{
 double ReadDistribution::getLengthLNorm(double trLen) const{//{{{
    // erfc needs compiler with C99 standard 
    // other option might be to use boost/math/special_functions/erf.hpp
-   return log(0.5)+log(erfc(-(log(trLen)-lMu)/(lSigma*1.41421356237309)));
+   const long double sqrt_2 = 1.41421356237309;
+   long double CDF2 = erfcl((lMu-log(trLen)) / (lSigma * sqrt_2));
+   if(CDF2 == 0)return log(0.5)+ns_misc::LOG_ZERO;
+   return (double)(log(0.5)+log(CDF2));
 }//}}}
 vector<double> ReadDistribution::getEffectiveLengths(){ //{{{
    vector<double> effL(M,0);
@@ -733,7 +736,6 @@ vector<double> ReadDistribution::getEffectiveLengths(){ //{{{
          for(pos = 0;pos<trLen;pos++){
             posBias5[pos] = getPosBias(pos+1, mate_5, trLen)*getSeqBias(pos+1, mate_5, m);
             posBias3[pos] = getPosBias(pos, mate_3, trLen)*getSeqBias(pos, mate_3, m);
-            //if(m==0)message(" %ld %lf %lf\n",pos,posBias5[pos],posBias3[pos]);
          }
          eL=0;
          for(len=1;len<=trLen;len++){
@@ -742,11 +744,16 @@ vector<double> ReadDistribution::getEffectiveLengths(){ //{{{
                wNorm += posBias3[pos] * posBias5[pos+len-1];
             }
             lenP = exp(getLengthLP( len ) - lCdfNorm);
-            //if(m==0)message("   %ld  %lf   %lf\n",len,lenP,wNorm);
             eL += lenP * wNorm;
          }
-         // dont go below minimal fragment length
-         effL[m] = eL>minFragLen?eL:trLen;
+         // Check for weirdness and don't go below 0 (some transcripts already had 5 bases).
+         // Function isnormal assumes C99 or C++11.
+         if((!isnormal(eL)) || (eL <= 0)){
+            effL[m] = trLen;
+            DEBUG(message("weird: %lf %ld %ld\n",eL,trLen,m));
+         }else{
+            effL[m] = eL;
+         }
       }
    }
    DEBUG(long same = 0);
@@ -761,7 +768,7 @@ vector<double> ReadDistribution::getEffectiveLengths(){ //{{{
       for(m=0;m<M;m++)effL[m] *= lSum/effSum;
    }
    DEBUG(message(" same: %ld.\n",same));
-   for(m=0;m<M;m++)if(effL[m]<=0) effL[m]=1;
+   for(m=0;m<M;m++)if(effL[m]<=0) effL[m]=trInf->L(m);
    return effL;
 }//}}}
 
