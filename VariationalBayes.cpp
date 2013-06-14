@@ -246,8 +246,9 @@ void VariationalBayes::optimize(bool verbose,OPT_TYPE method,long maxIter,double
          fflush(stdout);
       }
 #ifdef LOG_CONV
-   if((iteration%20==0) ||
-      ((iteration<200) && (iteration%10==0)) ||
+   if((iteration%100==0) ||
+      ((iteration<500) && (iteration%50==0)) ||
+      ((iteration<150) && (iteration%10==0)) ||
       ((iteration<50) && (iteration%5==0))){
       logF<<iteration<<" "<<bound<<" "<<squareNorm;
       if(logTimer)logF<<" "<<logTimer->current(0,'m');
