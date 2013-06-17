@@ -240,7 +240,7 @@ void VariationalBayes::optimize(bool verbose,OPT_TYPE method,long maxIter,double
       }
       SWAPD(gradPhi,phiOld);
       if(verbose){
-         message("iter(%c): %5.ld  bound: %.3lf grad: %.7lf  beta: %.7lf\n",(usedSteepest?'s':'o'),iteration,bound,squareNorm,valBeta);
+         messageF("iter(%c): %5.ld  bound: %.3lf grad: %.7lf  beta: %.7lf\n",(usedSteepest?'s':'o'),iteration,bound,squareNorm,valBeta);
       }else{
          message("\riter(%c): %5.ld  bound: %.3lf grad: %.7lf  beta: %.7lf              ",(usedSteepest?'s':'o'),iteration,bound,squareNorm,valBeta);
          fflush(stdout);
