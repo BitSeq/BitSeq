@@ -703,6 +703,8 @@ vector<double> ReadDistribution::getEffectiveLengths(){ //{{{
    vector<double> effL(M,0);
    long m,len,trLen,pos;
    double eL, lCdfNorm,lenP, wNorm;
+   string trRS;
+   vector<double> posBias5,posBias3;
    MyTimer timer;
    timer.start();
    DEBUG(message("Eff length: validLength %d ; minFragLen: %ld.\n",(int)validLength,minFragLen));
@@ -732,10 +734,14 @@ vector<double> ReadDistribution::getEffectiveLengths(){ //{{{
          // dont go below minimal fragment length
          effL[m] = eL>minFragLen?eL:trLen;
       }else{
-         vector<double> posBias5(trLen),posBias3(trLen);
+         const string &trFS = trSeq->getTr(m);
+         trRS.resize(trFS.length());
+         for(size_t i=0;i<trRS.length();i++)trRS[i] = complementBase(trFS[trFS.length() - i - 1]);
+         posBias5.resize(trLen);
+         posBias3.resize(trLen);
          for(pos = 0;pos<trLen;pos++){
-            posBias5[pos] = getPosBias(pos+1, mate_5, trLen)*getSeqBias(pos+1, mate_5, m);
-            posBias3[pos] = getPosBias(pos, mate_3, trLen)*getSeqBias(pos, mate_3, m);
+            posBias5[pos] = getPosBias(pos+1, mate_5, trLen)*getSeqBias(pos+1, mate_5, trRS);
+            posBias3[pos] = getPosBias(pos, mate_3, trLen)*getSeqBias(pos, mate_3, trFS);
          }
          eL=0;
          for(len=1;len<=trLen;len++){
