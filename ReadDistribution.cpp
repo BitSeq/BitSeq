@@ -658,7 +658,9 @@ double ReadDistribution::getWeightNorm(long len, readT read, long tid){ //{{{
       for(size_t i=0;i<trRS.length();i++)trRS[i] = complementBase(trRS[i]);
       long trLen = trInf->L(tid),pos;
       double norm = 0,w;
-#pragma omp parallel for private(w) reduction(+:norm)
+      #pragma omp parallel for \
+         private(w) \
+         reduction(+:norm)
       for(pos = 0;pos <= trLen-len;pos++){
          w=1.0;
          if((read == FullPair)||(read == mate_3)){
@@ -701,18 +703,16 @@ double ReadDistribution::getLengthLNorm(double trLen) const{//{{{
 }//}}}
 vector<double> ReadDistribution::getEffectiveLengths(){ //{{{
    vector<double> effL(M,0);
-   long m,len,trLen,pos,percDone;
+   long m,len,trLen,pos;
    double eL, lCdfNorm,lenP, wNorm;
    string trRS;
    vector<double> posBias5,posBias3;
-   bool masterT = true;
    MyTimer timer;
    timer.start();
    DEBUG(message("Eff length: validLength %d ; minFragLen: %ld.\n",(int)validLength,minFragLen));
-   percDone = M/10;
    #pragma omp parallel for \
-      schedule (dynamic) \
-      private (masterT,len,trLen,pos,eL,lenP,wNorm,lCdfNorm,posBias5,posBias3,trRS)
+      schedule (dynamic,5) \
+      private (len,trLen,pos,eL,lenP,wNorm,lCdfNorm,posBias5,posBias3,trRS)
    for(m=0;m<M;m++){
       if(verbose && (m!=0) && (m%(M/10)==0)){
          #pragma omp critical
@@ -721,22 +721,6 @@ vector<double> ReadDistribution::getEffectiveLengths(){ //{{{
             timer.current();
          }
       }
-
-/*
-#ifdef SUPPORT_OPENMP
-      if (omp_get_thread_num() != 0) masterT = false;
-      else {
-         masterT = true;
-         message("%ld ",m);
-      }
-#endif
-      // Only write progress if masterThread & verbose & 10%perc done.
-      if(masterT && verbose && (m>percDone)){
-         message("\n# %ld done. ",m);
-         timer.current();
-         percDone += M/10;
-      }
-      */
       trLen = trInf->L(m);
       if(!validLength){
          if(trLen>singleReadLength*2) effL[m] = trLen - singleReadLength; 
