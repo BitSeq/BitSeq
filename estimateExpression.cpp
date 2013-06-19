@@ -308,7 +308,7 @@ void MCMC(TagAlignments *alignments,gibbsParameters &gPar,ArgumentParser &args){
       for(j=0;j<chainsN;j++)message("%ld ",samplers[j]->getAverageC0());
       message("). Nunmap: %ld\n",Nunmap);
       if(args.flag("gibbs"))message("  Mean thetaAct (noise parameter)\n   %lf\n",totAverage[0].FF);
-      message("\n");
+      messageF("\n");
       //}}}
       // Increase sample size and start over: {{{
       if(quitNext){// Sampling iterations end {{{
@@ -372,7 +372,7 @@ void MCMC(TagAlignments *alignments,gibbsParameters &gPar,ArgumentParser &args){
       }
       // if next iteration is the last one, prepare the files and make samples write samples
       if(quitNext){ 
-         message("Producing %ld final samples.\n",samplesN);
+         messageF("Producing %ld final samples.\n",samplesN);
          // if samplesN<samplesSave, only samplesN samples will be saved
          if(samplesN<samplesSave)samplesSave = samplesN;
          stringstream sstr;
@@ -530,7 +530,7 @@ string programDescription =
    // }}}
 
    if(args.verbose)timer.split();
-   if(args.verbose)message("Starting the sampler.\n");
+   if(args.verbose)messageF("Starting the sampler.\n");
    MCMC(alignments,gPar,args);
    // {{{ Transpose and merge sample file 
    if(transposeFiles(samplesFileNames,args.getS("outFilePrefix")+"."+args.getS("outputType"),args.verbose,failedMessage)){

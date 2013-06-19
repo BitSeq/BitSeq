@@ -694,24 +694,49 @@ double ReadDistribution::getLengthLP(double len) const{//{{{
 double ReadDistribution::getLengthLNorm(double trLen) const{//{{{
    // erfc needs compiler with C99 standard 
    // other option might be to use boost/math/special_functions/erf.hpp
-   return log(0.5)+log(erfc(-(log(trLen)-lMu)/(lSigma*1.41421356237309)));
+   const long double sqrt_2 = 1.41421356237309;
+   long double CDF2 = erfcl((lMu-log(trLen)) / (lSigma * sqrt_2));
+   if(CDF2 == 0)return log(0.5)+ns_misc::LOG_ZERO;
+   return (double)(log(0.5)+log(CDF2));
 }//}}}
 vector<double> ReadDistribution::getEffectiveLengths(){ //{{{
    vector<double> effL(M,0);
-   long m,len,trLen,pos;
+   long m,len,trLen,pos,percDone;
    double eL, lCdfNorm,lenP, wNorm;
+   string trRS;
+   vector<double> posBias5,posBias3;
+   bool masterT = true;
    MyTimer timer;
    timer.start();
    DEBUG(message("Eff length: validLength %d ; minFragLen: %ld.\n",(int)validLength,minFragLen));
-#pragma omp parallel for private(len,trLen,pos,eL,lenP,wNorm,lCdfNorm)
+   percDone = M/10;
+   #pragma omp parallel for \
+      schedule (dynamic) \
+      private (masterT,len,trLen,pos,eL,lenP,wNorm,lCdfNorm,posBias5,posBias3,trRS)
    for(m=0;m<M;m++){
       if(verbose && (m!=0) && (m%(M/10)==0)){
-#pragma omp critical
+         #pragma omp critical
          {
-            message("# %ld done. ",m);
+            message("# %ld done(%d). ",m,omp_get_thread_num());
             timer.current();
          }
       }
+
+/*
+#ifdef SUPPORT_OPENMP
+      if (omp_get_thread_num() != 0) masterT = false;
+      else {
+         masterT = true;
+         message("%ld ",m);
+      }
+#endif
+      // Only write progress if masterThread & verbose & 10%perc done.
+      if(masterT && verbose && (m>percDone)){
+         message("\n# %ld done. ",m);
+         timer.current();
+         percDone += M/10;
+      }
+      */
       trLen = trInf->L(m);
       if(!validLength){
          if(trLen>singleReadLength*2) effL[m] = trLen - singleReadLength; 
@@ -729,24 +754,35 @@ vector<double> ReadDistribution::getEffectiveLengths(){ //{{{
          // dont go below minimal fragment length
          effL[m] = eL>minFragLen?eL:trLen;
       }else{
-         vector<double> posBias5(trLen),posBias3(trLen);
+         DEBUG(message("Copy sequence.\n"));
+         const string &trFS = trSeq->getTr(m);
+         trRS.resize(trFS.length());
+         for(size_t i=0;i<trRS.length();i++)trRS[i] = complementBase(trFS[trFS.length() - i - 1]);
+         posBias5.resize(trLen);
+         posBias3.resize(trLen);
+         DEBUG(message("Precomputing posBias.\n"));
          for(pos = 0;pos<trLen;pos++){
-            posBias5[pos] = getPosBias(pos+1, mate_5, trLen)*getSeqBias(pos+1, mate_5, m);
-            posBias3[pos] = getPosBias(pos, mate_3, trLen)*getSeqBias(pos, mate_3, m);
-            //if(m==0)message(" %ld %lf %lf\n",pos,posBias5[pos],posBias3[pos]);
+            posBias5[pos] = getPosBias(pos+1, mate_5, trLen)*getSeqBias(pos+1, mate_5, trRS);
+            posBias3[pos] = getPosBias(pos, mate_3, trLen)*getSeqBias(pos, mate_3, trFS);
          }
          eL=0;
+         DEBUG(message("Computing norms.\n"));
          for(len=1;len<=trLen;len++){
             wNorm = 0;
             for(pos=0;pos <= trLen - len;pos++){
                wNorm += posBias3[pos] * posBias5[pos+len-1];
             }
             lenP = exp(getLengthLP( len ) - lCdfNorm);
-            //if(m==0)message("   %ld  %lf   %lf\n",len,lenP,wNorm);
             eL += lenP * wNorm;
          }
-         // dont go below minimal fragment length
-         effL[m] = eL>minFragLen?eL:trLen;
+         // Check for weirdness and don't go below 0 (some transcripts already had 5 bases).
+         // Function isnormal assumes C99 or C++11.
+         if((!isnormal(eL)) || (eL <= 0)){
+            effL[m] = trLen;
+            DEBUG(message("weird: %lf %ld %ld\n",eL,trLen,m));
+         }else{
+            effL[m] = eL;
+         }
       }
    }
    DEBUG(long same = 0);
@@ -761,7 +797,7 @@ vector<double> ReadDistribution::getEffectiveLengths(){ //{{{
       for(m=0;m<M;m++)effL[m] *= lSum/effSum;
    }
    DEBUG(message(" same: %ld.\n",same));
-   for(m=0;m<M;m++)if(effL[m]<=0) effL[m]=1;
+   for(m=0;m<M;m++)if(effL[m]<=0) effL[m]=trInf->L(m);
    return effL;
 }//}}}
 

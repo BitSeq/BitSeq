@@ -19,7 +19,7 @@ class MyTimer{
          if(f=='h')time/=3600.0;
       }//}}}
       void write(double time,char f){//{{{
-         if(!quiet)message("[time: +%lf %c]\n",time,f);
+         if(!quiet)messageF("[time: +%lf %c]\n",time,f);
       }//}}}
    public:
    MyTimer(){//{{{

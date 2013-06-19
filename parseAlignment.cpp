@@ -342,8 +342,10 @@ string programDescription =
       if(firstN+secondN+weirdN>0)
          message(" %ld half alignments (paired-end mates aligned independently)\n",firstN+secondN+weirdN);
       if(singleN>0)message(" %ld single-read alignments\n",singleN);
+      //flushStdout();
+      messageFlush();
    }else {
-      message("Alignments: %ld.\n",pairedN+singleN+firstN+secondN+weirdN);
+      messageF("Alignments: %ld.\n",pairedN+singleN+firstN+secondN+weirdN);
    }
    readD.writeWarnings();
    if(args.flag("veryVerbose")){
@@ -360,7 +362,7 @@ string programDescription =
    } //}}}
    // Compute effective length and save transcript info {{{
    if(args.isSet("trInfoFileName")){
-      if(args.verbose)message("Computing effective lengths.\n");
+      if(args.verbose)messageF("Computing effective lengths.\n");
       trInfo->setEffectiveLength(readD.getEffectiveLengths());
       if(! trInfo->writeInfo(args.getS("trInfoFileName"))){
          warning("Main: File %s probably already exists.\n"
