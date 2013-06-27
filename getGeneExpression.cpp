@@ -73,18 +73,18 @@ extern "C" int getGeneExpression(int *argc,char* argv[]){
    if(args.verbose)message("Computing gene expression.\n");
    for(g=0;g<G;g++){
       if(args.verbose)progressLog(g,G);
-      gM = trInfo.getGtrs(g)->size();
+      gM = trInfo.getGtrs(g).size();
       if((long)trs.size()<gM)trs.resize(gM);
       //message("%ld\n",gM);
       for(j=0;j<gM;j++){
-         m = (*trInfo.getGtrs(g))[j];
+         m = trInfo.getGtrs(g)[j];
          samples.getTranscript( m , trs[j]);
       }
       for(i=0;i<N;i++){
          sum = 0;
          for(j=0;j<gM;j++){
             if(doAdjust&&(normals[i]>0)){
-               m = (*trInfo.getGtrs(g))[j];
+               m = trInfo.getGtrs(g)[j];
                sum+=(trs[j][i] / trInfo.L(m)) / normals[i];
             }else
                sum+=trs[j][i];

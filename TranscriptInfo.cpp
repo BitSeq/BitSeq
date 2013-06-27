@@ -31,6 +31,7 @@ bool TranscriptInfo::setInfo(vector<string> gNames,vector<string> tNames, vector
    for(long i=0;i<M;i++){
       newT.g=gNames[i];
       newT.t=tNames[i];
+      newT.gI = 0;
       newT.l=(int_least32_t)lengths[i];
       newT.effL = lengths[i];
       transcripts.push_back(newT);
@@ -50,6 +51,7 @@ void TranscriptInfo::setGeneInfo(){//{{{
    for(i=0;i<M;i++){
       // If gene name same as previous, then just add new transcript.
       if(transcripts[i].g == previousName){
+         transcripts[i].gI = gi;
          genes[gi].m++;
          genes[gi].trs.push_back(i);
       }else{
@@ -63,6 +65,7 @@ void TranscriptInfo::setGeneInfo(){//{{{
             genes.push_back(tmpG);
             // Set current gene index.
             gi=genes.size()-1;
+            transcripts[i].gI = gi;
             // Map gene name to it's index and update previousName.
             names[transcripts[i].g] = gi;
             previousName=transcripts[i].g;
@@ -71,12 +74,18 @@ void TranscriptInfo::setGeneInfo(){//{{{
             groupedByGenes=false;
             //warning("TranscriptInfo: Transcripts of gene %ld are not grouped.\n",transcripts[i].g);
             gi = names[transcripts[i].g];
+            transcripts[i].gI = gi;
             genes[gi].m++;
             genes[gi].trs.push_back(i);
          }
       }
    }
    G = genes.size();
+   // Add empty record to the end.
+   tmpG.name = "";
+   tmpG.m = 0;
+   tmpG.trs.clear();
+   genes.push_back(tmpG);
 }//}}}
 TranscriptInfo::TranscriptInfo(){ clearTranscriptInfo(); }
 void TranscriptInfo::clearTranscriptInfo(){//{{{
@@ -105,6 +114,7 @@ bool TranscriptInfo::readInfo(string fileName){//{{{
       if(!trFile.good()) break;
       // Read gene name, tr name and length.
       trFile>>newT.g>>newT.t>>newT.l;
+      newT.gI = 0;
       // Should not hit EOF or any other error yet.
       if(!trFile.good()) break;
       // Read effective length if present:
@@ -130,9 +140,12 @@ long TranscriptInfo::getM() const{//{{{
 long TranscriptInfo::getG() const{//{{{
    return G;
 }//}}}
-const vector<long>* TranscriptInfo::getGtrs(long i) const{//{{{
-   if(i>G) return NULL;
-   return &genes[i].trs;
+const vector<long> &TranscriptInfo::getGtrs(long i) const{//{{{
+   if((i>G) || (i<0)){
+      // Return empty record.
+      return genes[G].trs;
+   }
+   return genes[i].trs;
 }//}}}
 double TranscriptInfo::effL(long i) const{//{{{
    if(isInitialized && (i<M))return transcripts[i].effL;
@@ -149,6 +162,10 @@ string TranscriptInfo::trName(long i) const{//{{{
 string TranscriptInfo::geName(long i) const{//{{{
    if(isInitialized && (i<M))return transcripts[i].g;
    return "";
+}//}}}
+long TranscriptInfo::geId(long i) const{//{{{
+   if(isInitialized && (i<M))return transcripts[i].gI;
+   return -1;
 }//}}}
 void TranscriptInfo::setEffectiveLength(vector<double> effL){//{{{
    if((long)effL.size() != M){

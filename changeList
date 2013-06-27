@@ -3,9 +3,11 @@ Improvements:
 - thetaMeans contains variance of theta
 - proper handling of bad alignments
 - major speed improvement for parseAlignment on multiple CPUs
+- getGeneExpression and getWithinGene expression can use 'external' TR->GE mapping 
+- getWithinGene changed so that transcripts keep orde unless --groupByGene
 
 Bug fixes:
-- NEED TO : fixed occasional underflow in effective length computation
+- fixed occasional underflow in effective length computation
 
 0.5.3:
 Improvements:
