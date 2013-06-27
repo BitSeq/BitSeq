@@ -471,7 +471,7 @@ bool ReadDistribution::getP(fragmentP frag,double &lProb,double &lProbNoise){ //
    if(frag->paired){
       frag_second_endPos = bam_calend(&frag->second->core, bam1_cigar(frag->second));
    }
-   double trLen = trInf->L(tid),len;
+   long trLen = trInf->L(tid),len;
    // }}}
    if(frag->paired){
    // Get probability of length {{{
@@ -490,7 +490,7 @@ bool ReadDistribution::getP(fragmentP frag,double &lProb,double &lProbNoise){ //
    if(uniform){
       // Get probability of position for uniform distribution
       // P*=1/(trLen-len+1)
-      lP -= log(trLen-len+1);
+      lP -= log(trLen - len + 1.0);
    }else{ // Positional & Sequence bias {{{
       // Get probability of position given read bias model
       // check mates' relative position:
