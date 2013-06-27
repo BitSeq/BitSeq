@@ -18,12 +18,13 @@ extern "C" int getGeneExpression(int *argc,char* argv[]){
 "Computes expression of whole genes.\n\
    [samplesFile] should contain transposed MCMC samples which will be transformed into gene expression samples.";   
    // Set options {{{
-   ArgumentParser args(programDescription,"[samplesFile]",1);
+   ArgumentParser args(programDescription,"[samplesFile] -t [trInfoFileName] -o [outFileName]",1);
    args.addOptionS("t","trInfoFile","trInfoFileName",1,"Name of the transcript file.");
    args.addOptionB("a","adjustByLength","adjust",0,"Adjust expression by transcripts length.");
    args.addOptionB("","theta2rpkm","rpkm",0,"Transform transcript expression in theta to gene expression in RPKM.");
    args.addOptionS("o","outFile","outFileName",1,"Name of the output file.");
    args.addOptionB("l","log","log",0,"Output logged values.");
+   args.addOptionS("T","trMap","trMapFile",0,"Name of the file containing transcript to gene mapping.");
    if(!args.parse(*argc,argv))return 0;
    if(args.verbose)buildTime(argv[0],__DATE__,__TIME__);
    // }}}
@@ -34,6 +35,15 @@ extern "C" int getGeneExpression(int *argc,char* argv[]){
    TranscriptInfo trInfo;
    PosteriorSamples  samples;
    if(!ns_genes::prepareInput(args, &trInfo, &samples, &M, &N, &G))return 1;
+   if(args.isSet("trMapFile") && (!ns_genes::updateGenes(args.getS("trMapFile"), &trInfo, &G)))return 1;
+   if(args.verb())messageF("Genes: %ld\n",G);
+   if(!ns_genes::checkGeneCount(G,M))return 1;
+   if(args.isSet("trMapFile")){
+      if(args.verb())message("Updating transcript info file with gene names provided in trMapFile.\n");
+      if(!trInfo.writeInfo(args.getS("trInfoFileName"), true)){
+         if(args.verb())warning("Main: Updating trInfoFile failed.\n");
+      }
+   }
 
    ofstream outFile;
    if(!ns_misc::openOutput(args, &outFile))return 1;;

@@ -6,6 +6,7 @@
 bool TranscriptInfo::writeInfo(string fileName, bool force) const{//{{{
    ofstream trF;
    if(! force){
+      // Do nothing if file exists.
       ifstream testF(fileName.c_str());
       if(testF.is_open()){
          testF.close();
@@ -189,8 +190,8 @@ bool TranscriptInfo::updateGeneNames(const vector<string> &geneList){//{{{
    return true;
 }//}}}
 bool TranscriptInfo::updateGeneNames(const map<string,string> &trGeneList){//{{{
-   if((long)trGeneList.size() != M){
-      warning("TranscriptInfo: Number of items in gene list (%ld) does not match number of transcripts (%ld).",trGeneList.size(),M);
+   if((long)trGeneList.size() < M){
+      warning("TranscriptInfo: Number of items in TR->GE map (%ld) is less than the number of transcripts (%ld).",trGeneList.size(),M);
       return false;
    }
    // Check all transcripts have associated gene name.

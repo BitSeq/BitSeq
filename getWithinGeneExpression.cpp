@@ -20,19 +20,19 @@ extern "C" int getWithinGeneExpression(int *argc,char* argv[]){
    program can produce means and variance and write them into [sumFile]\n\
    or individual MCMC samples which are written into [outFile].";   
    // Set options {{{
-   ArgumentParser args(programDescription,"[samplesFile]",1);
+   ArgumentParser args(programDescription,"[samplesFile] -t [trInfoFileName]",1);
    args.addOptionS("t","trInfoFile","trInfoFileName",1,"Name of the transcript file.");
    args.addOptionB("a","adjustByLength","adjust",0,"Adjust expression by transcripts length.");
    args.addOptionS("o","outFile","outFileName",0,"Name of the output file.");
    args.addOptionS("s","sumFile","sumFileName",0,"Name of summarization file where true mean, true variance and relative mean and relative variance are saved.");
    args.addOptionB("l","log","log",0,"Use logged values.");
-//   args.addOptionS("t","type","type",0,"Type of variance, possible values: [sample,sqDif] for sample variance or sqared difference.","sample");
+   args.addOptionS("T","trMap","trMapFile",0,"Name of the file containing transcript to gene mapping.");
    if(!args.parse(*argc,argv))return 0;
    if(args.verbose)buildTime(argv[0],__DATE__,__TIME__);
    // }}}
    bool doLog,doOut=args.isSet("outFileName"),doSum=args.isSet("sumFileName");
    if(! (doOut || doSum)){
-      error("Main: Have to secify at least one of --outFile/--sumFile.\n");
+      error("Main: Have to specify at least one of --outFile/--sumFile.\n");
       return 1;
    }
    doLog = ns_genes::getLog(args);
@@ -41,6 +41,15 @@ extern "C" int getWithinGeneExpression(int *argc,char* argv[]){
    TranscriptInfo trInfo;
    PosteriorSamples  samples;
    if(!ns_genes::prepareInput(args, &trInfo, &samples, &M, &N, &G))return 1;
+   if(args.isSet("trMapFile") && (!ns_genes::updateGenes(args.getS("trMapFile"), &trInfo, &G)))return 1;
+   if(args.verb())messageF("Genes: %ld\n",G);
+   if(!ns_genes::checkGeneCount(G,M))return 1;
+   if(args.isSet("trMapFile")){
+      if(args.verb())message("Updating transcript info file with gene names provided in trMapFile.\n");
+      if(!trInfo.writeInfo(args.getS("trInfoFileName"), true)){
+         if(args.verb())warning("Main: Updating trInfoFile failed.\n");
+      }
+   }
 
    ofstream outFile,sumFile;
    if(doOut){
