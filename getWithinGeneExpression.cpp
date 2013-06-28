@@ -82,7 +82,7 @@ extern "C" int getWithinGeneExpression(int *argc,char* argv[]){
             outFile<<"# WARNING: transcripts in output file are reordered and grouped by genes.\n";
          }else{
             warning("Main: Transcripts are not grouped by genes.\n"
-                    "The transcript order will be kept the same but computation will be slower.\n");
+                    "   The transcript order will be kept the same but computation will be slower.\n");
          }
       }
       if(doLog)outFile<<"# L \n";
@@ -115,7 +115,7 @@ extern "C" int getWithinGeneExpression(int *argc,char* argv[]){
    if(args.verbose)message("Computing within gene relative expression.\n");
    g = -2;
    if(!args.flag("groupByGene")){
-      long curJ;
+      long curJ=0;
       // Here we iterate over transcripts:
       //  For each transript: load all transcripts of a gene of current transcripts
       //  If gene is same as for previous, then just reuse information
@@ -127,6 +127,7 @@ extern "C" int getWithinGeneExpression(int *argc,char* argv[]){
             g = trInfo.geId(m);
             ns_withinGene::readTranscripts(g, trInfo, &samples, &gM, &trs);
             curJ = 0;
+            for(j=0;j<gM;j++)if(trInfo.getGtrs(g)[j] == m){curJ = j; break;}
             if(args.flag("adjust"))ns_withinGene::adjustExpression(g, trInfo, &trs);
             ns_withinGene::getSum(gM, N, trs, &sum);
          }
