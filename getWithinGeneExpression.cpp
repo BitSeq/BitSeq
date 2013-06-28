@@ -25,7 +25,7 @@ void adjustExpression(long g, const TranscriptInfo &trInfo, vector< vector<doubl
 void getSum(long gM, long N, const vector< vector<double> > &trs, vector<double> *sum);
 
 // Update 'mean' and squareSum with new value.
-void updateSummaries(double x, long double *mean, long double *sqSum, double norm = 1);
+void updateSummaries(double x, long double *mean, long double *sqSum, double norm = 1, bool doLog = false);
 
 // Append samples of a transcript into output file.
 void writeTr(long N, const vector<double> &tr, ofstream *outFile);
@@ -97,7 +97,8 @@ extern "C" int getWithinGeneExpression(int *argc,char* argv[]){
    vector<long double> mean(M,0),mean2(M,0),sqSum(M,0),sqSum2(M,0);
    vector< vector<double> > trs;
    vector<double> sum;
-   vector<double> normals(N,1);
+   // Nrmalisation constant are 1 by default, or equivalently 0 in LOG case.
+   vector<double> normals(N,(int)(!doLog));
    long i,j,g,gM,m;
    if(args.flag("adjust")&&(doSummaries)){
       // 'normals' are only precomputed so that non-relative mean and variance are computed from
@@ -111,6 +112,8 @@ extern "C" int getWithinGeneExpression(int *argc,char* argv[]){
          for(i=0;i<N;i++)
             normals[i] += tr[i]/trInfo.L(j);
       }
+      if(doLog)for(i=0;i<N;i++)normals[i] = 
+            (normals[i] != 0) ? log(normals[i]) : ns_misc::LOG_ZERO;
    }
    if(args.verbose)message("Computing within gene relative expression.\n");
    g = -2;
@@ -133,7 +136,7 @@ extern "C" int getWithinGeneExpression(int *argc,char* argv[]){
          }
          for(i=0;i<N;i++){
             if(doLog)trs[curJ][i] = log(trs[curJ][i]);
-            if(doSummaries) ns_withinGene::updateSummaries(trs[curJ][i], &mean[m], &sqSum[m], normals[i]);
+            if(doSummaries) ns_withinGene::updateSummaries(trs[curJ][i], &(mean[m]), &(sqSum[m]), normals[i], doLog);
             if(doLog)trs[curJ][i] -= log(sum[i]);
             else trs[curJ][i] /= sum[i];
             if(doSummaries) ns_withinGene::updateSummaries(trs[curJ][i], &mean2[m], &sqSum2[m]);
@@ -155,7 +158,7 @@ extern "C" int getWithinGeneExpression(int *argc,char* argv[]){
             for(j=0;j<gM;j++){
                m = trInfo.getGtrs(g)[j];
                if(doLog)trs[j][i] = log(trs[j][i]);
-               if(doSummaries) ns_withinGene::updateSummaries(trs[j][i], &mean[m], &sqSum[m], normals[i]);
+               if(doSummaries) ns_withinGene::updateSummaries(trs[j][i], &mean[m], &sqSum[m], normals[i], doLog);
                if(doLog)trs[j][i] -= log(sum[i]);
                else trs[j][i] /= sum[i];
                if(doSummaries) ns_withinGene::updateSummaries(trs[j][i], &mean2[m], &sqSum2[m]);
@@ -220,12 +223,12 @@ void getSum(long gM, long N, const vector< vector<double> > &trs, vector<double>
       for(long n=0; n<N; n++)(*sum)[n] += trs[j][n];
 }// }}}
 
-void updateSummaries(double x, long double *mean, long double *sqSum, double norm){//{{{
-   if(x>0){// division is safe
-      x /= norm;
-      *mean += x;
-      *sqSum += x*x;
-   }
+void updateSummaries(double x, long double *mean, long double *sqSum, double norm, bool doLog){//{{{
+   if(doLog) x -= norm;
+   else x = (norm != 0) ? x/norm : x;
+   
+   *mean += x;
+   *sqSum += x*x;
 }// }}}
 
 void writeTr(long N, const vector<double> &tr, ofstream *outFile){//{{{
