@@ -698,8 +698,14 @@ double ReadDistribution::getLengthLNorm(double trLen) const{//{{{
    // other option might be to use boost/math/special_functions/erf.hpp
    const long double sqrt_2 = 1.41421356237309;
    long double CDF2 = erfcl((lMu-log(trLen)) / (lSigma * sqrt_2));
-   if(CDF2 == 0)return log(0.5)+ns_misc::LOG_ZERO;
-   return (double)(log(0.5)+log(CDF2));
+   //if(CDF2 == 0)return log(0.5)+ns_misc::LOG_ZERO;
+   double cdf1;
+   if(CDF2 == 0) cdf1 =  log(0.5)+ns_misc::LOG_ZERO;
+   else cdf1 = (double)(log(0.5)+log(CDF2));
+   double cdf2 = getLengthLP(1);
+   for(long i=2;i<=trLen;i++)cdf2 = ns_math::logAddExp(cdf2, getLengthLP(i));
+   message("%ld %lf %lf %lf %lf\n",(long)trLen, cdf1, cdf2, exp(cdf1), exp(cdf2));
+   return cdf2;
 }//}}}
 vector<double> ReadDistribution::getEffectiveLengths(){ //{{{
    vector<double> effL(M,0);
