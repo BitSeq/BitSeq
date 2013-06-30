@@ -33,7 +33,7 @@ vector<string> FileHeader::tokenizer(const string &input,const string &space){//
 
 bool FileHeader::readValues(ofstream *outF){//{{{
    if((file==NULL)||(!file->is_open())){
-      error("FileHeader: No file for header read.\n");
+      error("FileHeader: Input file not opened for reading.\n");
       return false;
    }
    string line;

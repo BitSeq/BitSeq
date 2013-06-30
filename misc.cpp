@@ -25,6 +25,18 @@ double logSumExp(const vector<double> &vals, long st, long en){ //{{{
 } //}}}
 } // namespace ns_math
 
+namespace ns_expression {
+
+string getOutputType(const ArgumentParser &args, const string &defaultType){ //{{{
+   string type = ns_misc::toLower(args.getS("outputType"));
+   if((type!="theta") && (type!="rpkm") && (type!="counts") && (type!="tau")){
+      type = defaultType;
+      warning("Using output type %s.",type.c_str());
+   }
+   return type;
+} //}}}
+} // namespace ns_expression
+
 namespace ns_misc {
 long getSeed(const ArgumentParser &args){//{{{
    long seed;
@@ -75,6 +87,12 @@ void computeCI(double cf, vector<double> *difs, double *ciLow, double *ciHigh){/
    sort(difs->begin(),difs->end());
    *ciLow = (*difs)[(long)(N/100.*cf)];
    *ciHigh = (*difs)[(long)(N-N/100.*cf)];
+}//}}}
+
+string toLower(string str){//{{{
+   for(size_t i=0;i<str.size();i++)
+      if((str[i]>='A')&&(str[i]<='Z'))str[i]=str[i]-'A'+'a';
+   return str;
 }//}}}
 } // namespace ns_misc
 

@@ -7,6 +7,7 @@ using namespace std;
 
 #include "ArgumentParser.h"
 #include "common.h"
+#include "misc.h"
 #include "MyTimer.h"
 #include "ReadDistribution.h"
 #include "TranscriptExpression.h"
@@ -34,9 +35,6 @@ class TagAlignment{//{{{
       double getLowProb()const {return lowProb;}
       void setProb(double p){prob=p;}
 }; //}}}
-
-// Convert string into lower case.
-string toLower(string str);
 
 // Read Fragment from SAM file.
 // Copies data from 'next' fragment into 'cur' fragment and reads new fragment information into 'next'.
@@ -394,12 +392,6 @@ int main(int argc,char* argv[]){
 
 namespace ns_parseAlignment {
 
-string toLower(string str){//{{{
-   for(long i=0;i<Sof(str);i++)
-      if((str[i]>='A')&&(str[i]<='Z'))str[i]=str[i]-'A'+'a';
-   return str;
-}//}}}
-
 bool readNextFragment(samfile_t* samData, fragmentP &cur, fragmentP &next){//{{{
    static fragmentP tmpF = NULL;
    bool currentOK = true;
@@ -438,7 +430,7 @@ bool readNextFragment(samfile_t* samData, fragmentP &cur, fragmentP &next){//{{{
 
 bool setInputFormat(const ArgumentParser &args, string *format){//{{{
    if(args.isSet("format")){
-      *format = toLower(args.getS("format"));
+      *format = ns_misc::toLower(args.getS("format"));
       if((*format =="sam")||(*format == "bam")){
          return true;
       }
@@ -446,7 +438,7 @@ bool setInputFormat(const ArgumentParser &args, string *format){//{{{
    }
    string fileName = args.args()[0];
    string extension = fileName.substr(fileName.rfind(".")+1);
-   *format = toLower(extension);
+   *format = ns_misc::toLower(extension);
    if((*format =="sam")||(*format == "bam")){
       if(args.verb())message("Assuming alignment file in '%s' format.\n",format->c_str());
       return true;

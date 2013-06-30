@@ -173,6 +173,6 @@ int main(int argc,char* argv[]){
    }//}}}
    inFile.close();
    outFile.close();
-   if(args.verbose)message("Done.");
+   if(args.verbose)message("Done.\n");
    return 0;
 }

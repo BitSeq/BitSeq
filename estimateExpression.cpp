@@ -3,16 +3,17 @@
 #include<omp.h>
 #include<sstream>
 
-#include "CollapsedSampler.h"
-#include "GibbsSampler.h"
-#include "Sampler.h"
-#include "FileHeader.h"
-#include "MyTimer.h"
 #include "ArgumentParser.h"
+#include "CollapsedSampler.h"
+#include "common.h"
+#include "FileHeader.h"
+#include "GibbsSampler.h"
+#include "misc.h"
+#include "MyTimer.h"
+#include "Sampler.h"
+#include "TagAlignments.h"
 #include "TranscriptInfo.h"
 #include "transposeFiles.h"
-#include "TagAlignments.h"
-#include "common.h"
 
 
 #define DEBUG(x)
@@ -26,8 +27,6 @@ long  M;//, mAll; // M : number of transcripts (include transcript 0 ~ Noise)
 //long N, 
 long Nunmap; // N: number of read, unmappable read, mappable reads
 
-string outTypeS;
-outputType outTypeI;
 vector<string> samplesFileNames;
 string failedMessage;
 
@@ -107,7 +106,7 @@ TagAlignments* readData(ArgumentParser &args) {//{{{
    // If the transcript info is initialized, check that the number of transcripts has not changed.
    // The number can't be smaller as it starts off with trInfo->M
    if((trInfo.isOK())&&(M > trInfo.getM() + 1)){
-      if(outTypeI == RPKM){
+      if(args.getS("outputType") == "rpkm"){
          error("Main: Number of transcripts in .prob file is higher than in the .tr file (%ld %ld)!\n",M,trInfo.getM() + 1);
          delete alignments;
          return NULL;
@@ -315,15 +314,18 @@ void MCMC(TagAlignments *alignments,gibbsParameters &gPar,ArgumentParser &args){
       if(quitNext){// Sampling iterations end {{{
          if(sqrt(rHat2[0].FF.FF) > gPar.targetScaleReduction()){
             message("WARNING: Following transcripts failed to converge entirely\n   (however the estimates might still be usable):\n");
+            long countUncoverged=0;
             stringstream sstr;
             sstr.str();
             sstr<<"# unconverged_transcripts: ";
             for(i=0;(i<M) && (sqrt(rHat2[i].FF.FF) > gPar.targetScaleReduction());i++){
                sstr<<rHat2[i].SS<<" ("<<sqrt(rHat2[i].FF.FF)<<") ";
-               message("   %s( %ld , %lf )\n",(trInfo.trName(rHat2[i].SS-1)).c_str(),rHat2[i].SS-1,sqrt(rHat2[i].FF.FF));
+               countUncoverged++;
+               if(args.verbose)message("   %s( %ld , %lf )\n",(trInfo.trName(rHat2[i].SS-1)).c_str(),rHat2[i].SS-1,sqrt(rHat2[i].FF.FF));
             }
             sstr<<"\n";
             failedMessage=sstr.str();
+            if(!args.verbose)message("   %ld transcripts (full list is in output file)\n",countUncoverged);
          }
          for(j=0;j<chainsN;j++){
             samplers[j]->noSave();
@@ -381,14 +383,14 @@ void MCMC(TagAlignments *alignments,gibbsParameters &gPar,ArgumentParser &args){
          stringstream sstr;
          for(j=0;j<chainsN;j++){
             sstr.str("");
-            sstr<<args.getS("outFilePrefix")<<"."<<outTypeS<<"S-"<<j;
+            sstr<<args.getS("outFilePrefix")<<"."<<args.getS("outputType")<<"S-"<<j;
             samplesFileNames.push_back(sstr.str());
             samplesFile[j].open(samplesFileNames[j].c_str());
             if(! samplesFile[j].is_open()){
                error("Main: Unable to open output file '%s'.\n",(sstr.str()).c_str());
             }else{
                samplesFile[j]<<"#\n# M "<<M-1<<"\n# N "<<samplesSave<<endl;
-               samplers[j]->saveSamples(&samplesFile[j],trInfo.getShiftedLengths(true),outTypeI);
+               samplers[j]->saveSamples(&samplesFile[j],trInfo.getShiftedLengths(true),args.getS("outputType"));
             }
          }
       }
@@ -402,27 +404,32 @@ void MCMC(TagAlignments *alignments,gibbsParameters &gPar,ArgumentParser &args){
    meansFile.open((args.getS("outFilePrefix")+".thetaMeans").c_str());
    if(meansFile.is_open()){
       meansFile<<"# T => Mrows \n# M "<<M-1<<endl;
-      meansFile<<"# file containing the mean value of theta - realtive abundace of fragments and counts\n"
+      meansFile<<"# file containing the mean value of theta - relative abundace of fragments and counts\n"
                  "# (overall mean, overall counts, mean of saved samples, and mean from every chain are reported)\n"
                  "# columns:\n"
-                 "# <transcriptID> <meanThetaOverall> <meanReadCountOverall> <meanThetaSaved>";
+                 "# <transcriptID> <meanThetaOverall> <meanReadCountOverall> <meanThetaSaved> <varThetaOverall>";
       for(j=0;j<chainsN;j++)meansFile<<" <chain"<<j+1<<"mean>";
       meansFile<<endl;
       meansFile<<scientific;
       meansFile.precision(9);
-      double sum,sum2;
+      double sumSaved, thetaSqSum, thetaSum, sumNorm, tSS, tS, sN, thetaVar;
       for(i=0;i<M;i++){
-         sum=sum2=0;
+         sumSaved=thetaSqSum=thetaSum=sumNorm=0;
          for(j=0;j<chainsN;j++){
-            sum+=samplers[j]->getAverage(i).FF; 
-            sum2+=samplers[j]->getAverage(i).SS; 
+            sumSaved+=samplers[j]->getAverage(i).SS;
+            samplers[j]->getThetaSums(i, &tSS, &tS, &sN);
+            thetaSqSum += tSS;
+            thetaSum += tS;
+            sumNorm += sN;
          }
          if(i==0){
             meansFile<<"#thetaAct:";
          }else{
             meansFile<<i;
          }
-         meansFile<<" "<<sum/chainsN<<" "<<(long)floor(sum/chainsN*alignments->getNreads()+0.5)<<" "<<sum2/chainsN;
+         thetaVar = thetaSqSum / (sumNorm - 1.0) -
+                    thetaSum / (sumNorm - 1.0) * thetaSum / sumNorm;
+         meansFile<<" "<<thetaSum/sumNorm<<" "<<(long)floor(thetaSum/sumNorm*alignments->getNreads()+0.5)<<" "<<sumSaved/chainsN<<" "<<thetaVar;
          for(j=0;j<chainsN;j++)
             meansFile<<" "<<samplers[j]->getAverage(i).FF;
          meansFile<<endl;
@@ -502,31 +509,15 @@ string programDescription =
    if(args.isSet("parFileName")){
       gPar.setParameters(args.getS("parFileName"));
    }
-   
-   if((args.getS("outputType") == "theta")||(args.getS("outputType") == "THETA")){
-      outTypeI=THETA;
-      outTypeS="theta";
-   }else if((args.getS("outputType") == "RPKM")||(args.getS("outputType") == "rpkm")){
-      outTypeI=RPKM;
-      outTypeS="rpkm";
-   }else if(args.getS("outputType") == "tau"){
-      outTypeI=TAU;
-      outTypeS="tau";
-   }else{
-      outTypeI=COVERAGE;
-      outTypeS="counts";
-      if(args.getS("outputType") != "counts")
-         message("Using output type \"counts\"\n");
-   }
-
+   args.updateS("outputType", ns_expression::getOutputType(args));
    if(args.verbose)gPar.getAllParameters();
 
    //}}}
    // {{{ Read transcriptInfo and .prob file 
    if(args.verbose)message("Reading data.\n");
    if((!args.isSet("trInfoFileName"))||(!trInfo.readInfo(args.getS("trInfoFileName")))){
-      if(outTypeI==RPKM){
-         error("Main: Missing transcript info file. This will cause problems if producing RPKM.\n");
+      if(args.getS("outputType") == "rpkm"){
+         error("Main: Missing transcript info file. The file is necessary for producing RPKM.\n");
          return 1;
       }
    }else{
@@ -547,7 +538,7 @@ string programDescription =
    if(args.verbose)message("Starting the sampler.\n");
    MCMC(alignments,gPar,args);
    // {{{ Transpose and merge sample file 
-   if(transposeFiles(samplesFileNames,args.getS("outFilePrefix")+"."+outTypeS,args.verbose,failedMessage)){
+   if(transposeFiles(samplesFileNames,args.getS("outFilePrefix")+"."+args.getS("outputType"),args.verbose,failedMessage)){
       if(args.verbose)message("Sample files transposed. Deleting.\n");
       for(long i=0;i<(long)samplesFileNames.size();i++){
          remove(samplesFileNames[i].c_str());

@@ -7,15 +7,13 @@ using namespace std;
 
 #include "ArgumentParser.h"
 
-enum outputType { RPKM, THETA, TAU, COVERAGE};
-
 struct distributionParameters{//{{{
    double alpha,beta;
 };//}}}
 
 class gibbsParameters{
    private:
-      long gs_burnIn, gs_samplesN, gs_chainsN, gs_samplesNmax, gs_output, gs_samplesSave;
+      long gs_burnIn, gs_samplesN, gs_chainsN, gs_samplesNmax, gs_samplesSave;
       double gs_targetScaleReduction;
       bool verbose;
       distributionParameters dirP, betaP;

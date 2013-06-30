@@ -102,6 +102,15 @@ pairD Sampler::getWithinVariance(long i){//{{{
    if(va1<0)message("minus %lg %lg %lg\n",thetaSqSum[i].first,thetaSum[i].first,sumNorm.first);
    return pairD(va1,va2);
 }//}}}
+void Sampler::getThetaSums(long i, double *thSqSum, double *thSum, double *sumN){//{{{
+   if(i >= m){
+      (*thSqSum) = (*thSum) = (*sumN) = 0;
+      return;
+   }
+   *thSqSum = thetaSqSum[i].first;
+   *thSum = thetaSum[i].first;
+   *sumN = sumNorm.first;
+}//}}}
 void Sampler::getTau(vector<double> &tau, double norm){//{{{
    long i;
    double tauSum=0;
@@ -128,37 +137,29 @@ void Sampler::appendFile(){//{{{
    thetaActLog.push_back(theta[0]);
    outFile->precision(9);
    (*outFile)<<scientific;
-   switch(saveType){
-      case COVERAGE:
-         if(norm == 0)norm = Nmap;
-         for(i=1;i<m;i++)
+   if(saveType == "counts"){
+      if(norm == 0)norm = Nmap;
+      for(i=1;i<m;i++)
+         (*outFile)<<theta[i]*norm<<" ";
+   }else if(saveType == "rpkm"){
+      if(norm == 0)norm = 1000000000.0;
+      for(i=1;i<m;i++)
+         if((*isoformLengths)[i]>0)
+            (*outFile)<<theta[i]*norm/(*isoformLengths)[i]<<" ";
+         else
             (*outFile)<<theta[i]*norm<<" ";
-         (*outFile)<<endl;
-         break;
-      case RPKM:
-         if(norm == 0)norm = 1000000000.0;
-         for(i=1;i<m;i++)
-            if((*isoformLengths)[i]>0)
-               (*outFile)<<theta[i]*norm/(*isoformLengths)[i]<<" ";
-            else
-               (*outFile)<<theta[i]*norm<<" ";
-         (*outFile)<<endl;
-         break;
-      case THETA:
-         if(norm == 0)norm=1.0;
-         for(i=1;i<m;i++)
-            (*outFile)<<theta[i]*norm<<" ";
-         (*outFile)<<endl;
-         break;
-      case TAU:
-         if(norm == 0)norm=1.0;
-         vector<double> tau(m);
-         getTau(tau,norm);
-         for(i=1;i<m;i++)
-            (*outFile)<<tau[i]<<" ";
-         (*outFile)<<endl;
-         break;
+   }else if(saveType == "theta"){
+      if(norm == 0)norm=1.0;
+      for(i=1;i<m;i++)
+         (*outFile)<<theta[i]*norm<<" ";
+   }else if(saveType == "tau"){
+      if(norm == 0)norm=1.0;
+      vector<double> tau(m);
+      getTau(tau,norm);
+      for(i=1;i<m;i++)
+         (*outFile)<<tau[i]<<" ";
    }
+   (*outFile)<<endl;
 }//}}}
 void Sampler::updateSums(){//{{{
    long i;
@@ -176,7 +177,7 @@ void Sampler::updateSums(){//{{{
       sumNorm.second++;
    }
 }//}}}
-void Sampler::saveSamples(ofstream *outFile, const vector<double> *isoformLengths, outputType saveType, double norm){//{{{
+void Sampler::saveSamples(ofstream *outFile, const vector<double> *isoformLengths, const string &saveType, double norm){//{{{
    this->outFile = outFile;
    this->isoformLengths = isoformLengths;
    this->saveType = saveType;

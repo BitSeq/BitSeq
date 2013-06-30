@@ -20,6 +20,7 @@ class SimpleSparse {
    void softmaxInplace(SimpleSparse *res);
    void sumCols(double res[]);
    void sumRows(double res[]);
+   double logSumExpVal(long st, long en);
 };
 
 #endif

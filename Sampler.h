@@ -31,7 +31,7 @@ class Sampler{
    boost::random::uniform_01<double> uniformDistribution;
    
    bool doLog,save;
-   outputType saveType;
+   string saveType;
    ofstream *outFile;
    double saveNorm,logRate;
 #ifdef DoSTATS   
@@ -79,9 +79,11 @@ class Sampler{
    void getWithinVariance(vector<pairD> &va);
    // Get within variance for transcript i.
    pairD getWithinVariance(long i);
+   // Get sum of theta^2, sum of theta, and their norm for transcript i.
+   void getThetaSums(long i, double *thSqSum, double *thSum, double *sumN);
    // Set sampler into state where samples are saved into the outFile.
    void saveSamples(ofstream *outFile, const vector<double> *isoformLengths,
-                    outputType saveType, double norm = 0);
+                    const string &saveType, double norm = 0);
    // Stop saving samples into the file.
    void noSave();
    // Get theta act logged values.

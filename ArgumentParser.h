@@ -2,8 +2,8 @@
 #define ARGUMENTPARSER_H
 
 #include<map>
-#include<vector>
 #include<string>
+#include<vector>
 
 using namespace std;
 
@@ -26,10 +26,10 @@ class ArgumentParser{
       vector<string> compulsory;
       long minimumArguments;
 
-      bool existsOption(string name) const;
-      bool existsName(string name) const;
+      bool existsOption(const string &name) const;
+      bool existsName(const string &name) const;
       template <typename valueType>
-      void appendDescription(string &desc,valueType defValue);
+      void appendDescription(string *desc,valueType defValue);
    public:
       bool verbose;
 
@@ -43,20 +43,22 @@ class ArgumentParser{
          minimumArguments = minArgs;
       }//}}}
       bool parse(int n,char * argv[]); 
-      void addOptionS(string shortName, string longName, string name, bool comp, string description="", string defValue="noDefault");
-      void addOptionL(string shortName, string longName, string name, bool comp, string description="", long defValue=-47);
-      void addOptionD(string shortName, string longName, string name, bool comp, string description="", double defValue=-47.47);
-      void addOptionB(string shortName, string longName, string name, bool comp, string description="", bool defValue=false);
+      void addOptionS(const string &shortName, const string &longName, const string &name, bool comp, const string &description="", const string &defValue="noDefault");
+      void addOptionL(const string &shortName, const string &longName, const string &name, bool comp, const string &description="", long defValue=-47);
+      void addOptionD(const string &shortName, const string &longName, const string &name, bool comp, const string &description="", double defValue=-47.47);
+      void addOptionB(const string &shortName, const string &longName, const string &name, bool comp, const string &description="", bool defValue=false);
       bool verb() const { return verbose; }
-      string getS(string name) const;
-      long getL(string name) const;
-      double getD(string name) const;
+      string getS(const string &name) const;
+      long getL(const string &name) const;
+      double getD(const string &name) const;
       const vector<string>& args() const { return arguments; }
-      vector<double> getTokenizedS2D(string name) const;
-      bool flag(string name) const;
-      bool isSet(string name) const;
+      vector<double> getTokenizedS2D(const string &name) const;
+      bool flag(const string &name) const;
+      bool isSet(const string &name) const;
       void usage();
       void writeAll();
+      // Update value of existing option.
+      void updateS(const string &name, const string &value);
 };
 
 #endif

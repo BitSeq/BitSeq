@@ -28,33 +28,39 @@ vector <double> tokenizeD(const string &input,const string &space = ","){//{{{
 
 
 // GET {{{
-string ArgumentParser::getS(string name) const{
+string ArgumentParser::getS(const string &name) const{
    if(!existsOption(name))error("ArgumentParser: argument name %s unknown.\n",name.c_str());
    if(mapS.find(name)!=mapS.end())
       return mapS.find(name)->second;
    return "";
 }
-long ArgumentParser::getL(string name) const{
+long ArgumentParser::getL(const string &name) const{
    if(!existsOption(name))error("ArgumentParser: argument name %s unknown.\n",(name).c_str());
    if(mapL.find(name)!=mapL.end())
       return mapL.find(name)->second;
    return -1;
 }
-double ArgumentParser::getD(string name) const{
+double ArgumentParser::getD(const string &name) const{
    if(!existsOption(name))error("ArgumentParser: argument name %s unknown.\n",(name).c_str());
    if(mapD.find(name)!=mapD.end())
       return mapD.find(name)->second;
    return -1;
 }
-bool ArgumentParser::flag(string name) const {
+bool ArgumentParser::flag(const string &name) const {
    if(!existsOption(name))error("ArgumentParser: argument name %s unknown.\n",(name).c_str());
    return isSet(name);
 }
-vector<double> ArgumentParser::getTokenizedS2D(string name) const{
+vector<double> ArgumentParser::getTokenizedS2D(const string &name) const{
    if(!existsOption(name))error("ArgumentParser: argument name %s unknown.\n",name.c_str());
    if(mapS.find(name)!=mapS.end())
       return tokenizeD(mapS.find(name)->second);
    return vector<double>();
+}//}}}
+// SET {{{
+void ArgumentParser::updateS(const string &name, const string &value){
+   if(!existsOption(name))error("ArgumentParser: argument name %s unknown.\n",name.c_str());
+   if(mapS.find(name)!=mapS.end())
+      mapS.find(name)->second = value;
 }//}}}
 bool ArgumentParser::parse(int argc,char * argv[]){//{{{
 //   for(long i=0;i<argc;i++)message("_%s_\n",(args[i]).c_str());
@@ -149,76 +155,76 @@ void ArgumentParser::writeAll(){//{{{
       message("OPT:%s VAL:%d\n",(it->FF).c_str(),(it->SS));
    }
 }//}}}
-void ArgumentParser::addOptionL(string shortName,string longName, string name, bool comp, string description, long defValue){//{{{
+void ArgumentParser::addOptionL(const string &shortName,const string &longName, const string &name, bool comp, const string &description, long defValue){//{{{
    Option newOpt;
    if(existsOption(name)){
       error("ArgumentParser: Option \"%s\"\n",(name).c_str());
       return;
-   }
-   if(defValue!=-47){
-      appendDescription<long>(description,defValue);
-      mapL[name]=defValue;
    }
    newOpt.type=OTLONG;
    newOpt.shortName=shortName;
    newOpt.longName=longName;
    newOpt.description=description;
+   if(defValue!=-47){
+      appendDescription<long>(&newOpt.description,defValue);
+      mapL[name]=defValue;
+   }
    validOptions[name]=newOpt;
    if(shortName!="")names[shortName]=name;
    if(longName!="")names[longName]=name;
    if(comp)compulsory.push_back(name);
 }//}}}
-void ArgumentParser::addOptionD(string shortName,string longName, string name, bool comp, string description, double defValue){//{{{
+void ArgumentParser::addOptionD(const string &shortName,const string &longName, const string &name, bool comp, const string &description, double defValue){//{{{
    Option newOpt;
    if(existsOption(name)){
       error("ArgumentParser: Option \"%s\"\n",(name).c_str());
       return;
    }
-   if(defValue!=-47.47){
-      appendDescription<double>(description,defValue);
-      mapD[name]=defValue;
-   }
    newOpt.type=OTDOUBLE;
    newOpt.shortName=shortName;
    newOpt.longName=longName;
    newOpt.description=description;
+   if(defValue!=-47.47){
+      appendDescription<double>(&newOpt.description,defValue);
+      mapD[name]=defValue;
+   }
    validOptions[name]=newOpt;
    if(shortName!="")names[shortName]=name;
    if(longName!="")names[longName]=name;
    if(comp)compulsory.push_back(name);
 }//}}}
-void ArgumentParser::addOptionB(string shortName,string longName, string name, bool comp, string description, bool defValue){//{{{
+void ArgumentParser::addOptionB(const string &shortName,const string &longName, const string &name, bool comp, const string &description, bool defValue){//{{{
    Option newOpt;
    if(existsOption(name)){
       error("ArgumentParser: Option \"%s\"\n",(name).c_str());
       return;
    }
    mapB[name]=defValue;
-   if(defValue) description +=" (default: On)";
-   else description+=" (default: Off)";
    newOpt.type=OTBOOL;
    newOpt.shortName=shortName;
    newOpt.longName=longName;
    newOpt.description=description;
+   if(defValue) newOpt.description +=" (default: On)";
+   else newOpt.description+=" (default: Off)";
    validOptions[name]=newOpt;
    if(shortName!="")names[shortName]=name;
    if(longName!="")names[longName]=name;
    if(comp)compulsory.push_back(name);
 }//}}}
-void ArgumentParser::addOptionS(string shortName,string longName, string name, bool comp, string description, string defValue){//{{{
+void ArgumentParser::addOptionS(const string &shortName,const string &longName, const string &name, bool comp, const string &description, const string &defValue){//{{{
    Option newOpt;
    if(existsOption(name)){
       error("ArgumentParser: Option \"%s\"\n",(name).c_str());
       return;
    }
-   if(defValue!="noDefault"){
-      appendDescription<string>(description,defValue);
-      mapS[name]=defValue;
-   }
    newOpt.type=OTSTRING;
    newOpt.shortName=shortName;
    newOpt.longName=longName;
    newOpt.description=description;
+   if(defValue!="noDefault"){
+      appendDescription<string>(&newOpt.description,defValue);
+      mapS[name]=defValue;
+   }
    validOptions[name]=newOpt;
    if(shortName!="")names[shortName]=name;
    if(longName!="")names[longName]=name;
@@ -226,10 +232,10 @@ void ArgumentParser::addOptionS(string shortName,string longName, string name, b
 }//}}}
 //{{{ void ArgumentParser::appendDescription(string &desc,valueType defValue)
 template <typename valueType>
-void ArgumentParser::appendDescription(string &desc,valueType defValue){
+void ArgumentParser::appendDescription(string *desc,valueType defValue){
    stringstream descStream;
-   descStream<<desc<<" (default: "<<defValue<<")";
-   desc = descStream.str();
+   descStream<<*desc<<" (default: "<<defValue<<")";
+   *desc = descStream.str();
 }//}}}
 void ArgumentParser::usage(){//{{{
    map<string,Option>::iterator it;
@@ -265,7 +271,7 @@ void ArgumentParser::usage(){//{{{
       }
    }
 }//}}}
-bool ArgumentParser::isSet(string name) const {//{{{
+bool ArgumentParser::isSet(const string &name) const {//{{{
    if(! existsOption(name))return false;
    switch(validOptions.find(name)->second.type){
       case OTSTRING:
@@ -283,11 +289,11 @@ bool ArgumentParser::isSet(string name) const {//{{{
    }
    return false;
 }//}}}
-bool ArgumentParser::existsName(string name) const {//{{{
+bool ArgumentParser::existsName(const string &name) const {//{{{
    if(names.find(name)==names.end())return false;
    return true;
 }//}}}
-bool ArgumentParser::existsOption(string name) const {//{{{
+bool ArgumentParser::existsOption(const string &name) const {//{{{
    if(validOptions.find(name)==validOptions.end())return false;
    return true;
 }//}}}
