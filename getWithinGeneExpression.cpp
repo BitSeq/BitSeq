@@ -39,7 +39,7 @@ extern "C" int getWithinGeneExpression(int *argc,char* argv[]){
    program can produce means and variance and write them into [sumFile]\n\
    or individual MCMC samples which are written into [outFile].";   
    // Set options {{{
-   ArgumentParser args(programDescription,"[samplesFile] -t [trInfoFileName]",1);
+   ArgumentParser args(programDescription,"[samplesFile]",1);
    args.addOptionS("t","trInfoFile","trInfoFileName",1,"Name of the transcript file.");
    args.addOptionB("a","adjustByLength","adjust",0,"Adjust expression by transcripts length.");
    args.addOptionS("o","outFile","outFileName",0,"Name of the output file.");

@@ -18,7 +18,7 @@ extern "C" int getGeneExpression(int *argc,char* argv[]){
 "Computes expression of whole genes.\n\
    [samplesFile] should contain transposed MCMC samples which will be transformed into gene expression samples.";   
    // Set options {{{
-   ArgumentParser args(programDescription,"[samplesFile] -t [trInfoFileName] -o [outFileName]",1);
+   ArgumentParser args(programDescription,"[samplesFile]",1);
    args.addOptionS("t","trInfoFile","trInfoFileName",1,"Name of the transcript file.");
    args.addOptionB("a","adjustByLength","adjust",0,"Adjust expression by transcripts length.");
    args.addOptionB("","theta2rpkm","rpkm",0,"Transform transcript expression in theta to gene expression in RPKM.");
