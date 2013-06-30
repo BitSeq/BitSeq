@@ -352,6 +352,9 @@ void MCMC(TagAlignments *alignments,gibbsParameters &gPar,ArgumentParser &args){
          //}}}
          sort(needS.begin(),needS.end());
          i = (long)(M*0.95)+1; // make at least 95% transcripts converged 
+         /* samplesN -> now it will be samples needed PER chain in order to
+          * generate samplesSave*chainsN effective samples.
+          */
          samplesN = max((long)needS[i],samplesSave);
          quitNext = true;
       }else{
@@ -370,9 +373,11 @@ void MCMC(TagAlignments *alignments,gibbsParameters &gPar,ArgumentParser &args){
       }
       // if next iteration is the last one, prepare the files and make samples write samples
       if(quitNext){ 
-         message("Producing %ld final samples.\n",samplesN);
+         message("Producing %ld final samples from each chain.\n",samplesN);
          // if samplesN<samplesSave, only samplesN samples will be saved
-         if(samplesN<samplesSave)samplesSave = samplesN;
+         if(samplesN<samplesSave){
+            samplesSave = samplesN;
+         }
          stringstream sstr;
          for(j=0;j<chainsN;j++){
             sstr.str("");
