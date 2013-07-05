@@ -16,7 +16,8 @@ ifeq ($(HOSTNAME), chopok)
 	ARCH = -march=native
 endif
 
-DBGFLAGS = -ggdb -U_FORTIFY_SOURCE
+# Use O1 for debuiggging so it's not totally slow.
+DBGFLAGS = -O1 -ggdb -U_FORTIFY_SOURCE
 COFLAGS = $(ARCH) -O2 -pipe
 CXXFLAGS = -DBS_VERSION=\"$(VERSION)\" -Wall $(COFLAGS)
 # -Wvla does not work with old gcc

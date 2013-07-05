@@ -139,6 +139,7 @@ bool transposeFiles(vector<string> inFileNames, string outFileName, bool verbose
       }
       if(verbose)message(")\n");
    } //}}}
+   delete[] inFile;
    outFile.close();
    return true;
 }

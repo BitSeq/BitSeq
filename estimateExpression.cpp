@@ -327,10 +327,12 @@ void MCMC(TagAlignments *alignments,gibbsParameters &gPar,ArgumentParser &args){
             failedMessage=sstr.str();
             if(!args.verbose)message("   %ld transcripts (full list is in output file)\n",countUncoverged);
          }
+         // Close files and delete pointers.
          for(j=0;j<chainsN;j++){
             samplers[j]->noSave();
             samplesFile[j].close();
          }
+         delete[] samplesFile;
          break;
       }//}}}
       if(! (args.flag("scaleReduction") || args.flag("MCMC_samplesDOmax"))){
