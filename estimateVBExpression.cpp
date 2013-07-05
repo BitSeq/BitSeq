@@ -125,7 +125,8 @@ string programDescription =
    if(args.verbose)buildTime(argv[0],__DATE__,__TIME__);
    OPT_TYPE optM;
    if(args.isSet("optMethod")){
-      if(args.getS("optMethod")=="steepest")optM = OPTT_STEEPEST;
+      if((args.getS("optMethod")=="steepest")||
+         (args.getS("optMethod")=="VBEM"))optM = OPTT_STEEPEST;
       else if(args.getS("optMethod")=="PR")optM = OPTT_PR;
       else if(args.getS("optMethod")=="FR")optM = OPTT_FR;
       else if(args.getS("optMethod")=="HS")optM = OPTT_HS;

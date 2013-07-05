@@ -4,7 +4,7 @@
 
 #include "SimpleSparse.h"
 
-double SimpleSparse::logSumExpVal(long st, long en){//{{{
+double SimpleSparse::logSumExpVal(long st, long en) const{//{{{
    if(st<0)st = 0;
    if((en == -1) || (en > T)) en = T;
    if(st >= en) return 0;
@@ -15,7 +15,7 @@ double SimpleSparse::logSumExpVal(long st, long en){//{{{
       sumE += exp(val[i] - m);
    return  m + log(sumE);
 }//}}}
-void SimpleSparse::sumRows(double res[]){//{{{
+void SimpleSparse::sumRows(double res[]) const{//{{{
    long i,r;
    for(r=0;r<N;r++){
       res[r]=0;
@@ -24,9 +24,17 @@ void SimpleSparse::sumRows(double res[]){//{{{
       }
    }
 }//}}}
-void SimpleSparse::sumCols(double res[]){//{{{
+void SimpleSparse::sumCols(double res[]) const{//{{{
    memset(res,0,M*sizeof(double));
    for(long i=0;i<T;i++)res[col[i]]+=val[i];
+}//}}}
+long SimpleSparse::countAboveDelta(double delta) const{//{{{
+   long i,count=0;
+   #pragma omp parallel for reduction(+:count)
+   for(i=0;i<T;i++){
+      if(val[i]>delta)count++;
+   }
+   return count;
 }//}}}
 
 void SimpleSparse::softmaxInplace(SimpleSparse *res){//{{{
@@ -41,7 +49,7 @@ void SimpleSparse::softmaxInplace(SimpleSparse *res){//{{{
       }
    }
 }//}}}
-void SimpleSparse::softmax(SimpleSparse *res){//{{{
+void SimpleSparse::softmax(SimpleSparse *res) const{//{{{
    double logRowSum = 0;
    long i,r;
    #pragma omp parallel for private(i,logRowSum)

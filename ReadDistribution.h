@@ -38,11 +38,11 @@ using namespace std;
 #define LOW_PROB_MISSES 6
 #define MAX_NODE_PAR 2
 const long trSizes [] = { 1334,2104,2977,4389};
-const long trSizesN = 4;
-const long trNumberOfBins = 20;
-const long vlmmNodeDependence [] = { 0, 0, 0, 0, 1, 1, 1, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 1, 1, 0, 0};
-const long vlmmNodesN = 21;
-const long vlmmStartOffset = 8;
+const char trSizesN = 4;
+const char trNumberOfBins = 20;
+const char vlmmNodeDependence [] = { 0, 0, 0, 0, 1, 1, 1, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 1, 1, 0, 0};
+const char vlmmNodesN = 21;
+const char vlmmStartOffset = 8;
 const long pows4 [] = {1,4,16,64,256,1024,4096};
 //}}}
 
@@ -74,8 +74,8 @@ class VlmmNode{//{{{
       void setParentsN(long p);
       void update(double Iexp, char b, char bp, char bpp);
       void normalize();
-      double getP(char b, char bp, char bpp);
-      double getPsum(char b);
+      double getP(char b, char bp, char bpp) const;
+      double getPsum(char b) const;
 };//}}}
 
 enum biasT { readM_5, readM_3, uniformM_5, uniformM_3, weight_5, weight_3};
@@ -94,20 +94,31 @@ class ReadDistribution{
       TranscriptExpression* trExp;
       // for each transcript, remember seen fragments in map: length->(sum of probs)
       vector<map<long,double> > trFragSeen5,trFragSeen3;
-      // cache for already computed weight norms for single reads 4',3', Pair x Transcript x Length
+      // cache for already computed weight norms for:
+      //    (single reads 5',3', Pair) x Transcript x Length
       vector<vector<map<long, double> > > weightNorms;
       // position probability arrays (RE-FACTOR to array of 4 vectors)
       vector<vector<vector<double> > > posProb;
       vector<vector<VlmmNode> > seqProb;
+      // Cache probabilities for Phred score.
+      vector<double> lProbMis;
+      vector<double> lProbHit;
+      // Cache length probabilities.
+      vector<double> lLengthP,lLengthNorm;
    
-      double getLengthLP(double len);
-      double getLengthLNorm(double trLen);
+      double getLengthLP(long len) const;
+      double computeLengthLP(double len) const;
+      double getLengthLNorm(long trLen) const;
+      void computeLengthProb();
       void updatePosBias(long pos, biasT bias, long tid, double Iexp);
       void updateSeqBias(long pos, biasT bias, long tid, double Iexp);
-      double getPosBias(long pos, readT read, long tid);
-      double getSeqBias(long pos, readT read, long tid);
+      double getPosBias(long pos, readT read, long trLen) const;
+      double getSeqBias(long pos, readT read, long tid) const;
+      inline char getBase(long pos, const string &fSeq) const;
+      double getSeqBias(long pos, readT read, const string &fSeq) const;
+      inline char complementBase(char base) const;
       double getWeightNorm(long len, readT, long tid);
-      pair<double, double> getSequenceLProb(bam1_t *samA);
+      pair<double, double> getSequenceLProb(bam1_t *samA) const;
    public:
       ReadDistribution();
       void writeWarnings();
@@ -119,6 +130,7 @@ class ReadDistribution{
       void normalize();
       void logProfiles(string logFileName = "");
       bool getP(fragmentP frag,double &prob,double &probNoise);
+      long getWeightNormCount() const;
       vector<double> getEffectiveLengths();
 }; 
 

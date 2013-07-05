@@ -11,7 +11,6 @@
 
 #include "VariationalBayes.h"
 
-
 #define SWAPD(x,y) {tmpD=x;x=y;y=tmpD;}
 #define ZERO_LIMIT 1e-12
 
@@ -142,7 +141,11 @@ void VariationalBayes::optimize(bool verbose,OPT_TYPE method,long maxIter,double
 #ifdef LOG_CONV
    ofstream logF(logFileName.c_str());
    logF.precision(15);
+   logF<<"# iter bound squareNorm time(m) [M*means M*vars]"<<endl;
    if(logTimer)logTimer->setQuiet();
+   #ifdef LONG_LOG
+   vector<double> dirAlpha(M);
+   #endif
 #endif
    boundOld=getBound();
    while(true){
@@ -236,15 +239,33 @@ void VariationalBayes::optimize(bool verbose,OPT_TYPE method,long maxIter,double
       }
       SWAPD(gradPhi,phiOld);
       if(verbose){
-         message("\riter(%c): %5.ld  bound: %.3lf grad: %.7lf  beta: %.7lf\n",(usedSteepest?'s':'o'),iteration,bound,squareNorm,valBeta);
+         #ifdef SHOW_FIXED
+            messageF("iter(%c): %5.ld  bound: %.3lf grad: %.7lf  beta: %.7lf  fixed: %ld\n",(usedSteepest?'s':'o'),iteration,bound,squareNorm,valBeta,phi->countAboveDelta(0.999));
+         #else
+            messageF("iter(%c): %5.ld  bound: %.3lf grad: %.7lf  beta: %.7lf\n",(usedSteepest?'s':'o'),iteration,bound,squareNorm,valBeta);
+         #endif
       }else{
          message("\riter(%c): %5.ld  bound: %.3lf grad: %.7lf  beta: %.7lf              ",(usedSteepest?'s':'o'),iteration,bound,squareNorm,valBeta);
          fflush(stdout);
       }
 #ifdef LOG_CONV
-   if(iteration%50==0){
+   if((iteration%100==0) ||
+      ((iteration<500) && (iteration%50==0)) ||
+      ((iteration<150) && (iteration%10==0)) ||
+      ((iteration<50) && (iteration%5==0))){
       logF<<iteration<<" "<<bound<<" "<<squareNorm;
       if(logTimer)logF<<" "<<logTimer->current(0,'m');
+      #ifdef LONG_LOG
+      double alphaSum = 0, alphaVarNorm;
+      // True 'alpha' - dirichlet parameter is alpha+phiHat.
+      for(i=1;i<M;i++){
+         dirAlpha[i] = alpha[i] + phiHat[i];
+         alphaSum += dirAlpha[i];
+      }
+      for(i=1;i<M;i++)logF<< " " << dirAlpha[i] / alphaSum;
+      alphaVarNorm = alphaSum*alphaSum*(alphaSum+1);
+      for(i=1;i<M;i++)logF<<" "<<dirAlpha[i]*(alphaSum-dirAlpha[i])/alphaVarNorm;
+      #endif
       logF<<endl;
    }
 #endif
@@ -271,6 +292,17 @@ void VariationalBayes::optimize(bool verbose,OPT_TYPE method,long maxIter,double
 #ifdef LOG_CONV
    logF<<iteration<<" "<<bound<<" "<<squareNorm;
    if(logTimer)logF<<" "<<logTimer->current(0,'m');
+   #ifdef LONG_LOG
+   double alphaSum = 0, alphaVarNorm;
+   // True 'alpha' - dirichlet parameter is alpha+phiHat.
+   for(i=1;i<M;i++){
+      dirAlpha[i] = alpha[i] + phiHat[i];
+      alphaSum += dirAlpha[i];
+   }
+   for(i=1;i<M;i++)logF<< " " << dirAlpha[i] / alphaSum;
+   alphaVarNorm = alphaSum*alphaSum*(alphaSum+1);
+   for(i=1;i<M;i++)logF<<" "<<dirAlpha[i]*(alphaSum-dirAlpha[i])/alphaVarNorm;
+   #endif
    logF<<endl;
    if(logTimer)logTimer->setVerbose();
    logF.close();

@@ -20,7 +20,6 @@ int main(int argc,char* argv[]){
    // Set options {{{
    ArgumentParser args(programDescription,"[sampleFile]",1);
    args.addOptionS("o","outFile","outFileName",1,"Name of the output file.");
-//   args.addOptionB("l","log","log",0,"Use logged values.");
    args.addOptionS("a","action","action",1,"Action to perform options: (T2RL - theta to log-rpkm , C2R - coverage to rpkm, R2C - rpkms 2 coverage, LOGNORM - log+normalize, NORM - normalize.");
    args.addOptionD("","Nmap","Nmap",0,"Total number of aligned reads. Or a normalization constant, when normalizing.");
    args.addOptionS("t","trInfoFile","trInfoFileName",0,"File containing transcript information.");
@@ -173,6 +172,6 @@ int main(int argc,char* argv[]){
    }//}}}
    inFile.close();
    outFile.close();
-   if(args.verbose)message("Done.");
+   if(args.verbose)message("Done.\n");
    return 0;
 }

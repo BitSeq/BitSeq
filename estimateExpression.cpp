@@ -308,21 +308,24 @@ void MCMC(TagAlignments *alignments,gibbsParameters &gPar,ArgumentParser &args){
       for(j=0;j<chainsN;j++)message("%ld ",samplers[j]->getAverageC0());
       message("). Nunmap: %ld\n",Nunmap);
       if(args.flag("gibbs"))message("  Mean thetaAct (noise parameter)\n   %lf\n",totAverage[0].FF);
-      message("\n");
+      messageF("\n");
       //}}}
       // Increase sample size and start over: {{{
       if(quitNext){// Sampling iterations end {{{
          if(sqrt(rHat2[0].FF.FF) > gPar.targetScaleReduction()){
             message("WARNING: Following transcripts failed to converge entirely\n   (however the estimates might still be usable):\n");
+            long countUncoverged=0;
             stringstream sstr;
             sstr.str();
             sstr<<"# unconverged_transcripts: ";
             for(i=0;(i<M) && (sqrt(rHat2[i].FF.FF) > gPar.targetScaleReduction());i++){
                sstr<<rHat2[i].SS<<" ("<<sqrt(rHat2[i].FF.FF)<<") ";
-               message("   %s( %ld , %lf )\n",(trInfo.trName(rHat2[i].SS-1)).c_str(),rHat2[i].SS-1,sqrt(rHat2[i].FF.FF));
+               countUncoverged++;
+               if(args.verbose)message("   %s( %ld , %lf )\n",(trInfo.trName(rHat2[i].SS-1)).c_str(),rHat2[i].SS-1,sqrt(rHat2[i].FF.FF));
             }
             sstr<<"\n";
             failedMessage=sstr.str();
+            if(!args.verbose)message("   %ld transcripts (full list is in output file)\n",countUncoverged);
          }
          for(j=0;j<chainsN;j++){
             samplers[j]->noSave();
@@ -369,7 +372,7 @@ void MCMC(TagAlignments *alignments,gibbsParameters &gPar,ArgumentParser &args){
       }
       // if next iteration is the last one, prepare the files and make samples write samples
       if(quitNext){ 
-         message("Producing %ld final samples.\n",samplesN);
+         messageF("Producing %ld final samples.\n",samplesN);
          // if samplesN<samplesSave, only samplesN samples will be saved
          if(samplesN<samplesSave)samplesSave = samplesN;
          stringstream sstr;
@@ -396,27 +399,32 @@ void MCMC(TagAlignments *alignments,gibbsParameters &gPar,ArgumentParser &args){
    meansFile.open((args.getS("outFilePrefix")+".thetaMeans").c_str());
    if(meansFile.is_open()){
       meansFile<<"# T => Mrows \n# M "<<M-1<<endl;
-      meansFile<<"# file containing the mean value of theta - realtive abundace of fragments and counts\n"
+      meansFile<<"# file containing the mean value of theta - relative abundace of fragments and counts\n"
                  "# (overall mean, overall counts, mean of saved samples, and mean from every chain are reported)\n"
                  "# columns:\n"
-                 "# <transcriptID> <meanThetaOverall> <meanReadCountOverall> <meanThetaSaved>";
+                 "# <transcriptID> <meanThetaOverall> <meanReadCountOverall> <meanThetaSaved> <varThetaOverall>";
       for(j=0;j<chainsN;j++)meansFile<<" <chain"<<j+1<<"mean>";
       meansFile<<endl;
       meansFile<<scientific;
       meansFile.precision(9);
-      double sum,sum2;
+      double sumSaved, thetaSqSum, thetaSum, sumNorm, tSS, tS, sN, thetaVar;
       for(i=0;i<M;i++){
-         sum=sum2=0;
+         sumSaved=thetaSqSum=thetaSum=sumNorm=0;
          for(j=0;j<chainsN;j++){
-            sum+=samplers[j]->getAverage(i).FF; 
-            sum2+=samplers[j]->getAverage(i).SS; 
+            sumSaved+=samplers[j]->getAverage(i).SS;
+            samplers[j]->getThetaSums(i, &tSS, &tS, &sN);
+            thetaSqSum += tSS;
+            thetaSum += tS;
+            sumNorm += sN;
          }
          if(i==0){
             meansFile<<"#thetaAct:";
          }else{
             meansFile<<i;
          }
-         meansFile<<" "<<sum/chainsN<<" "<<(long)floor(sum/chainsN*alignments->getNreads()+0.5)<<" "<<sum2/chainsN;
+         thetaVar = thetaSqSum / (sumNorm - 1.0) -
+                    thetaSum / (sumNorm - 1.0) * thetaSum / sumNorm;
+         meansFile<<" "<<thetaSum/sumNorm<<" "<<(long)floor(thetaSum/sumNorm*alignments->getNreads()+0.5)<<" "<<sumSaved/chainsN<<" "<<thetaVar;
          for(j=0;j<chainsN;j++)
             meansFile<<" "<<samplers[j]->getAverage(i).FF;
          meansFile<<endl;
@@ -522,7 +530,7 @@ string programDescription =
    // }}}
 
    if(args.verbose)timer.split();
-   if(args.verbose)message("Starting the sampler.\n");
+   if(args.verbose)messageF("Starting the sampler.\n");
    MCMC(alignments,gPar,args);
    // {{{ Transpose and merge sample file 
    if(transposeFiles(samplesFileNames,args.getS("outFilePrefix")+"."+args.getS("outputType"),args.verbose,failedMessage)){
