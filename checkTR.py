@@ -1,7 +1,5 @@
 #!/usr/bin/python
 
-from __future__ import print_function
-
 """
 Due to an error in our code, GENE EXPRESSION and WITHIN GENE EXPRESSION results
 produced with BitSeq versions up to 0.5.3 might be wrong for some genes.
@@ -55,14 +53,14 @@ def checkFile(fileName):
    if len(genesWrong) == 0:
       print("Everything seems to be fine.")
    else:
-      print("These",len(genesWrong),"( out of",len(genesSeen),") have wrong GENE EXPRESSION results:")
+      print("These "+str(len(genesWrong))+" (out of "+str(len(genesSeen))+") have wrong GENE EXPRESSION results:")
       trCount = 0;
       genesStr = "";
       for it in genesWrong:
          genesStr += it+" ";
          trCount+=len(g2ts[it]);
       print(genesStr);
-      print("These:",trCount,"transcripts have wrong WITHIN GENE EXPRESSION results:");
+      print("These "+str(trCount)+" transcripts have wrong WITHIN GENE EXPRESSION results:");
       trsStr = "";
       for it in genesWrong:
          for trit in g2ts[it]:
@@ -72,7 +70,7 @@ def checkFile(fileName):
 if __name__ == "__main__":
    if len(sys.argv) <2:
       sys.exit("Please provide file name as argument.");
-   print("Checking file",sys.argv[1]);
+   print("Checking file "+sys.argv[1]);
    checkFile(sys.argv[1]);
 
 
