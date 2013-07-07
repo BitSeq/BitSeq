@@ -2,6 +2,15 @@
 Improvements:
 - thetaMeans contains variance of theta
 - proper handling of bad alignments
+- major speed improvement for parseAlignment on multiple CPUs
+- getGeneExpression and getWithinGene expression can use 'external' TR->GE mapping or gene list
+- getWithinGene changed so that transcripts keep order unless --groupByGene
+- getGeneExpression produces gene info file with list of genes
+- increased output precision in gGE and gWGE
+
+Bug fixes:
+- fixed major bug in getGeneExpression and getWithinGeneExpression
+- fixed occasional underflow in effective length computation
 
 0.5.3:
 Improvements:

@@ -16,11 +16,12 @@ class SimpleSparse {
    SimpleSparse(long n,long m, long t);
    SimpleSparse(SimpleSparse *m0);
    ~SimpleSparse();
-   void softmax(SimpleSparse *res);
+   void softmax(SimpleSparse *res) const;
    void softmaxInplace(SimpleSparse *res);
-   void sumCols(double res[]);
-   void sumRows(double res[]);
-   double logSumExpVal(long st, long en);
+   long countAboveDelta(double delta = 0.99) const;
+   void sumCols(double res[]) const;
+   void sumRows(double res[]) const;
+   double logSumExpVal(long st, long en) const;
 };
 
 #endif

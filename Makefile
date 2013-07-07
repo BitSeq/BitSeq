@@ -1,7 +1,7 @@
 CXX = g++
 HOSTNAME = $(shell hostname)
 ARCH = -mtune=generic
-VERSION = 0.5.4
+VERSION = 0.6.0
 
 ifeq ($(HOSTNAME), valiant)
 	ARCH = -march=core2
@@ -16,7 +16,8 @@ ifeq ($(HOSTNAME), chopok)
 	ARCH = -march=native
 endif
 
-DBGFLAGS = -ggdb -U_FORTIFY_SOURCE
+# Use O1 for debuiggging so it's not totally slow.
+DBGFLAGS = -O1 -ggdb -U_FORTIFY_SOURCE
 COFLAGS = $(ARCH) -O2 -pipe
 CXXFLAGS = -DBS_VERSION=\"$(VERSION)\" -Wall $(COFLAGS)
 # -Wvla does not work with old gcc
@@ -42,7 +43,7 @@ PROGRAMS = \
 
 all: $(PROGRAMS)
 
-COMMON_DEPS = ArgumentParser.o common.o FileHeader.o misc.o
+COMMON_DEPS = ArgumentParser.o common.o FileHeader.o misc.o MyTimer.o
 # PROGRAMS:
 convertSamples: convertSamples.cpp $(COMMON_DEPS) TranscriptInfo.o
 	$(CXX) $(CXXFLAGS) $(LDFLAGS) convertSamples.cpp $(COMMON_DEPS) TranscriptInfo.o -o convertSamples
@@ -90,11 +91,17 @@ ArgumentParser.o: ArgumentParser.cpp ArgumentParser.h
 CollapsedSampler.o: CollapsedSampler.cpp CollapsedSampler.h GibbsParameters.h Sampler.h
 	$(CXX) $(CXXFLAGS) $(BOOSTFLAGS) -c CollapsedSampler.cpp
 
+FileHeader.o: common.h FileHeader.cpp FileHeader.h
+	$(CXX) $(CXXFLAGS) $(BOOSTFLAGS) -ffunction-sections -fdata-sections -c FileHeader.cpp
+
 GibbsSampler.o: GibbsSampler.cpp GibbsSampler.h GibbsParameters.h Sampler.h
 	$(CXX) $(CXXFLAGS) $(BOOSTFLAGS) -c GibbsSampler.cpp
 
 misc.o: ArgumentParser.h PosteriorSamples.h misc.cpp misc.h
 	$(CXX) $(CXXFLAGS) -ffunction-sections -fdata-sections -c misc.cpp
+
+MyTimer.o: MyTimer.h MyTimer.cpp
+	$(CXX) $(CXXFLAGS) -ffunction-sections -fdata-sections -c MyTimer.cpp
 
 PosteriorSamples.o: PosteriorSamples.cpp PosteriorSamples.h FileHeader.h
 	$(CXX) $(CXXFLAGS) -ffunction-sections -fdata-sections -c PosteriorSamples.cpp
@@ -112,7 +119,6 @@ VariationalBayes.o: VariationalBayes.cpp VariationalBayes.h SimpleSparse.h
 	$(CXX) $(CXXFLAGS) $(BOOSTFLAGS) $(OPENMP) -c VariationalBayes.cpp 
 
 common.o: common.cpp common.h
-FileHeader.o: common.h FileHeader.cpp FileHeader.h
 GibbsParameters.o: ArgumentParser.h GibbsParameters.cpp GibbsParameters.h
 lowess.o: lowess.cpp lowess.h
 TagAlignments.o: TagAlignments.cpp TagAlignments.h
@@ -130,5 +136,7 @@ samtools/sam.o:
 
 # CLEAN:
 clean:
-	rm samtools/*.o asa103/*.o *.o $(PROGRAMS)
+	rm asa103/*.o *.o $(PROGRAMS)
 
+clean-all:
+	rm samtools/*.o asa103/*.o *.o $(PROGRAMS)

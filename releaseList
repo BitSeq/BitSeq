@@ -24,6 +24,7 @@ lowess.cpp
 lowess.h
 misc.cpp
 misc.h
+MyTimer.cpp
 MyTimer.h
 parseAlignment.cpp
 PosteriorSamples.cpp

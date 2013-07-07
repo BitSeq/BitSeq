@@ -97,7 +97,6 @@ string toLower(string str){//{{{
 } // namespace ns_misc
 
 namespace ns_genes {
-
 bool getLog(const ArgumentParser &args){// {{{
    if(args.flag("log")){
       if(args.verb())message("Using logged values.\n");
@@ -118,10 +117,77 @@ bool prepareInput(const ArgumentParser &args, TranscriptInfo *trInfo, PosteriorS
       error("Main: Number of transcripts in the info file and samples file are different: %ld vs %ld\n",trInfo->getM(),*M);
       return false;
    }
-   if(args.verb())message("Genes: %ld\nTranscripts: %ld\n",*G,*M);
+   if(args.verb())messageF("Transcripts: %ld\n",*M);
    return true;
 }// }}}
 
+bool updateGenes(const ArgumentParser &args, TranscriptInfo *trInfo, long *G){//{{{
+   if(!(args.isSet("trMapFile") || args.isSet("geneListFile")))return true;
+   if(args.isSet("trMapFile") && args.isSet("geneListFile")){
+      error("Main: Please provide only one of trMapFile and geneListFile, both serve the same function.\n");
+      return false;
+   }
+   bool isMap;
+   ifstream mapFile;
+   if(args.isSet("trMapFile")){
+      isMap = true;
+      mapFile.open(args.getS("trMapFile").c_str());
+   }else {
+      isMap = false;
+      mapFile.open(args.getS("geneListFile").c_str());
+   }
+   if(!mapFile.is_open()){
+      if(isMap){
+         error("Main: Failed reading file with transcript to gene mapping.\n");
+      }else{
+         error("Main: Failed reading file with gene names.\n");
+      }
+      return false;
+   }
+   map<string,string> trMap;
+   vector<string> geneList;
+   string trName,geName;
+   while(mapFile.good()){
+      while(mapFile.good() && (mapFile.peek()=='#'))
+         mapFile.ignore(100000000,'\n');
+      if(!mapFile.good()) break;
+      mapFile>>geName;
+      if(isMap){
+         mapFile>>trName;
+      }
+      if(!mapFile.fail()){
+         if(isMap){
+            trMap[trName]=geName;
+         }else{
+            geneList.push_back(geName);
+         }
+      }
+      mapFile.ignore(100000000,'\n');
+   }
+   mapFile.close();
+   bool succ;
+   if(isMap)succ = trInfo->updateGeneNames(trMap);
+   else succ = trInfo->updateGeneNames(geneList);
+   if(!succ){
+      error("Main: Filed setting gene information.\n");
+      return false;
+   }
+   *G = trInfo->getG();
+   return true;
+}//}}}
+
+bool checkGeneCount(long G, long M){//{{{
+   if((G != 1) && (G != M)) return true;
+   if(G==1){
+      error("Main: All transcripts share just one gene.\n");
+   }else{
+      error("Main: There are no transcripts sharing one gene.\n");
+   }
+   message("Please provide valid transcript to gene mapping (trMapFile or geneListFile).\n"
+           "   (trMap file should contain rows in format: <geneName> <transcriptName>.)\n"
+           "   (geneList file should contain rows with gene names, one per transcript.)\n");
+   return false;
+}//}}}
 } // namespace ns_genes
 
 namespace ns_params {
