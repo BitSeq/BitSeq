@@ -57,14 +57,17 @@ def checkFile(fileName):
    else:
       print("These",len(genesWrong),"( out of",len(genesSeen),") have wrong GENE EXPRESSION results:")
       trCount = 0;
+      genesStr = "";
       for it in genesWrong:
-         print(it, end=' ')
+         genesStr += it+" ";
          trCount+=len(g2ts[it]);
-      print("\nThese:",trCount,"transcripts have wrong WITHIN GENE EXPRESSION results:");
+      print(genesStr);
+      print("These:",trCount,"transcripts have wrong WITHIN GENE EXPRESSION results:");
+      trsStr = "";
       for it in genesWrong:
          for trit in g2ts[it]:
-            print(trit, end=' ')
-      print() ;
+            trsStr += trit+" ";
+      print(trsStr)
 
 if __name__ == "__main__":
    if len(sys.argv) <2:
