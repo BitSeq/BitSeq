@@ -618,7 +618,7 @@ double ReadDistribution::getSeqBias(long pos, readT read, long tid) const{ //{{{
    return B;
 }//}}}
 inline char ReadDistribution::getBase(long pos, const string &fSeq) const{ //{{{
-   if((pos<0)||(pos>=(long)fSeq.length()))return 'N';
+   if((pos<0)||(pos>=(long)fSeq.size()))return 'N';
    return fSeq[pos];
 }//}}}
 double ReadDistribution::getSeqBias(long pos, readT read, const string &fSeq) const{ //{{{
@@ -660,7 +660,7 @@ double ReadDistribution::getWeightNorm(long len, readT read, long tid){ //{{{
       const string &trS = trSeq->getTr(tid);
       string trRS = trS;
       reverse(trRS.begin(),trRS.end());
-      for(size_t i=0;i<trRS.length();i++)trRS[i] = complementBase(trRS[i]);
+      for(size_t i=0;i<trRS.size();i++)trRS[i] = complementBase(trRS[i]);
       long trLen = trInf->L(tid),pos;
       double norm = 0,w;
       #pragma omp parallel for \
@@ -782,8 +782,8 @@ vector<double> ReadDistribution::getEffectiveLengths(){ //{{{
       }else{
          DEBUG(message("Copy sequence.\n"));
          const string &trFS = trSeq->getTr(m);
-         trRS.resize(trFS.length());
-         for(size_t i=0;i<trRS.length();i++)trRS[i] = complementBase(trFS[trFS.length() - i - 1]);
+         trRS.resize(trFS.size());
+         for(size_t i=0;i<trRS.size();i++)trRS[i] = complementBase(trFS[trFS.size() - i - 1]);
          posBias5.resize(trLen);
          posBias3.resize(trLen);
          DEBUG(message("Precomputing posBias.\n"));

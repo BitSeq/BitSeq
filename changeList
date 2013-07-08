@@ -1,4 +1,10 @@
-0.5.4:
+0.6.1:
+Improvements:
+
+Bug fixes:
+- adding -lpthread option for parseAlignment compilation, so that samtools links even without -fopenmp
+
+0.6.0:
 Improvements:
 - thetaMeans contains variance of theta
 - proper handling of bad alignments
