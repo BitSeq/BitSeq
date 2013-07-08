@@ -1,6 +1,8 @@
 #include<algorithm>
 #include<cmath>
+#ifdef _OPENMP
 #include<omp.h>
+#endif
 
 #include "common.h"
 #include "misc.h"
@@ -757,7 +759,7 @@ vector<double> ReadDistribution::getEffectiveLengths(){ //{{{
       if(verbose && (m!=0) && (m%(M/10)==0)){
          #pragma omp critical
          {
-            message("# %ld done(%d). ",m,omp_get_thread_num());
+            message("# %ld done. ",m);
             timer.current();
          }
       }

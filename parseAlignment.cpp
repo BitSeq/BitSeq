@@ -1,6 +1,8 @@
 // DECLARATIONS: {{{
 #include<cmath>
+#ifdef _OPENMP
 #include<omp.h>
+#endif
 #include<set>
 
 using namespace std;
