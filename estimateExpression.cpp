@@ -1,4 +1,5 @@
 #include<algorithm>
+#include<ctime>
 #include<cmath>
 #ifdef _OPENMP
 #include<omp.h>

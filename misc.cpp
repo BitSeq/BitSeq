@@ -1,7 +1,9 @@
 #include "misc.h"
 #include <algorithm>
-#include <cmath>
 #include <ctime>
+#include <cmath>
+
+#include "misc.h"
 
 #include "common.h"
 #include "FileHeader.h"
