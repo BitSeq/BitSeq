@@ -5,6 +5,8 @@
 #include "TranscriptSequence.h"
 
 #include "common.h"
+#include "misc.h"
+
 
 // Number of times we randomly probe for old cache record.
 // CR: #define WORST_SEARCH_N 10
@@ -16,11 +18,11 @@ TranscriptSequence::TranscriptSequence(){//{{{
    gotGeneNames=false;
    // CR: useCounter = 0;
 }//}}}
-TranscriptSequence::TranscriptSequence(string fileName){//{{{
+TranscriptSequence::TranscriptSequence(string fileName, refFormatT format){//{{{
    TranscriptSequence();
-   readSequence(fileName);
+   readSequence(fileName,format);
 }//}}}
-bool TranscriptSequence::readSequence(string fileName){//{{{
+bool TranscriptSequence::readSequence(string fileName, refFormatT format){//{{{
    fastaF.open(fileName.c_str());
    if(!fastaF.is_open()){
       error("TranscriptSequence: problem reading transcript file.\n");
@@ -39,15 +41,27 @@ bool TranscriptSequence::readSequence(string fileName){//{{{
       if(! fastaF.good())break;
       // Read description line:
       getline(fastaF, trDesc, '\n');
-      // look for gene name:
-      pos=min(trDesc.find("gene:"),trDesc.find("gene="));
-      if(pos!=(long)string::npos){
-         geneDesc.clear();
-         geneDesc.str(trDesc.substr(pos+5));
-         geneDesc >> geneName;
-         geneNames.push_back(geneName);
-      }else{
-         gotGeneNames = false;
+      // look for gene name if previous lines had gene name:
+      if(gotGeneNames){
+         if(format == GENCODE){
+            vector<string> lineTokens = ns_misc::tokenize(trDesc);
+            if(lineTokens.size()>1){
+               geneName = lineTokens[1];
+               geneNames.push_back(geneName);
+            }else{
+               gotGeneNames = false;
+            }
+         }else{ // format == STANDARD
+            pos=min(trDesc.find("gene:"),trDesc.find("gene="));
+            if(pos!=(long)string::npos){
+               geneDesc.clear();
+               geneDesc.str(trDesc.substr(pos+5));
+               geneDesc >> geneName;
+               geneNames.push_back(geneName);
+            }else{
+               gotGeneNames = false;
+            }
+         }
       }
       // remember position:
       newTr.seek=fastaF.tellg();

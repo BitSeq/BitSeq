@@ -24,7 +24,6 @@ class FileHeader {
    bool readValues(ofstream *outF = NULL);
 
    void skipEmptyLines();
-   static vector<string> tokenizer(const string &input,const string &space = " ");
  public:
    FileHeader(ifstream *f = NULL) {
       file = f;

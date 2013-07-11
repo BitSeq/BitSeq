@@ -91,7 +91,7 @@ ArgumentParser.o: ArgumentParser.cpp ArgumentParser.h
 CollapsedSampler.o: CollapsedSampler.cpp CollapsedSampler.h GibbsParameters.h Sampler.h
 	$(CXX) $(CXXFLAGS) $(BOOSTFLAGS) -c CollapsedSampler.cpp
 
-FileHeader.o: common.h FileHeader.cpp FileHeader.h
+FileHeader.o: common.h misc.h FileHeader.cpp FileHeader.h
 	$(CXX) $(CXXFLAGS) $(BOOSTFLAGS) -ffunction-sections -fdata-sections -c FileHeader.cpp
 
 GibbsSampler.o: GibbsSampler.cpp GibbsSampler.h GibbsParameters.h Sampler.h

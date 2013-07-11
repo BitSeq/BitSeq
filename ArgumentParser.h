@@ -26,7 +26,7 @@ class ArgumentParser{
       vector<string> compulsory;
       long minimumArguments;
 
-      bool existsOption(const string &name) const;
+      bool existsOption(const string &name, bool warn = false) const;
       bool existsName(const string &name) const;
       template <typename valueType>
       void appendDescription(string *desc,valueType defValue);
@@ -83,6 +83,8 @@ class ArgumentParser{
       bool isSet(const string &name) const;
       // Return value of string option <name>.
       string getS(const string &name) const;
+      // Return value of string option <name> in lower case.
+      string getLowerS(const string &name) const;
       // Return value of integer option <name>.
       long getL(const string &name) const;
       // Return value of double option <name>.

@@ -21,6 +21,8 @@ struct trSeqInfoT{
 // CR: uint_least64_t lastUse;
 };
 
+enum refFormatT { STANDARD, GENCODE };
+
 /*
 TranscriptSequence class manages fasta file with transcript sequence.
 // CR: Only up to TRS_CACHE_MAX transcripts are "cached" at a time.
@@ -53,9 +55,9 @@ class TranscriptSequence{
    public:
       TranscriptSequence();
       // Initialize class and cass readSequence(fileName).
-      TranscriptSequence(string fileName);
+      TranscriptSequence(string fileName, refFormatT format = STANDARD);
       // Process input file fileName and record beginning of each transcript.
-      bool readSequence(string fileName);
+      bool readSequence(string fileName, refFormatT format = STANDARD);
       // Return number of transcripts.
       long getM() const{ return M; }
       // Return number of gene names.

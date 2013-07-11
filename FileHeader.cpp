@@ -2,6 +2,7 @@
 
 #include "FileHeader.h"
 #include "common.h"
+#include "misc.h"
 
 using namespace ns_fileHeader;
 
@@ -12,24 +13,6 @@ void FileHeader::skipEmptyLines() {//{{{
           (file->peek() == '\n')))
       file->get();
 }//}}}
-
-// static
-vector<string> FileHeader::tokenizer(const string &input,const string &space){//{{{
-   vector<string> ret;
-   long pos=0,f=0,n=input.size();
-   while((pos<n)&&(f<n)&&(f>=0)){
-      f=input.find(space,pos);
-      if(f==pos)pos++;
-      else{
-         if((f<n)&&(f>=0)){
-            ret.push_back(input.substr(pos,f-pos));
-            pos=f+1;
-         }
-      }
-   }
-   if(pos<n)ret.push_back(input.substr(pos,n-pos));
-   return ret;
-} //}}}
 
 bool FileHeader::readValues(ofstream *outF){//{{{
    if((file==NULL)||(!file->is_open())){
@@ -48,7 +31,7 @@ bool FileHeader::readValues(ofstream *outF){//{{{
       if(outF!=NULL)(*outF)<<line<<endl;
       skipEmptyLines();
       // Tokenize line into words.
-      words = tokenizer(line);
+      words = ns_misc::tokenize(line);
       // Store words as flags. Start with 1st word as the 0th one are hashes.
       // If word is followed by a numeric value, use it as a value for the flag.
       for(long i=1;i<(long)words.size();i++){

@@ -4,6 +4,7 @@
 #include<sstream>
 
 #include "common.h"
+#include "misc.h"
 
 #define FF first
 #define SS second
@@ -29,29 +30,34 @@ vector <double> tokenizeD(const string &input,const string &space = ","){//{{{
 
 // GET {{{
 string ArgumentParser::getS(const string &name) const{
-   if(!existsOption(name))error("ArgumentParser: argument name %s unknown.\n",name.c_str());
+   if(!existsOption(name,true))return "";
    if(mapS.find(name)!=mapS.end())
       return mapS.find(name)->second;
    return "";
 }
+string ArgumentParser::getLowerS(const string &name) const{
+   if(!existsOption(name,true))return "";
+   if(mapS.find(name)!=mapS.end())
+      return ns_misc::toLower(mapS.find(name)->second);
+   return "";
+}
 long ArgumentParser::getL(const string &name) const{
-   if(!existsOption(name))error("ArgumentParser: argument name %s unknown.\n",(name).c_str());
+   if(!existsOption(name,true))return -1;
    if(mapL.find(name)!=mapL.end())
       return mapL.find(name)->second;
    return -1;
 }
 double ArgumentParser::getD(const string &name) const{
-   if(!existsOption(name))error("ArgumentParser: argument name %s unknown.\n",(name).c_str());
+   if(!existsOption(name,true))return -1;
    if(mapD.find(name)!=mapD.end())
       return mapD.find(name)->second;
    return -1;
 }
 bool ArgumentParser::flag(const string &name) const {
-   if(!existsOption(name))error("ArgumentParser: argument name %s unknown.\n",(name).c_str());
    return isSet(name);
 }
 vector<double> ArgumentParser::getTokenizedS2D(const string &name) const{
-   if(!existsOption(name))error("ArgumentParser: argument name %s unknown.\n",name.c_str());
+   if(!existsOption(name,true))return vector<double>();
    if(mapS.find(name)!=mapS.end())
       return tokenizeD(mapS.find(name)->second);
    return vector<double>();
@@ -272,7 +278,7 @@ void ArgumentParser::usage(){//{{{
    }
 }//}}}
 bool ArgumentParser::isSet(const string &name) const {//{{{
-   if(! existsOption(name))return false;
+   if(! existsOption(name,true))return false;
    switch(validOptions.find(name)->second.type){
       case OTSTRING:
          if(mapS.find(name)==mapS.end())return false;
@@ -293,7 +299,8 @@ bool ArgumentParser::existsName(const string &name) const {//{{{
    if(names.find(name)==names.end())return false;
    return true;
 }//}}}
-bool ArgumentParser::existsOption(const string &name) const {//{{{
-   if(validOptions.find(name)==validOptions.end())return false;
-   return true;
+bool ArgumentParser::existsOption(const string &name, bool warn) const {//{{{
+   if(validOptions.find(name)!=validOptions.end())return true;
+   if(warn)error("ArgumentParser: argument name %s unknown.\n",(name).c_str());
+   return false;
 }//}}}

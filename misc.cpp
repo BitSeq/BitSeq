@@ -96,6 +96,23 @@ string toLower(string str){//{{{
       if((str[i]>='A')&&(str[i]<='Z'))str[i]=str[i]-'A'+'a';
    return str;
 }//}}}
+
+vector<string> tokenize(const string &input,const string &space){//{{{
+   vector<string> ret;
+   long pos=0,f=0,n=input.size();
+   while((pos<n)&&(f<n)&&(f>=0)){
+      f=input.find(space,pos);
+      if(f==pos)pos++;
+      else{
+         if((f<n)&&(f>=0)){
+            ret.push_back(input.substr(pos,f-pos));
+            pos=f+1;
+         }
+      }
+   }
+   if(pos<n)ret.push_back(input.substr(pos,n-pos));
+   return ret;
+} //}}}
 } // namespace ns_misc
 
 namespace ns_genes {

@@ -76,6 +76,7 @@ string programDescription =
    args.addOptionS("f","format","format",0,"Input format: either SAM, BAM.");
    args.addOptionS("t","trInfoFile","trInfoFileName",0,"If transcript(reference sequence) information is contained within SAM file, program will write this information into <trInfoFile>, otherwise it will look for this information in <trInfoFile>.");
    args.addOptionS("s","trSeqFile","trSeqFileName",1,"Transcript sequence in FASTA format --- for non-uniform read distribution estimation.");
+   args.addOptionS("s","trSeqHeader","trSeqHeader",1,"Transcript sequence header format enables gene name extraction (standard/gencode).","standard");
    args.addOptionS("e","expressionFile","expFileName",0,"Transcript relative expression estimates --- for better non-uniform read distribution estimation.");
    args.addOptionL("N","readsN","readsN",0,"Total number of reads. This is not necessary if [SB]AM contains also reads with no valid alignments.");
    args.addOptionS("","failed","failed",0,"File name where to save names of reads that failed to align as pair.");
@@ -100,7 +101,11 @@ string programDescription =
    if(args.verbose)message("Initializing fasta sequence reader.\n");
    // Initialize fasta sequence reader.
    trSeq = new TranscriptSequence();
-   trSeq->readSequence(args.getS("trSeqFileName")); 
+   if(args.getLowerS("trSeqHeader") == "gencode"){
+      trSeq->readSequence(args.getS("trSeqFileName"), GENCODE); 
+   }else{
+      trSeq->readSequence(args.getS("trSeqFileName"), STANDARD); 
+   }
    // Check numbers for transcripts match.
    if(trSeq->getM() != M){
       error("Main: Number of transcripts in the alignment file and the sequence file are different: %ld vs %ld\n",M,trSeq->getM());
@@ -437,7 +442,7 @@ bool readNextFragment(samfile_t* samData, fragmentP &cur, fragmentP &next){//{{{
 
 bool setInputFormat(const ArgumentParser &args, string *format){//{{{
    if(args.isSet("format")){
-      *format = ns_misc::toLower(args.getS("format"));
+      *format = args.getLowerS("format");
       if((*format =="sam")||(*format == "bam")){
          return true;
       }

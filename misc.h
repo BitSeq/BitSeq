@@ -44,6 +44,9 @@ void computeCI(double cf, vector<double> *difs, double *ciLow, double *ciHigh);
 
 // Convert string into lower case.
 string toLower(string str);
+
+// Tokenize string into vector of strings based on separator.
+vector<string> tokenize(const string &input,const string &space = " ");
 }
 
 namespace ns_genes {

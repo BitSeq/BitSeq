@@ -16,7 +16,7 @@ using namespace std;
 
 #define Sof(x) (long)x.size()
 
-vector <long> tokenizer(const string &input,const string &space = " "){//{{{
+vector <long> tokenizeL(const string &input,const string &space = " "){//{{{
    vector <long> ret;
    long pos=0,f=0,n=input.size();
    while((pos<n)&&(f<n)&&(f>=0)){
@@ -58,7 +58,7 @@ int main(int argc,char* argv[]){
    C=samples.getRN();
    if(args.isSet("list")){
       // Process transcripts list:
-      trList = tokenizer(args.getS("list"),",");
+      trList = tokenizeL(args.getS("list"),",");
       sort(trList.begin(),trList.end());
       // Erase invalid and duplicate IDs
       for(i=0;i<Sof(trList);i++){
