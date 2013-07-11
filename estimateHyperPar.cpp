@@ -78,7 +78,7 @@ string programDescription =
       trExp.readExpression(args.getS("meanFileName"), MEAN_VARIANCE);
       // Force user to use logged mean and samples.
       if(!trExp.isLogged()){
-         error("Main: Please compute the expression mean from logged samples (getVariance --log ...).");
+         error("Main: Please compute the expression mean from logged samples (getVariance --log ...).\n");
          return 1;
       }
       M = trExp.getM();

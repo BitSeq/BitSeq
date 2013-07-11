@@ -11,8 +11,7 @@ using namespace std;
 #include "PosteriorSamples.h"
 #include "ArgumentParser.h"
 #include "common.h"
-
-#define LOG_ZERO -1000
+#include "misc.h"
 
 extern "C" int getVariance(int *argc,char* argv[]){
    string programDescription=
@@ -26,9 +25,7 @@ extern "C" int getVariance(int *argc,char* argv[]){
    args.addOptionS("","norm","normalization",0,"Normalization constants for each input file provided as comma separated list of doubles (e.g. 1.0017,1.0,0.9999 ).");
    if(!args.parse(*argc,argv)){return 0;}
    if(args.verbose)buildTime(argv[0],__DATE__,__TIME__);
-   bool doLog=args.flag("log");
-   if(doLog){ if(args.verbose)message("Using logged values.\n");}
-   else{ if(args.verbose)message("NOT using logged values.\n");}
+   bool doLog=args.flag("log"),logged=false;
    // }}}
    
    long i,j,r,N,RN,M=0;
@@ -38,9 +35,21 @@ extern "C" int getVariance(int *argc,char* argv[]){
       error("Main: Failed loading MCMC samples.\n");
       return 1;
    }
+   if(doLog){ 
+      logged = true;
+      if(cond.logged()){
+         doLog=false;
+         if(args.verbose)message("Samples are already logged, computing mean.\n");
+      }else{
+         if(args.verbose)message("Using logged values.\n");
+      }
+   }else{
+      if(args.verbose)message("NOT using logged values.\n");
+      if(cond.logged())logged=true;
+   }
    if(args.isSet("normalization")){
       if(! cond.setNorm(args.getTokenizedS2D("normalization"))){
-         error("Main: Appying normalization constants failed.\n");
+         error("Main: Applying normalization constants failed.\n");
          return 1;
       }
    }
@@ -73,7 +82,7 @@ extern "C" int getVariance(int *argc,char* argv[]){
             if(cond.getTranscript(r,j,tr,N/RN)){
                for(i=0;i<N/RN;i++){
                   if(doLog){
-                     tr[i]=tr[i]<=0?LOG_ZERO:log(tr[i]);
+                     tr[i]=tr[i]<=0?ns_misc::LOG_ZERO:log(tr[i]);
                   }
                   m+=tr[i];
                   mSq += tr[i]*tr[i];
@@ -120,8 +129,8 @@ extern "C" int getVariance(int *argc,char* argv[]){
          if(good){
             for(i=0;i<N/2;i++){
                if(doLog){
-                  tr[i]=log(tr[i]);
-                  tr2[i]=log(tr2[i]);
+                  tr[i]=tr[i]<=0?ns_misc::LOG_ZERO:log(tr[i]);
+                  tr2[i]=tr2[i]<=0?ns_misc::LOG_ZERO:log(tr2[i]);
                }
                m+=tr[i]+tr2[i];
                sqDif+=(tr[i]-tr2[i])*(tr[i]-tr2[i]);
@@ -137,7 +146,7 @@ extern "C" int getVariance(int *argc,char* argv[]){
    outFile<<"# files: ";
    for(r=0;r<RN;r++)outFile<<args.args()[r]<<" ";
    outFile<<endl;
-   if(doLog)outFile<<"# L -> values logged"<<endl;
+   if(logged)outFile<<"# L -> values logged"<<endl;
    outFile<<"# M "<<M<<endl;
    (outFile<<scientific).precision(9);
    for(i=0;i<M;i++){
