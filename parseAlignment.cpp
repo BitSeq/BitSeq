@@ -76,7 +76,7 @@ string programDescription =
    args.addOptionS("f","format","format",0,"Input format: either SAM, BAM.");
    args.addOptionS("t","trInfoFile","trInfoFileName",0,"If transcript(reference sequence) information is contained within SAM file, program will write this information into <trInfoFile>, otherwise it will look for this information in <trInfoFile>.");
    args.addOptionS("s","trSeqFile","trSeqFileName",1,"Transcript sequence in FASTA format --- for non-uniform read distribution estimation.");
-   args.addOptionS("s","trSeqHeader","trSeqHeader",1,"Transcript sequence header format enables gene name extraction (standard/gencode).","standard");
+   args.addOptionS("","trSeqHeader","trSeqHeader",1,"Transcript sequence header format enables gene name extraction (standard/gencode).","standard");
    args.addOptionS("e","expressionFile","expFileName",0,"Transcript relative expression estimates --- for better non-uniform read distribution estimation.");
    args.addOptionL("N","readsN","readsN",0,"Total number of reads. This is not necessary if [SB]AM contains also reads with no valid alignments.");
    args.addOptionS("","failed","failed",0,"File name where to save names of reads that failed to align as pair.");
@@ -129,6 +129,13 @@ string programDescription =
          if(trInfo->getG() != trSeq->getG()){
             warning("Main: Different number of genes detected in transcript information and sequence file (%ld %ld).\n   You might want to check your data.\n", trInfo->getG(), trSeq->getG());
          }
+      }
+   }
+   // If format is GENCODE and transcript names were extracted, update.
+   if((args.getLowerS("trSeqHeader") == "gencode")&&(trSeq->hasTrNames())){
+      if(args.flag("veryVerbose"))message("Updating transcript names.\n");
+      if(!trInfo->updateTrNames(trSeq->getTrNames())){
+         if(args.flag("veryVerbose"))warning("Transcript names update failed.\n");
       }
    }
    if(!args.flag("uniform")){

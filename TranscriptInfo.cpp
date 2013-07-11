@@ -1,4 +1,5 @@
 #include<fstream>
+#include<set>
 
 #include "common.h"
 #include"TranscriptInfo.h"
@@ -209,6 +210,16 @@ vector<double> *TranscriptInfo::getShiftedLengths(bool effective) const{//{{{
       else (*Ls)[i+1] = transcripts[i].l;
    }
    return Ls;
+}//}}}
+bool TranscriptInfo::updateTrNames(const vector<string> &trList){//{{{
+   if((long)trList.size() != M)return false;
+   // Check uniqueness of new names.
+   set<string> trSet(trList.begin(),trList.end());
+   if((long)trSet.size() != M)return false;
+   for(long i=0;i<M;i++){
+      transcripts[i].t = trList[i];
+   }
+   return true;
 }//}}}
 bool TranscriptInfo::updateGeneNames(const vector<string> &geneList){//{{{
    if((long)geneList.size() != M){

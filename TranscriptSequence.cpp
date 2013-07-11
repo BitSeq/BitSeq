@@ -1,5 +1,6 @@
 #include<algorithm>
 #include<fstream>
+#include<set>
 #include<sstream>
 
 #include "TranscriptSequence.h"
@@ -34,7 +35,11 @@ bool TranscriptSequence::readSequence(string fileName, refFormatT format){//{{{
    string trDesc,geneName;
    long pos;
    istringstream geneDesc;
+   trNames.clear();
+   geneNames.clear();
    gotGeneNames = true;
+   // Record trNames only from gencode ref.
+   gotTrNames = (format == GENCODE);
    while(fastaF.good()){
       while((fastaF.peek()!='>')&&(fastaF.good()))
          fastaF.ignore(1000,'\n');
@@ -46,10 +51,11 @@ bool TranscriptSequence::readSequence(string fileName, refFormatT format){//{{{
          if(format == GENCODE){
             vector<string> lineTokens = ns_misc::tokenize(trDesc);
             if(lineTokens.size()>1){
-               geneName = lineTokens[1];
-               geneNames.push_back(geneName);
+               geneNames.push_back(lineTokens[1]);
+               trNames.push_back(lineTokens[0].substr(1));
             }else{
                gotGeneNames = false;
+               gotTrNames = false;
             }
          }else{ // format == STANDARD
             pos=min(trDesc.find("gene:"),trDesc.find("gene="));
@@ -99,6 +105,10 @@ bool TranscriptSequence::loadSequence(){//{{{
       fastaF.clear();
    }
    return true;
+}//}}}
+long TranscriptSequence::getG() const{//{{{
+   if(!gotGeneNames)return 0;
+   return (set<string>(geneNames.begin(),geneNames.end())).size();
 }//}}}
 const string &TranscriptSequence::getTr(long tr) const{//{{{
    if((tr<0)||(tr>=M))return noneTr;

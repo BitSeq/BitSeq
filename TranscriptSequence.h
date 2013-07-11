@@ -32,8 +32,10 @@ class TranscriptSequence{
       // Total number of transcripts and number of cached transcripts.
       long M,cM;
       // Flag indicating whether it was possible to obtain gene names from the reference file.
-      bool gotGeneNames;
-      // Gene names for each transcript. (Note - it's not transcript name)
+      bool gotGeneNames,gotTrNames;
+      // Transcript names.
+      vector<string> trNames;
+      // Gene names for each transcript.
       vector<string> geneNames;
       // Transcript cache information: seek position, use and cache position.
       vector<trSeqInfoT> trs;
@@ -60,17 +62,21 @@ class TranscriptSequence{
       bool readSequence(string fileName, refFormatT format = STANDARD);
       // Return number of transcripts.
       long getM() const{ return M; }
-      // Return number of gene names.
-      long getG() const{ return geneNames.size(); }
+      // Return number of UNIQUE gene names.
+      long getG() const;
       // Return pointer to the transcript sequence. The reference is not persistent.
       // NULL for unknown transcript.
       const string &getTr(long tr) const;
       // Return sequence from transcript <tr> starting from <start> of length <l>.
       string getSeq(long trI, long start, long l,bool doReverse = false) const; 
+      // Reports whether transcript names were extracted from the sequence file.
+      bool hasTrNames() const{ return gotTrNames; }
       // Reports whether gene names were extracted from the sequence file.
       bool hasGeneNames() const{ return gotGeneNames; }
-      // Return pointer to vector containing the geneNames.
+      // Return reference to const vector containing the geneNames.
       const vector<string> &getGeneNames() const{ return geneNames; }
+      // Return reference to const vector of transcript names.
+      const vector<string> &getTrNames() const{ return trNames; }
 };
 
 #endif

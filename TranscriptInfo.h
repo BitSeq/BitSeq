@@ -63,6 +63,8 @@ class TranscriptInfo{
       void setEffectiveLength(vector<double> effL);
       // Return pointer to a vector of lengths with transcript IDs starting from 1.
       vector<double> *getShiftedLengths(bool effective = false) const;
+      // Update transcript names with new names from the list.
+      bool updateTrNames(const vector<string> &trList);
       // Sets gene names to transcripts and calls setGeneInfo to initialize gene information.
       bool updateGeneNames(const vector<string> &geneList);
       bool updateGeneNames(const map<string,string> &trGeneList);
