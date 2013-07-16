@@ -151,7 +151,6 @@ int main(int argc,char* argv[]){
    }
    if(!((action=="NORM")||(action=="LOGNORM"))){
       if(trans){
-         message("TRANS.\n");
          for(j=0;j<M;j++){
             for(i=0;i<N-1;i++){
                inFile>>sample;
@@ -161,7 +160,6 @@ int main(int argc,char* argv[]){
             outFile<<comp(sample,normC,trInfo.effL(j))<<endl;
          }
       }else{
-         message("NO TRANS.\n");
          for(i=0;i<N;i++){
             for(j=0;j<M-1;j++){
                inFile>>sample;
