@@ -125,11 +125,11 @@ string programDescription =
    if(args.verbose)buildTime(argv[0],__DATE__,__TIME__);
    OPT_TYPE optM;
    if(args.isSet("optMethod")){
-      if((args.getS("optMethod")=="steepest")||
-         (args.getS("optMethod")=="VBEM"))optM = OPTT_STEEPEST;
-      else if(args.getS("optMethod")=="PR")optM = OPTT_PR;
-      else if(args.getS("optMethod")=="FR")optM = OPTT_FR;
-      else if(args.getS("optMethod")=="HS")optM = OPTT_HS;
+      if((args.getLowerS("optMethod")=="steepest")||
+         (args.getLowerS("optMethod")=="vbem"))optM = OPTT_STEEPEST;
+      else if(args.getLowerS("optMethod")=="pr")optM = OPTT_PR;
+      else if(args.getLowerS("optMethod")=="fr")optM = OPTT_FR;
+      else if(args.getLowerS("optMethod")=="hs")optM = OPTT_HS;
       else optM = OPTT_FR;
    }else  optM = OPTT_FR;
    args.updateS("outputType", ns_expression::getOutputType(args, "theta"));
