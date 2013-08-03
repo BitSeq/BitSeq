@@ -54,6 +54,8 @@ inline void mapAdd(map<long,double > &m, long key, double val){//{{{
 }//}}}
 } // namespace ns_rD
 
+using namespace ns_rD;
+
 ReadDistribution::ReadDistribution(){ //{{{
    M=0;
    uniform = lengthSet = gotExpression = normalized = validLength = false;
@@ -70,7 +72,7 @@ ReadDistribution::ReadDistribution(){ //{{{
       lProbMis[i] = - i / 10.0 * log(10.0);
       lProbHit[i] = log1p(-exp(lProbMis[i]));
    }
-   ns_rD::fillTable();
+   fillTable();
 }//}}}
 void ReadDistribution::writeWarnings() {//{{{
    if(warnPos>0){
@@ -87,7 +89,7 @@ void ReadDistribution::writeWarnings() {//{{{
    }
    warnPos = warnTIDmismatch = warnUnknownTID = noteFirstMateDown = 0;
 }//}}}
-bool ReadDistribution::init(long m, TranscriptInfo* trI, TranscriptSequence* trS, TranscriptExpression* trE, bool verb){ //{{{
+bool ReadDistribution::init(long m, TranscriptInfo* trI, TranscriptSequence* trS, TranscriptExpression* trE, bool unstranded, bool verb){ //{{{
    M = m;
    verbose = verb;
    if(trI==NULL){
@@ -99,6 +101,7 @@ bool ReadDistribution::init(long m, TranscriptInfo* trI, TranscriptSequence* trS
       return false;
    }
    uniform = false;
+   this->unstranded = unstranded;
    trInf=trI;
    trSeq=trS;
    trExp=trE;
@@ -211,21 +214,21 @@ bool ReadDistribution::observed(fragmentP frag){ //{{{
          // this is assumed also in getP(...);
          updateSeqBias(frag_first_endPos, readM_5, tid, Iexp);
          // update sum of expression of  fragments of given length
-         ns_rD::mapAdd(trFragSeen5[tid], (long)len, Iexp);
+         mapAdd(trFragSeen5[tid], (long)len, Iexp);
       }else{
          // Sense strand of transcript is 3'end of fragment
          updatePosBias( frag->first->core.pos, readM_3, tid, Iexp);
          updateSeqBias( frag->first->core.pos, readM_3, tid, Iexp);
-         ns_rD::mapAdd(trFragSeen3[tid], (long)len, Iexp);
+         mapAdd(trFragSeen3[tid], (long)len, Iexp);
       }
    }else{
       updatePosBias( frag->first->core.pos, readM_3, tid, Iexp);
       updateSeqBias( frag->first->core.pos, readM_3, tid, Iexp);
-      ns_rD::mapAdd(trFragSeen3[tid], (long)len, Iexp);
+      mapAdd(trFragSeen3[tid], (long)len, Iexp);
          
       updatePosBias( frag_second_endPos, readM_5, tid, Iexp);
       updateSeqBias( frag_second_endPos, readM_5, tid, Iexp);
-      ns_rD::mapAdd(trFragSeen5[tid], (long)len, Iexp);
+      mapAdd(trFragSeen5[tid], (long)len, Iexp);
    }
    return true;
 }//}}}
@@ -259,7 +262,7 @@ void ReadDistribution::normalize(){ //{{{
    // set Uniform position position bias: //{{{
    if(verbose)message("ReadDistribution: Computing uniform positional bias.\n");
    for(m=0;m<M;m++){
-      if(verbose)ns_rD::progressLogRD(m,M);
+      if(verbose)progressLogRD(m,M);
       trLen = trInf->L(m);
       if(trLen<trNumberOfBins)continue;
       //message(" %ld %ld %ld\n",m,trLen,trFragSeen[m].size());
@@ -315,7 +318,7 @@ void ReadDistribution::normalize(){ //{{{
    map<long,double>::reverse_iterator mItR;
    long p;
    for(m=0;m<M;m++){
-      if(verbose)ns_rD::progressLogRD(m,M);
+      if(verbose)progressLogRD(m,M);
       trLen = trInf->L(m);
       IexpSum3=0;
       for(mIt=trFragSeen3[m].begin();mIt!= trFragSeen3[m].end();mIt++)
@@ -405,8 +408,8 @@ pair<double,double> ReadDistribution::getSequenceLProb(bam1_t *samA) const{//{{{
          case BAM_CMATCH:
          case BAM_CEQUAL:
          case BAM_CDIFF:
-            if((ns_rD::base2int(seq[i]) == -1)||
-               (ns_rD::base2int(seq[i]) != ns_rD::bamBase2int(bam1_seqi(bam1_seq(samA),j))))misses--;
+            if((base2int(seq[i]) == -1)||
+               (base2int(seq[i]) != bamBase2int(bam1_seqi(bam1_seq(samA),j))))misses--;
             i++;
             j++;
       }
@@ -433,7 +436,7 @@ pair<double,double> ReadDistribution::getSequenceLProb(bam1_t *samA) const{//{{{
          case BAM_CEQUAL:
          case BAM_CDIFF:*/
       }
-      if((ns_rD::base2int(seq[i]) == -1)||(ns_rD::base2int(seq[i]) != ns_rD::bamBase2int(bam1_seqi(bam1_seq(samA),j)))){
+      if((base2int(seq[i]) == -1)||(base2int(seq[i]) != bamBase2int(bam1_seqi(bam1_seq(samA),j)))){
          // If bases don't match, multiply probability by probability of error.
          lProb += lProbMis[qualP[j]];
          lowLProb += lProbMis[qualP[j]];
@@ -828,10 +831,10 @@ vector<double> ReadDistribution::getEffectiveLengths(){ //{{{
 }//}}}
 
 double VlmmNode::getPsum(char b) const{//{{{
-   if(ns_rD::base2int(b) == -1) return 1/4;
+   if(base2int(b) == -1) return 1/4;
    if(parentsN == 2)return getP(b,'N','N')*16;
    if(parentsN == 1)return getP(b,'N','N')*4;
-   return probs[ns_rD::base2int(b)];
+   return probs[base2int(b)];
 }//}}}
 VlmmNode::VlmmNode(long p) {//{{{
    setParentsN(p);
@@ -847,19 +850,19 @@ void VlmmNode::setParentsN(long p) {//{{{
 }//}}}
 void VlmmNode::update(double Iexp, char b, char bp, char bpp) {//{{{
    double expDiv = 1.0;
-   if(ns_rD::base2int(b) == -1)expDiv *=4.0;
-   if((parentsN>0)&&(ns_rD::base2int(bp) == -1))expDiv *=4.0;
-   if((parentsN>1)&&(ns_rD::base2int(bpp) == -1))expDiv *=4.0;
+   if(base2int(b) == -1)expDiv *=4.0;
+   if((parentsN>0)&&(base2int(bp) == -1))expDiv *=4.0;
+   if((parentsN>1)&&(base2int(bpp) == -1))expDiv *=4.0;
    if(expDiv == 1){
       // All bases are known:
       long i=0;
       switch(parentsN){
          case 2: 
-            i += pows4[2]*ns_rD::base2int(bpp);
+            i += pows4[2]*base2int(bpp);
          case 1: 
-            i += pows4[1]*ns_rD::base2int(bp);
+            i += pows4[1]*base2int(bp);
          default: 
-            i += ns_rD::base2int(b);
+            i += base2int(b);
       }
       probs[ i ] += Iexp;
    }else{
@@ -867,21 +870,21 @@ void VlmmNode::update(double Iexp, char b, char bp, char bpp) {//{{{
       Iexp /= expDiv;
       if(parentsN==2){
          for(i=0;i<4;i++)
-            if((ns_rD::base2int(bpp) == i) || (ns_rD::base2int(bpp) == -1))
+            if((base2int(bpp) == i) || (base2int(bpp) == -1))
                for(j=0;j<4;j++)
-                  if((ns_rD::base2int(bp) == j) || (ns_rD::base2int(bp) == -1))
+                  if((base2int(bp) == j) || (base2int(bp) == -1))
                      for(k=0;k<4;k++)
-                        if((ns_rD::base2int(b) == k) || (ns_rD::base2int(b) == -1))
+                        if((base2int(b) == k) || (base2int(b) == -1))
                            probs[pows4[2]*i + pows4[1]*j+ k]+=Iexp;
       }else if(parentsN==1){
          for(j=0;j<4;j++)
-            if((ns_rD::base2int(bp) == j) || (ns_rD::base2int(bp) == -1))
+            if((base2int(bp) == j) || (base2int(bp) == -1))
                for(k=0;k<4;k++)
-                  if((ns_rD::base2int(b) == k) || (ns_rD::base2int(b) == -1))
+                  if((base2int(b) == k) || (base2int(b) == -1))
                      probs[pows4[1]*j+ k]+=Iexp;
       }else{
          for(k=0;k<4;k++)
-            // if((ns_rD::base2int(b) == k) || (ns_rD::base2int(b) == -1)); WE KNOW THAT b == 'N'
+            // if((base2int(b) == k) || (base2int(b) == -1)); WE KNOW THAT b == 'N'
                probs[k]+=Iexp;
       }
    }
@@ -911,20 +914,20 @@ void VlmmNode::normalize() {//{{{
    }
 }//}}}
 double VlmmNode::getP(char b, char bp, char bpp) const{//{{{
-   if(ns_rD::base2int(b) == -1)return 1.0/4.0;
+   if(base2int(b) == -1)return 1.0/4.0;
    double probDiv = 1.0;
-   if((parentsN>0)&&(ns_rD::base2int(bp) == -1))probDiv *=4.0;
-   if((parentsN>1)&&(ns_rD::base2int(bpp) == -1))probDiv *=4.0;
+   if((parentsN>0)&&(base2int(bp) == -1))probDiv *=4.0;
+   if((parentsN>1)&&(base2int(bpp) == -1))probDiv *=4.0;
    if(probDiv == 1.0){
       // All bases are known:
       long i=0;
       switch(parentsN){
          case 2: 
-            i += pows4[2]*ns_rD::base2int(bpp);
+            i += pows4[2]*base2int(bpp);
          case 1: 
-            i += pows4[1]*ns_rD::base2int(bp);
+            i += pows4[1]*base2int(bp);
          default: 
-            i += ns_rD::base2int(b);
+            i += base2int(b);
       }
       return probs[ i ];
    }else{
@@ -932,15 +935,15 @@ double VlmmNode::getP(char b, char bp, char bpp) const{//{{{
       double prob = 0;
       // either one ore both parents are unknown==undefined
       if(parentsN==2){
-         k = ns_rD::base2int(b);
+         k = base2int(b);
          for(i=0;i<4;i++)
-            if((ns_rD::base2int(bpp) == i) || (ns_rD::base2int(bpp) == -1))
+            if((base2int(bpp) == i) || (base2int(bpp) == -1))
                for(j=0;j<4;j++)
-                  if((ns_rD::base2int(bp) == j) || (ns_rD::base2int(bp) == -1))
+                  if((base2int(bp) == j) || (base2int(bp) == -1))
                      prob += probs[pows4[2]*i + pows4[1]*j+ k];
       }else if(parentsN==1){
          // there was an unknown => we know that parent is unknown
-         k = ns_rD::base2int(b);
+         k = base2int(b);
          for(j=0;j<4;j++)
             prob += probs[pows4[1]*j+ k];
       }else ;// Covered by all bases unknown;

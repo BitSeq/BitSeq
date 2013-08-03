@@ -33,10 +33,11 @@ using namespace std;
 
 #endif
 
+namespace ns_rD {
 
 // Defaults: {{{
-#define LOW_PROB_MISSES 6
-#define MAX_NODE_PAR 2
+const char LOW_PROB_MISSES  = 6;
+const char MAX_NODE_PAR = 2;
 const long trSizes [] = { 1334,2104,2977,4389};
 const char trSizesN = 4;
 const char trNumberOfBins = 20;
@@ -80,13 +81,16 @@ class VlmmNode{//{{{
 
 enum biasT { readM_5, readM_3, uniformM_5, uniformM_3, weight_5, weight_3};
 enum readT { mate_5, mate_3, FullPair };
+enum orientationT { O_F, O_R, O_FR, O_RF, O_FF, O_RR };
+
+} // namespace ns_rD
 
 class ReadDistribution{
    private:
       long M,fragSeen,singleReadLength,minFragLen;
       double lMu,lSigma,logLengthSum,logLengthSqSum;
       long lowProbMismatches;
-      bool verbose,uniform,lengthSet,gotExpression,normalized;
+      bool verbose,uniform,unstranded,lengthSet,gotExpression,normalized;
       bool validLength;
       long warnPos, warnTIDmismatch, warnUnknownTID, noteFirstMateDown;
       TranscriptInfo* trInf;
@@ -99,7 +103,7 @@ class ReadDistribution{
       vector<vector<map<long, double> > > weightNorms;
       // position probability arrays (RE-FACTOR to array of 4 vectors)
       vector<vector<vector<double> > > posProb;
-      vector<vector<VlmmNode> > seqProb;
+      vector<vector<ns_rD::VlmmNode> > seqProb;
       // Cache probabilities for Phred score.
       vector<double> lProbMis;
       vector<double> lProbHit;
@@ -110,26 +114,26 @@ class ReadDistribution{
       double computeLengthLP(double len) const;
       double getLengthLNorm(long trLen) const;
       void computeLengthProb();
-      void updatePosBias(long pos, biasT bias, long tid, double Iexp);
-      void updateSeqBias(long pos, biasT bias, long tid, double Iexp);
-      double getPosBias(long pos, readT read, long trLen) const;
-      double getSeqBias(long pos, readT read, long tid) const;
+      void updatePosBias(long pos, ns_rD::biasT bias, long tid, double Iexp);
+      void updateSeqBias(long pos, ns_rD::biasT bias, long tid, double Iexp);
+      double getPosBias(long pos, ns_rD::readT read, long trLen) const;
+      double getSeqBias(long pos, ns_rD::readT read, long tid) const;
       inline char getBase(long pos, const string &fSeq) const;
-      double getSeqBias(long pos, readT read, const string &fSeq) const;
+      double getSeqBias(long pos, ns_rD::readT read, const string &fSeq) const;
       inline char complementBase(char base) const;
-      double getWeightNorm(long len, readT, long tid);
+      double getWeightNorm(long len, ns_rD::readT, long tid);
       pair<double, double> getSequenceLProb(bam1_t *samA) const;
    public:
       ReadDistribution();
       void writeWarnings();
-      bool init(long m, TranscriptInfo* trI, TranscriptSequence* trS, TranscriptExpression* trE, bool verb = true);
+      bool init(long m, TranscriptInfo* trI, TranscriptSequence* trS, TranscriptExpression* trE, bool unstranded, bool verb = true);
       bool initUniform(long m, TranscriptInfo* trI, TranscriptSequence* trS, bool verb = true);
       void setLowProbMismatches(long m);
       void setLength(double mu, double sigma);
-      bool observed(fragmentP frag);
+      bool observed(ns_rD::fragmentP frag);
       void normalize();
       void logProfiles(string logFileName = "");
-      bool getP(fragmentP frag,double &prob,double &probNoise);
+      bool getP(ns_rD::fragmentP frag,double &prob,double &probNoise);
       long getWeightNormCount() const;
       vector<double> getEffectiveLengths();
 }; 

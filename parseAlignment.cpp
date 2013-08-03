@@ -41,7 +41,7 @@ class TagAlignment{//{{{
 // Read Fragment from SAM file.
 // Copies data from 'next' fragment into 'cur' fragment and reads new fragment information into 'next'.
 // Fragment is either both paired-ends or just single read.
-bool readNextFragment(samfile_t* samData, fragmentP &cur, fragmentP &next);
+bool readNextFragment(samfile_t* samData, ns_rD::fragmentP &cur, ns_rD::fragmentP &next);
 
 // Determine input format base either on --format flag or on the file extension.
 // Sets format to bam/sam and returns true, or returns false if format is unknown.
@@ -66,7 +66,7 @@ string programDescription =
    string inFormat;
    samfile_t *samData=NULL;
    ReadDistribution readD;
-   fragmentP curF = new fragmentT, nextF = new fragmentT;
+   ns_rD::fragmentP curF = new ns_rD::fragmentT, nextF = new ns_rD::fragmentT;
    // This could be changed to either GNU's hash_set or C++11's unsorted_set, once it's safe.
    set<string> ignoredReads;
    // Intro: {{{
@@ -86,8 +86,9 @@ string programDescription =
    args.addOptionS("","distributionFile","distributionFileName",0,"Name of file to which read-distribution should be saved.");
    args.addOptionL("P","procN","procN",0,"Maximum number of threads to be used. This provides parallelization only when computing non-uniform read distribution (i.e. runs without --uniform flag).",3);
    args.addOptionB("V","veryVerbose","veryVerbose",0,"Very verbose output.");
-   args.addOptionL("","noiseMismatches","numNoiseMismatches",0,"Number of mismatches to be considered as noise.",LOW_PROB_MISSES);
+   args.addOptionL("","noiseMismatches","numNoiseMismatches",0,"Number of mismatches to be considered as noise.",ns_rD::LOW_PROB_MISSES);
    args.addOptionL("l","limitA","maxAlignments",0,"Limit maximum number of alignments per read. (Reads with more alignments are skipped.)");
+   args.addOptionB("","unstranded","unstranded",0,"Paired read are not strand specific.");
    if(!args.parse(*argc,argv))return 0;
    if(args.verbose)buildTime(argv[0],__DATE__,__TIME__);
 #ifdef SUPPORT_OPENMP
@@ -166,7 +167,7 @@ string programDescription =
       readD.initUniform(M,trInfo,trSeq,args.flag("veryVerbose"));
    }else{
       if(args.verbose)message("Estimating non-uniform read distribution.\n");
-      readD.init(M,trInfo,trSeq,trExp,args.flag("veryVerbose"));
+      readD.init(M,trInfo,trSeq,trExp,args.flag("unstranded"),args.flag("veryVerbose"));
       if(args.flag("veryVerbose"))message(" ReadDistribution initialization done.\n");
       analyzeReads = true;
    }
@@ -411,8 +412,8 @@ int main(int argc,char* argv[]){
 
 namespace ns_parseAlignment {
 
-bool readNextFragment(samfile_t* samData, fragmentP &cur, fragmentP &next){//{{{
-   static fragmentP tmpF = NULL;
+bool readNextFragment(samfile_t* samData, ns_rD::fragmentP &cur, ns_rD::fragmentP &next){//{{{
+   static ns_rD::fragmentP tmpF = NULL;
    bool currentOK = true;
    // switch current to next:
    tmpF = cur;
