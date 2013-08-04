@@ -81,7 +81,6 @@ class VlmmNode{//{{{
 
 enum biasT { readM_5, readM_3, uniformM_5, uniformM_3, weight_5, weight_3};
 enum readT { mate_5, mate_3, FullPair };
-enum orientationT { O_F, O_R, O_FR, O_RF, O_FF, O_RR };
 
 } // namespace ns_rD
 
@@ -116,12 +115,14 @@ class ReadDistribution{
       void computeLengthProb();
       void updatePosBias(long pos, ns_rD::biasT bias, long tid, double Iexp);
       void updateSeqBias(long pos, ns_rD::biasT bias, long tid, double Iexp);
-      double getPosBias(long pos, ns_rD::readT read, long trLen) const;
+      double getPosBias(long start, long end, ns_rD::readT read,
+                        long trLen) const;
       double getSeqBias(long pos, ns_rD::readT read, long tid) const;
       inline char getBase(long pos, const string &fSeq) const;
-      double getSeqBias(long pos, ns_rD::readT read, const string &fSeq) const;
-      inline char complementBase(char base) const;
-      double getWeightNorm(long len, ns_rD::readT, long tid);
+      double getSeqBias(long start, long end, ns_rD::readT read,
+                        const string &fSeq) const;
+      //inline char complementBase(char base) const;
+      double getWeightNorm(long len, ns_rD::readT read, long tid);
       pair<double, double> getSequenceLProb(bam1_t *samA) const;
    public:
       ReadDistribution();

@@ -199,7 +199,9 @@ bool ReadDistribution::observed(fragmentP frag){ //{{{
       frag->second = frag->first;
       frag->first = tmp;
    }
-   if((frag->paired) && (frag->first->core.flag & BAM_FREVERSE)){
+   if((frag->paired) && (!unstranded) && 
+      ((frag->first->core.flag & BAM_FREVERSE) ||
+       (! frag->second->core.flag & BAM_FREVERSE))){
       warnPos ++;
       return false;
    }//}}}
@@ -208,27 +210,27 @@ bool ReadDistribution::observed(fragmentP frag){ //{{{
    DEBUG(message("   positional & sequence bias\n");)
    if(! frag->paired){
       if(frag->first->core.flag & BAM_FREVERSE){
-         // Antisense strand of transcript is 5'end of fragment
-         updatePosBias(frag_first_endPos, readM_5, tid, Iexp);
+         // Antisense strand of transcript is 3'end of fragment
+         updatePosBias(frag_first_endPos, readM_3, tid, Iexp);
          // readM_5 and uniformM_5 are always "second mates" 
          // this is assumed also in getP(...);
-         updateSeqBias(frag_first_endPos, readM_5, tid, Iexp);
+         updateSeqBias(frag_first_endPos, readM_3, tid, Iexp);
          // update sum of expression of  fragments of given length
-         mapAdd(trFragSeen5[tid], (long)len, Iexp);
-      }else{
-         // Sense strand of transcript is 3'end of fragment
-         updatePosBias( frag->first->core.pos, readM_3, tid, Iexp);
-         updateSeqBias( frag->first->core.pos, readM_3, tid, Iexp);
          mapAdd(trFragSeen3[tid], (long)len, Iexp);
+      }else{
+         // Sense strand of transcript is 5'end of fragment
+         updatePosBias( frag->first->core.pos, readM_5, tid, Iexp);
+         updateSeqBias( frag->first->core.pos, readM_5, tid, Iexp);
+         mapAdd(trFragSeen5[tid], (long)len, Iexp);
       }
    }else{
-      updatePosBias( frag->first->core.pos, readM_3, tid, Iexp);
-      updateSeqBias( frag->first->core.pos, readM_3, tid, Iexp);
-      mapAdd(trFragSeen3[tid], (long)len, Iexp);
-         
-      updatePosBias( frag_second_endPos, readM_5, tid, Iexp);
-      updateSeqBias( frag_second_endPos, readM_5, tid, Iexp);
+      updatePosBias( frag->first->core.pos, readM_5, tid, Iexp);
+      updateSeqBias( frag->first->core.pos, readM_5, tid, Iexp);
       mapAdd(trFragSeen5[tid], (long)len, Iexp);
+         
+      updatePosBias( frag_second_endPos, readM_3, tid, Iexp);
+      updateSeqBias( frag_second_endPos, readM_3, tid, Iexp);
+      mapAdd(trFragSeen3[tid], (long)len, Iexp);
    }
    return true;
 }//}}}
@@ -259,40 +261,46 @@ void ReadDistribution::normalize(){ //{{{
    map<long,double>::iterator mIt;
    long i,j,m,group,trLen,fragLen;
    double Iexp,norm;
+   double binSize;
    // set Uniform position position bias: //{{{
    if(verbose)message("ReadDistribution: Computing uniform positional bias.\n");
    for(m=0;m<M;m++){
       if(verbose)progressLogRD(m,M);
       trLen = trInf->L(m);
       if(trLen<trNumberOfBins)continue;
+      binSize = (double)trLen / trNumberOfBins;
       //message(" %ld %ld %ld\n",m,trLen,trFragSeen[m].size());
       for(group=0;group<trSizesN;group++)
          if(trLen<trSizes[group])break;
-      // update 3' positional bias
-      for( mIt=trFragSeen3[m].begin(); mIt != trFragSeen3[m].end(); mIt++){
-         fragLen = mIt->first;
-         Iexp = mIt->second / (trLen - fragLen + 1);
-         for(i=0;i<trNumberOfBins;i++){
-            // update probability of each bin by Iexp*"effective length of current bin"
-            if((i+1)*trLen/trNumberOfBins < fragLen)continue;
-            if(i*trLen/trNumberOfBins < fragLen){
-               posProb[uniformM_3][group][trNumberOfBins -1 -i]+= Iexp * ((double)(i+1)*trLen / trNumberOfBins - fragLen + 1);
-            }else{
-               posProb[uniformM_3][group][trNumberOfBins -1 -i]+= Iexp * ((double)trLen / trNumberOfBins);
-            }
-         }
-      }  
       // update 5' positional bias
       for( mIt=trFragSeen5[m].begin(); mIt != trFragSeen5[m].end(); mIt++){
          fragLen = mIt->first;
          Iexp = mIt->second / (trLen - fragLen + 1);
          for(i=0;i<trNumberOfBins;i++){
             // update probability of each bin by Iexp*"effective length of current bin"
-            if((i+1)*trLen/trNumberOfBins < fragLen)continue;
-            if(i*trLen/trNumberOfBins < fragLen){
-               posProb[uniformM_5][group][i]+= Iexp * ((double)(i+1)*trLen / trNumberOfBins - fragLen + 1);
+            if((i+1) * binSize <= fragLen)continue;
+            if(i * binSize < fragLen){
+               posProb[uniformM_5][group][trNumberOfBins -1 -i] +=
+                  Iexp * ((i+1) * binSize - fragLen + 1);
             }else{
-               posProb[uniformM_5][group][i]+= Iexp * ((double)trLen / trNumberOfBins);
+               posProb[uniformM_5][group][trNumberOfBins -1 -i] +=
+                  Iexp * binSize;
+            }
+         }
+      }  
+      // update 3' positional bias
+      for( mIt=trFragSeen3[m].begin(); mIt != trFragSeen3[m].end(); mIt++){
+         fragLen = mIt->first;
+         Iexp = mIt->second / (trLen - fragLen + 1);
+         for(i=0;i<trNumberOfBins;i++){
+            // update probability of each bin by Iexp*"effective length of current bin"
+            if((i+1) * binSize <= fragLen)continue;
+            if(i * binSize < fragLen){
+               posProb[uniformM_3][group][i] +=
+                  Iexp * ((i+1) * binSize - fragLen + 1);
+            }else{
+               posProb[uniformM_3][group][i] +=
+                  Iexp * binSize;
             }
          }
       }  
@@ -320,19 +328,19 @@ void ReadDistribution::normalize(){ //{{{
    for(m=0;m<M;m++){
       if(verbose)progressLogRD(m,M);
       trLen = trInf->L(m);
-      IexpSum3=0;
-      for(mIt=trFragSeen3[m].begin();mIt!= trFragSeen3[m].end();mIt++)
-         IexpSum3+=mIt->second / (trLen - mIt->first + 1);
       IexpSum5=0;
-      mItR=trFragSeen3[m].rbegin();
-      mIt=trFragSeen5[m].begin();
+      for(mIt=trFragSeen5[m].begin();mIt!= trFragSeen5[m].end();mIt++)
+         IexpSum5+=mIt->second / (trLen - mIt->first + 1);
+      IexpSum3=0;
+      mItR=trFragSeen5[m].rbegin();
+      mIt=trFragSeen3[m].begin();
       // STL map iterator IS sorted by key <=> length
       for(p=0;p<trLen;p++){
-         while((mIt!=trFragSeen5[m].end())&&(mIt->first <= p+1)){IexpSum5+=mIt->second/ (trLen - mIt->first + 1); mIt++;}
-         while((mItR!=trFragSeen3[m].rend())&&(trLen-p < mItR->first)){IexpSum3-= mItR->second / (trLen - mItR->first + 1) ; mItR++;}
-         // 5' end is expected to be "after"
-         updateSeqBias(p+1, uniformM_5, m, IexpSum5);
-         updateSeqBias(p, uniformM_3, m, IexpSum3);
+         while((mIt!=trFragSeen3[m].end())&&(mIt->first <= p+1)){IexpSum3+=mIt->second/ (trLen - mIt->first + 1); mIt++;}
+         while((mItR!=trFragSeen5[m].rend())&&(trLen-p < mItR->first)){IexpSum5-= mItR->second / (trLen - mItR->first + 1) ; mItR++;}
+         updateSeqBias(p, uniformM_5, m, IexpSum5);
+         // 3' end is expected to be "after"
+         updateSeqBias(p+1, uniformM_3, m, IexpSum3);
       }
    }//}}}
    // normalize VLMM nodes: {{{
@@ -508,24 +516,29 @@ bool ReadDistribution::getP(fragmentP frag,double &lProb,double &lProbNoise){ //
          frag->second = frag->first;
          frag->first = tmp;
       }
-      // check strand of the first read:
-      if(frag->paired && (frag->first->core.flag & BAM_FREVERSE)){
-         warnPos++;
-         return false;
-      }
       if(!frag->paired){
          if(frag->first->core.flag & BAM_FREVERSE){
-            // P*=posBias5'*seqBias5'/weightNorm5'
-            lP += log(getPosBias(frag_first_endPos, mate_5, trLen)) +
-               log(getSeqBias(frag_first_endPos, mate_5, tid )) -
-               log(getWeightNorm( (long) len, mate_5, tid));
-         }else{
+            // If read was reverse complement, then it's 3' mate.
             // P*=posBias3'*seqBias3'/weightNorm3'
-            lP += log(getPosBias(frag->first->core.pos , mate_3, trLen)) +
-               log(getSeqBias(frag->first->core.pos , mate_3, tid )) -
+            lP += log(getPosBias(frag->first->core.pos, frag_first_endPos, 
+                                 mate_3, trLen)) +
+               log(getSeqBias(frag_first_endPos , mate_3, tid )) -
                log(getWeightNorm( (long) len, mate_3, tid));
+         }else{
+            // P*=posBias5'*seqBias5'/weightNorm5'
+            lP += log(getPosBias(frag->first->core.pos, frag_first_endPos,
+                                 mate_5, trLen)) +
+               log(getSeqBias(frag->first->core.pos, mate_5, tid )) -
+               log(getWeightNorm( (long) len, mate_5, tid));
          }
       }else{
+         // check strand of the reads:
+         if((!unstranded) && 
+            ((frag->first->core.flag & BAM_FREVERSE) ||
+            (! frag->second->core.flag & BAM_FREVERSE))){
+               warnPos ++;
+               return false;
+         }
 //#pragma omp parallel sections num_threads (2) reduction(*:P)
 //{
 //   #pragma omp section
@@ -534,10 +547,10 @@ bool ReadDistribution::getP(fragmentP frag,double &lProb,double &lProbNoise){ //
 //   #pragma omp section
 //   {
          // P*=posBias5'*posBias3'*seqBias5'*seqBias3'
-         lP += log(getPosBias(frag_second_endPos, mate_5, trLen))
-          + log(getPosBias(frag->first->core.pos , mate_3, trLen))
-          + log(getSeqBias(frag_second_endPos, mate_5, tid ))
-          + log(getSeqBias(frag->first->core.pos , mate_3, tid )); 
+         lP += log(getPosBias(frag->first->core.pos, frag_second_endPos,
+                              FullPair, trLen))
+          + log(getSeqBias(frag->first->core.pos, mate_5, tid ))
+          + log(getSeqBias(frag_second_endPos , mate_3, tid )); 
 //   }
 //}
       }
@@ -547,7 +560,7 @@ bool ReadDistribution::getP(fragmentP frag,double &lProb,double &lProbNoise){ //
    return true;
 }//}}}
 void ReadDistribution::updatePosBias(long pos, biasT bias, long tid, double Iexp){ //{{{
-   if((bias==readM_5)||(bias==uniformM_5))pos--;
+   if(bias == readM_3)pos--;
    long group, rel, trLen;
    trLen = trInf->L(tid);
    // transcript too short:
@@ -566,53 +579,63 @@ void ReadDistribution::updateSeqBias(long pos, biasT bias, long tid, double Iexp
    if(bias>3)return; //this should not happen
    long start ;
    string seq;
-
-   if((bias == uniformM_3)||(bias == readM_3)){
+   // Set correct start based on orientation.
+   if((bias == readM_5)||(bias == uniformM_5)){
       start = pos - vlmmStartOffset - MAX_NODE_PAR;
       seq = trSeq->getSeq(tid, start, vlmmNodesN + MAX_NODE_PAR);
-   }else{ // else get reverse complement
+   }else{
       start = pos + vlmmStartOffset - vlmmNodesN ;
-      seq = trSeq->getSeq(tid, start, vlmmNodesN + MAX_NODE_PAR, true);
+      // Get don't need complementing as it is always complement.
+      seq = trSeq->getSeq(tid, start, vlmmNodesN + MAX_NODE_PAR);
+      // Only reverse the sequence.
+      reverse(seq.begin(),seq.end());
    }
+   // Update bias weights.
    for(long i=0;i<vlmmNodesN;i++){
       seqProb[bias][i].update( Iexp, seq[i+2], seq[i+1], seq[i]);
    }
 }//}}}
-double ReadDistribution::getPosBias(long pos, readT read, long trLen) const { //{{{
+double ReadDistribution::getPosBias(long start, long end, readT read, long trLen) const { //{{{
+   end --;
    // transcript too short:
    if(trLen < trNumberOfBins) return 1;
-   long group, rel;
-   if(read == mate_5)pos--;
+   long group, relS, relE;
    // choose group:
    for(group = 0;group < trSizesN;group++)
       if(trLen<trSizes[group])break;
-   // find relative position:
-   rel = (pos * trNumberOfBins) / trLen;
-   if(rel>=trNumberOfBins)rel=trNumberOfBins-1;
+   // find relative positions:
+   relS = (start * trNumberOfBins) / trLen;
+   if(relS>=trNumberOfBins)relS=trNumberOfBins-1;
+   relE = (end * trNumberOfBins) / trLen;
+   if(relE>=trNumberOfBins)relE=trNumberOfBins-1;
+   double posBias = 1;
    // return bias weight
-   if(read == mate_5)
-      return posProb[ weight_5 ][ group ][ rel ];
-   if(read == mate_3)
-      return posProb[ weight_3 ][ group ][ rel ];
-   // shouldn't happen
-   return 0;
+   if((read == FullPair) || (read == mate_5))
+      posBias *= posProb[ weight_5 ][ group ][ relS ];
+   if((read == FullPair) || (read == mate_3))
+      posBias *= posProb[ weight_3 ][ group ][ relE ];
+   return posBias;
 }//}}}
 double ReadDistribution::getSeqBias(long pos, readT read, long tid) const{ //{{{
    if(read==FullPair)return 0; // this should never happen
    long start;
    biasT bias,biasNorm;
-   // Assuming the 5' mate is the second mate (which determines the start of interesting sequence)
-   if(read == mate_3){
+   // Get sequence based on which fragment end we are dealing with.
+   if(read == mate_5){
       start = pos - vlmmStartOffset - MAX_NODE_PAR;
-      bias = readM_3;
-      biasNorm = uniformM_3;
    }else{
       start = pos + vlmmStartOffset - vlmmNodesN;
+   }
+   string seq = trSeq->getSeq(tid, start, vlmmNodesN + MAX_NODE_PAR);
+   if(read == mate_5){
       bias = readM_5;
       biasNorm = uniformM_5;
+   }else{
+      bias = readM_3;
+      biasNorm = uniformM_3;
+      // Reverse the sequence for 3' end.
+      reverse(seq.begin(),seq.end());
    }
-   // Get reverse complement for mate_5.
-   string seq = trSeq->getSeq(tid, start, vlmmNodesN + MAX_NODE_PAR, (read == mate_5));
    double B = 1;
    for(long i=0;i<vlmmNodesN;i++)
       // FIX HERE (probably that we are always doing 'same' division)
@@ -624,59 +647,48 @@ inline char ReadDistribution::getBase(long pos, const string &fSeq) const{ //{{{
    if((pos<0)||(pos>=(long)fSeq.size()))return 'N';
    return fSeq[pos];
 }//}}}
-double ReadDistribution::getSeqBias(long pos, readT read, const string &fSeq) const{ //{{{
-   if(read==FullPair)return 0; // this should never happen
-   /* 
-   when (read == mate_5) then fSeq should already be reverse complement
-   */
-   long start;
-   biasT bias,biasNorm;
-
-   if(read == mate_3){
-      bias = readM_3;
-      biasNorm = uniformM_3;
-      start = pos - vlmmStartOffset - MAX_NODE_PAR;
-   }else{
-      bias = readM_5;
-      biasNorm = uniformM_5;
-      // In this case the transcript is reversed:
-      start = (fSeq.size() - pos) - vlmmStartOffset - MAX_NODE_PAR;
-   }
+double ReadDistribution::getSeqBias(long start, long end, readT read, const string &fSeq) const{ //{{{
+   start = start - vlmmStartOffset - MAX_NODE_PAR;
+   end = end + vlmmStartOffset + MAX_NODE_PAR - 1;
+   
    double B = 1;
    long i,j;
-   for(i=0,j=start; i<vlmmNodesN; i++, j++)
-      // FIX HERE (probably that we are always doing 'same' division)
-      B *= seqProb[bias][i].getP( getBase(j+2,fSeq), getBase(j+1,fSeq), getBase(j,fSeq)) /
-           seqProb[biasNorm][i].getP( getBase(j+2,fSeq), getBase(j+1,fSeq), getBase(j,fSeq));
+   if((read==FullPair) || (read == mate_5)){
+      for(i=0,j=start; i<vlmmNodesN; i++, j++)
+         // FIX HERE (probably that we are always doing 'same' division)
+         B *= seqProb[readM_5][i].getP( getBase(j+2,fSeq), getBase(j+1,fSeq), getBase(j,fSeq)) /
+              seqProb[uniformM_5][i].getP( getBase(j+2,fSeq), getBase(j+1,fSeq), getBase(j,fSeq));
+   }
+   if((read==FullPair) || (read == mate_3)){
+      // For 3' bias we go from 'end' position backwards.
+      for(i=0,j=end; i<vlmmNodesN; i++, j--)
+         // FIX HERE (probably that we are always doing 'same' division)
+         B *= seqProb[readM_3][i].getP( getBase(j-2,fSeq), getBase(j-1,fSeq), getBase(j,fSeq)) /
+              seqProb[uniformM_3][i].getP( getBase(j-2,fSeq), getBase(j-1,fSeq), getBase(j,fSeq));
+   }
    return B;
 }//}}}
-inline char ReadDistribution::complementBase(char base) const{ //{{{
+/* inline char ReadDistribution::complementBase(char base) const{ //{{{
    if((base=='A')||(base=='a')) return'T';
    if((base=='T')||(base=='t')) return 'A';
    if((base=='C')||(base=='c')) return 'G';
    if((base=='G')||(base=='g')) return 'C';
    return 'N';
-}//}}}
+}//}}} */
 double ReadDistribution::getWeightNorm(long len, readT read, long tid){ //{{{
    if(len == 0)return 1;
    if(weightNorms[read][tid].count(len) == 0){
       const string &trS = trSeq->getTr(tid);
-      string trRS = trS;
-      reverse(trRS.begin(),trRS.end());
-      for(size_t i=0;i<trRS.size();i++)trRS[i] = complementBase(trRS[i]);
-      long trLen = trInf->L(tid),pos;
+      // We are not complementing.
+      //for(size_t i=0;i<trRS.size();i++)trRS[i] = complementBase(trRS[i]);
+      long trLen = trInf->L(tid), pos;
       double norm = 0,w;
       #pragma omp parallel for \
          private(w) \
          reduction(+:norm)
       for(pos = 0;pos <= trLen-len;pos++){
-         w=1.0;
-         if((read == FullPair)||(read == mate_3)){
-            w*=getPosBias(pos, mate_3, trLen)*getSeqBias(pos, mate_3, trS);
-         }
-         if((read == FullPair)||(read == mate_5)){
-            w*=getPosBias(pos + len, mate_5, trLen)*getSeqBias(pos + len, mate_5, trRS);
-         }
+         w = getPosBias(pos, pos + len, read, trLen) *
+             getSeqBias(pos, pos + len, read, trS);
          norm+=w;
       }
       weightNorms[read][tid][len] = norm;
@@ -784,15 +796,17 @@ vector<double> ReadDistribution::getEffectiveLengths(){ //{{{
          effL[m] = eL>minFragLen?eL:trLen;
       }else{
          DEBUG(message("Copy sequence.\n"));
-         const string &trFS = trSeq->getTr(m);
-         trRS.resize(trFS.size());
-         for(size_t i=0;i<trRS.size();i++)trRS[i] = complementBase(trFS[trFS.size() - i - 1]);
+         const string &trS = trSeq->getTr(m);
          posBias5.resize(trLen);
          posBias3.resize(trLen);
          DEBUG(message("Precomputing posBias.\n"));
          for(pos = 0;pos<trLen;pos++){
-            posBias5[pos] = getPosBias(pos+1, mate_5, trLen)*getSeqBias(pos+1, mate_5, trRS);
-            posBias3[pos] = getPosBias(pos, mate_3, trLen)*getSeqBias(pos, mate_3, trFS);
+            // Don't care about end position.
+            posBias5[pos] = getPosBias(pos, trLen, mate_5, trLen)*
+                            getSeqBias(pos, trLen, mate_5, trS);
+            // Don't care about start position.
+            posBias3[pos] = getPosBias(0, pos+1, mate_3, trLen)*
+                            getSeqBias(0, pos+1, mate_3, trS);
          }
          eL=0;
          DEBUG(message("Computing norms.\n"));
