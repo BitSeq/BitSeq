@@ -1,5 +1,6 @@
 0.6.1:
 Improvements:
+- adding --unstranded flag to parseAlignment, to allow read pairs with various directions to be used
 
 Bug fixes:
 - adding -lpthread option for parseAlignment compilation, so that samtools links even without -fopenmp

@@ -76,7 +76,7 @@ ReadDistribution::ReadDistribution(){ //{{{
 }//}}}
 void ReadDistribution::writeWarnings() {//{{{
    if(warnPos>0){
-      warning("ReadDistribution: %ld upstream reads from a pair did not align to the sense strand of transcript.\n", warnPos);
+      warning("ReadDistribution: %ld reads from a pair did not align to the expected strand of a transcript.\n   Use --unstranded option in case the 5' and 3' mate are not expected to be from sense and anti-sense strands respectively.\n", warnPos);
    }
    if(warnTIDmismatch>0){
       warning("ReadDistribution: %ld pair reads were aligned to different transcripts.\n", warnTIDmismatch);
