@@ -118,7 +118,7 @@ string programDescription =
    args.addOptionS("m","method","optMethod",0,"Optimalization method (steepest, PR, FR, HS).","FR");
    args.addOptionL("s","seed","seed",0,"Random initialization seed.");
    args.addOptionL("","maxIter","maxIter",0,"Maximum number of iterations.");
-   args.addOptionL("P","procN","procN",0,"Limit the maximum number of threads to be used.",1);
+   args.addOptionL("P","procN","procN",0,"Limit the maximum number of threads to be used.",4);
    args.addOptionL("","samples","samples",0,"Number of samples to be sampled from the distribution.");
    args.addOptionB("V","veryVerbose","veryVerbose",0,"Very verbose output.");
    if(!args.parse(*argc,argv))return 0;
