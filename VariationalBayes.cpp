@@ -237,6 +237,9 @@ void VariationalBayes::optimize(bool verbose,OPT_TYPE method,long maxIter,double
          bound = getBound();
          // this should not be increased: iteration++;
       }
+      if(bound<boundOld) { // If bound decreased even after using steepest, step back and quit.
+         unpack(phiOld);
+      }
       SWAPD(gradPhi,phiOld);
       if(verbose){
          #ifdef SHOW_FIXED
@@ -271,6 +274,10 @@ void VariationalBayes::optimize(bool verbose,OPT_TYPE method,long maxIter,double
 #endif
 
       // convergence check {{{
+      if(bound<boundOld){
+         message("\nbound decrease\n");
+         break;
+      }
       if(abs(bound-boundOld)<=ftol){
          message("\nconverged (ftol)\n");
          break;
