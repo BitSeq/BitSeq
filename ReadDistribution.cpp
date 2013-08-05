@@ -813,7 +813,7 @@ vector<double> ReadDistribution::getEffectiveLengths(){ //{{{
          for(len=1;len<=trLen;len++){
             wNorm = 0;
             for(pos=0;pos <= trLen - len;pos++){
-               wNorm += posBias3[pos] * posBias5[pos+len-1];
+               wNorm += posBias5[pos] * posBias3[pos+len-1];
             }
             lenP = exp(getLengthLP( len ) - lCdfNorm);
             eL += lenP * wNorm;
