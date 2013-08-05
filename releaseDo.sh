@@ -21,8 +21,13 @@ fi
 mkdir $DIR
 
 #svn export asa103 $DIR/asa103
-svn export boost $DIR/boost
-svn export samtools $DIR/samtools
+if [[ -d .svn ]]
+then
+   svn export boost $DIR/boost
+   svn export samtools $DIR/samtools
+else
+   cp -r boost samtools $DIR
+fi
 
 cp -v _release_Makefile $DIR/Makefile
 
@@ -30,7 +35,12 @@ cp -v $( cat releaseList ) $DIR
 
 echo "==================" >> $DIR/README
 date >> $DIR/README
-svn info | grep -e "^Revision:" >> $DIR/README
+if [[ -d .svn ]]
+then
+   svn info | grep -e "^Revision:" >> $DIR/README
+else
+   git log -1 | grep "commit" >> $DIR/README
+fi
 
 echo "REMINDERs:"
 echo "Delete licensing line about asa libs from README."
