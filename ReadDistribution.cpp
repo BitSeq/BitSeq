@@ -771,7 +771,7 @@ vector<double> ReadDistribution::getEffectiveLengths(){ //{{{
       schedule (dynamic,5) \
       private (len,trLen,pos,eL,lenP,wNorm,lCdfNorm,posBias5,posBias3,trRS)
    for(m=0;m<M;m++){
-      if(verbose && (m!=0) && (m%(M/10)==0)){
+      if(verbose && (m!=0) && (M>20) && (m%(M/10)==0)){
          #pragma omp critical
          {
             message("# %ld done. ",m);
