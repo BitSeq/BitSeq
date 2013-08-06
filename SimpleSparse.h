@@ -2,6 +2,9 @@
 #define SIMPLESPARSE_H
 
 #include<stdint.h>
+#include<vector>
+
+using std::vector;
 
 //#define setVal(x,i,y) {for(i=0;i<x->T;i++)x->val[i]=y;}
 
@@ -19,6 +22,7 @@ class SimpleSparse {
    void softmax(SimpleSparse *res) const;
    void softmaxInplace(SimpleSparse *res);
    long countAboveDelta(double delta = 0.99) const;
+   void getFixed(double delta, vector<long> *counts, vector<long> *unfixed) const;
    void sumCols(double res[]) const;
    void sumRows(double res[]) const;
    double logSumExpVal(long st, long en) const;

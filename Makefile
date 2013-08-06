@@ -38,6 +38,7 @@ PROGRAMS = \
    getPPLR \
    getVariance \
    getWithinGeneExpression \
+   hybridMCMC \
    parseAlignment \
    transposeLargeFile
 
@@ -77,6 +78,9 @@ getVariance: getVariance.cpp $(COMMON_DEPS) PosteriorSamples.o
 
 getWithinGeneExpression: getWithinGeneExpression.cpp $(COMMON_DEPS) PosteriorSamples.o TranscriptInfo.o
 	$(CXX) $(CXXFLAGS) $(LDFLAGS) getWithinGeneExpression.cpp $(COMMON_DEPS) PosteriorSamples.o TranscriptInfo.o -o getWithinGeneExpression
+
+hybridMCMC: hybridMCMC.cpp asa103/asa103.o $(COMMON_DEPS) CollapsedSampler.o GibbsParameters.o Sampler.o SimpleSparse.o TagAlignments.o TranscriptInfo.o transposeFiles.o VariationalBayes.o
+	$(CXX) $(CXXFLAGS) $(BOOSTFLAGS) $(OPENMP) $(LDFLAGS) hybridMCMC.cpp asa103/asa103.o $(COMMON_DEPS) CollapsedSampler.o GibbsParameters.o Sampler.o SimpleSparse.o TagAlignments.o TranscriptInfo.o transposeFiles.o VariationalBayes.o -o hybridMCMC
 
 parseAlignment: parseAlignment.cpp $(COMMON_DEPS) ReadDistribution.o samtools/sam.o TranscriptExpression.o TranscriptInfo.o TranscriptSequence.o
 	$(CXX) $(CXXFLAGS) $(OPENMP) $(LDFLAGS) -pthread -Isamtools parseAlignment.cpp $(COMMON_DEPS) ReadDistribution.o samtools/*.o TranscriptExpression.o TranscriptInfo.o TranscriptSequence.o -lz -o parseAlignment

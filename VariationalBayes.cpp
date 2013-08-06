@@ -371,3 +371,7 @@ void VariationalBayes::generateSamples(long samplesN, const string &outTypeS, co
       (*outF)<<endl;
    }
 }//}}}
+
+void VariationalBayes::getFixed(double delta, vector<long> *counts, vector<long> *unfixed) const{// {{{
+   phi->getFixed(delta, counts, unfixed);
+}// }}}

@@ -39,6 +39,10 @@ class TagAlignments{
       int_least32_t getReadsI(long i) const;
       // Get number of reads.
       long getNreads() const { return Nreads;}
+      // Get number of transcripts.
+      long getM() const { return M; }
+      // Get (total) number of alignments.
+      long getNhits() const { return Ntotal; }
 }; 
 
 #endif

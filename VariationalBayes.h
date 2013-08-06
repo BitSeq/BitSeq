@@ -38,6 +38,7 @@ class VariationalBayes {
       void setLog(string logFileName,MyTimer *timer);
       // Generates samples from the distribution. The 0 (noise) transcript is left out.
       void generateSamples(long samplesN, const string &outTypeS, const vector<double> *isoformLengths, ofstream *outF);
+      void getFixed(double delta, vector<long> *counts, vector<long> *unfixed) const;
 };
 
 #endif

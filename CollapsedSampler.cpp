@@ -6,12 +6,20 @@
 #include "common.h"
 
 void CollapsedSampler::sampleZ(){//{{{
-   int_least32_t i,j,k;
+   int_least32_t i,j,k,unfI;
    // Resize Z and initialize if not big enough. {{{
    if((long)Z.size() != Nmap){
       Z.assign(Nmap,0);
       // init Z&C
+      unfI = 0;
       for(i=0;i<Nmap;i++){
+         if(someFixed){
+         // If some are fixed, only used indexes in unfixed.
+            if(unfI>=(long)unfixed.size())break;
+            if(i<unfixed[unfI])continue;
+            if(i>unfixed[unfI]){unfI++;continue;}
+            unfI++;
+         }
          //choose random transcript;
          k = (int_least32_t) (m * uniformDistribution(rng_mt));
          Z[i]=k;
@@ -35,7 +43,15 @@ void CollapsedSampler::sampleZ(){//{{{
    const1b = m * dir->alpha + Nmap - 1;
    const2a = beta->alpha + Nmap - 1;
    // randomize order: ???
+   unfI = 0;
    for(i=0;i<Nmap;i++){
+      if(someFixed){
+      // If some are fixed, only used indexes in unfixed.
+         if(unfI>=(long)unfixed.size())break;
+         if(i<unfixed[unfI])continue;
+         if(i>unfixed[unfI]){unfI++;continue;}
+         unfI++;
+      }
       probNorm=0;
       C[Z[i]]--; // use counts without the current one 
       readsAlignmentsN = alignments->getReadsI(i+1) - alignments->getReadsI(i);
@@ -84,7 +100,6 @@ void CollapsedSampler::update(){//{{{
    Sampler::update();
 
    sampleTheta();
-
    updateSums();
    if((doLog)&&(save))appendFile();
 }//}}}
@@ -93,3 +108,9 @@ void CollapsedSampler::sample(){//{{{
 
    sampleZ();
 }//}}}
+
+void CollapsedSampler::fixReads(const vector<long> &counts, const vector<long> &unfixed){
+   someFixed = true;
+   this->C.assign(counts.begin(),counts.end());
+   this->unfixed.assign(unfixed.begin(),unfixed.end());
+}

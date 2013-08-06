@@ -169,7 +169,6 @@ string programDescription =
    if(args.verbose)timer.split();
 
    if(args.verbose)message("Initializing VB.\n");
-
    VariationalBayes varB(beta,NULL,ns_misc::getSeed(args),args.getL("procN"));
    
    if(args.verbose)timer.split();
@@ -179,7 +178,7 @@ string programDescription =
    varB.setLog(args.getS("outFilePrefix")+".convLog",&timer);
 #endif
 
-   if(args.isSet("maxIter")) varB.optimize(args.flag("veryVerbose"),optM,args.getL("maxIter"),1e-7,1e-7);
+   if(args.isSet("maxIter")) varB.optimize(args.flag("veryVerbose"),optM,args.getL("maxIter"));
    else varB.optimize(args.flag("veryVerbose"),optM);
 
    if(args.verbose){timer.split(0,'m');}

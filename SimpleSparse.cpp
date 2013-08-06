@@ -37,6 +37,22 @@ long SimpleSparse::countAboveDelta(double delta) const{//{{{
    return count;
 }//}}}
 
+void SimpleSparse::getFixed(double delta, vector<long> *counts, vector<long> *unfixed) const{//{{{
+   counts->assign(M,0);
+   unfixed->clear();
+   long i,r;
+   for(r=0;r<N;r++){
+      for(i=rowStart[r];i<rowStart[r+1];i++){
+         if(val[i]>delta)break;
+      }
+      if(i == rowStart[r+1]){
+         unfixed->push_back(r);
+      }else{
+         (*counts)[col[i]]++;
+      }
+   }
+}//}}}
+
 void SimpleSparse::softmaxInplace(SimpleSparse *res){//{{{
    double logRowSum = 0;
    long i,r;
