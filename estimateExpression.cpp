@@ -255,7 +255,7 @@ void MCMC(TagAlignments *alignments,gibbsParameters &gPar,ArgumentParser &args){
       // Norms for sums (used for variance and mean), should be same for all
       // samplers and all transcripts.
       sumNorms = samplers[0]->getSumNorms();
-      samplesHave = sumNorms.FF;
+      samplesHave = (long)sumNorms.FF;
       if(samplesHave != samplesN)message("Samples have: %ld %ld.\n",samplesN,samplesHave);
       for(i=0;i<M;i++){
          for(j=0;j<chainsN;j++){
