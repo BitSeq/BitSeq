@@ -295,7 +295,7 @@ void MCMC(TagAlignments *alignments,gibbsParameters &gPar,ArgumentParser &args){
       message("rHat (for %ld samples) \n",samplesN);
       rMean.FF=0;
       rMean.SS=0;
-      message("   rHat (rHat from subset |    tid | mean theta)\n");
+      message("    rHat  (rH theta|    tid | mean theta)\n");
       for(i=0;(i<10) && (i<M);i++){
          rH1 = sqrt(rHat2[i].FF.FF);
          rH2 = sqrt(rHat2[i].FF.SS);
@@ -303,7 +303,7 @@ void MCMC(TagAlignments *alignments,gibbsParameters &gPar,ArgumentParser &args){
          rMean.SS+=rH2;
 //         message("   %lf (%lf | %ld | %lf|%lf|%lf)",rHat2[i].FF.FF,rHat2[i].FF.SS,rHat2[i].SS,totAverage[rHat2[i].SS].FF,withVar[rHat2[i].SS].FF,betwVar[rHat2[i].SS].FF/samplesHave);
          if((i<3) || args.verbose){
-            message("   %7.4lf (%7.4lf | %6ld | %7.4lf)",rH1,rH2,rHat2[i].SS-1,totAverage[rHat2[i].SS].FF);
+            message("   %7.4lf (%7.4lf | %6ld | %8.5lf)",rH1,rH2,rHat2[i].SS-1,totAverage[rHat2[i].SS].FF);
             message("\n");
          }
 //                  message("   %lf",sqrt(rHat2[i].FF));
