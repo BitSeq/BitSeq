@@ -74,17 +74,6 @@ pairD Sampler::getAverage(long i){//{{{
    av2=(sumNorm.second==0)?0:thetaSum[i].second/sumNorm.second;
    return pairD(av1,av2);
 }//}}}
-void Sampler::getWithinVariance(vector<pairD> &va){//{{{
-   long i;
-   if(Sof(va)<m)
-      va.assign(m,pairD(0,0));
-   for(i=0;i<m;i++){
-      if(sumNorm.first != 0)
-         va[i].first = thetaSqSum[i].first / sumNorm.first - (thetaSum[i].first/sumNorm.first)*(thetaSum[i].first/sumNorm.first);
-      if(sumNorm.second != 0)
-         va[i].second = thetaSqSum[i].first / sumNorm.second - (thetaSum[i].second/sumNorm.second)*(thetaSum[i].second/sumNorm.second);
-   }
-}//}}}
 pairD Sampler::getWithinVariance(long i){//{{{
    double va1,va2;
    if(sumNorm.first==0)
@@ -163,19 +152,21 @@ void Sampler::appendFile(){//{{{
 }//}}}
 void Sampler::updateSums(){//{{{
    long i;
+   double s;
    for(i=0;i<m;i++){
       thetaSum[i].first+=theta[i];
       thetaSqSum[i].first+=theta[i]*theta[i];
    }
    sumC0+=C[0];
    sumNorm.first++;
-   if(doLog){
-      for(i=0;i<m;i++){
-         thetaSum[i].second+=theta[i];
-         thetaSqSum[i].second+=theta[i]*theta[i];
-      }
-      sumNorm.second++;
+   //if(doLog){
+   for(i=0;i<m;i++){
+      s = log(theta[i]) - log(1-theta[i]);//LOGIT
+      thetaSum[i].second += s;
+      thetaSqSum[i].second += s * s;
    }
+   sumNorm.second++;
+   //}
 }//}}}
 void Sampler::saveSamples(ofstream *outFile, const vector<double> *isoformLengths, const string &saveType, double norm){//{{{
    this->outFile = outFile;
