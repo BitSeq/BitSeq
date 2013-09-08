@@ -256,7 +256,6 @@ void MCMC(TagAlignments *alignments,gibbsParameters &gPar,ArgumentParser &args){
       // samplers and all transcripts.
       sumNorms = samplers[0]->getSumNorms();
       samplesHave = (long)sumNorms.FF;
-      if(samplesHave != samplesN)message("Samples have: %ld %ld.\n",samplesN,samplesHave);
       for(i=0;i<M;i++){
          for(j=0;j<chainsN;j++){
             tmpA = samplers[j]->getAverage(i);
