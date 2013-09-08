@@ -23,10 +23,11 @@ mkdir $DIR
 #svn export asa103 $DIR/asa103
 if [[ -d .svn ]]
 then
+   svn export asa103 $DIR/asa103
    svn export boost $DIR/boost
    svn export samtools $DIR/samtools
 else
-   cp -r boost samtools $DIR
+   cp -r asa103 boost samtools $DIR
 fi
 
 cp -v _release_Makefile $DIR/Makefile
@@ -43,5 +44,4 @@ else
 fi
 
 echo "REMINDERs:"
-echo "Delete licensing line about asa libs from README."
 echo "File Makefile contains current version of BitSeq, please update if haven't done already."

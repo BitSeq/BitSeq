@@ -1,10 +1,12 @@
-0.6.1:
+0.7.0:
 Improvements:
+- estimateVBexpression provides new expression inference method using fast collapsed VB
 - adding --unstranded flag to parseAlignment, to allow read pairs with various directions to be used
 
 Bug fixes:
 - adding -lpthread option for parseAlignment compilation, so that samtools links even without -fopenmp
 
+[0.6.1]
 0.6.0:
 Improvements:
 - thetaMeans contains variance of theta

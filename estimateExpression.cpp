@@ -37,7 +37,7 @@ void clearDataEE(){
    samplesFileNames.clear();
 }
 
-TagAlignments* readData(ArgumentParser &args) {//{{{
+TagAlignments* readData(const ArgumentParser &args) {//{{{
    long i,j,num,tid;
    double prb;
    long Ntotal=0,Nmap=0;
@@ -54,8 +54,9 @@ TagAlignments* readData(ArgumentParser &args) {//{{{
       error("Prob file header read failed.\n");
       return NULL;
    }//}}}
-   message("Mappings: %ld\n",Nmap);
-   message("Ntotal: %ld\n",Ntotal);
+   message("N mapped: %ld\n",Nmap);
+   messageF("N total:  %ld\n",Ntotal);
+   if(args.verb())message("Reading alignments.\n");
    if(Ntotal>Nmap)Nunmap=Ntotal-Nmap;
    else Nunmap=1; //no valid count file assume only one not aligned properly
    alignments->init(Nmap,0,M);
@@ -96,7 +97,7 @@ TagAlignments* readData(ArgumentParser &args) {//{{{
       alignments->pushRead();
    
       R_INTERUPT;
-      if((i % mod == 0)&&(i>0)){
+      if(args.verb() && (i % mod == 0) && (i>0)){
          message("  %ld ",i);
          timer.split();
          mod*=10;
@@ -119,8 +120,8 @@ TagAlignments* readData(ArgumentParser &args) {//{{{
    }
    //}}}
    if(i<Nmap)message("Read only %ld reads.\n",NreadsReal);
-   message("Finished Reading!\nTotal hits = %ld\n",Nhits);
-   message("Isoforms: %ld\n",M);
+   message("All alignments: %ld\n",Nhits);
+   messageF("Isoforms: %ld\n",M);
    Nmap = NreadsReal;
    return alignments;
    /* {{{ remapping isoforms to ignore those without any hits
@@ -328,7 +329,7 @@ void MCMC(TagAlignments *alignments,gibbsParameters &gPar,ArgumentParser &args){
             }
             sstr<<"\n";
             failedMessage=sstr.str();
-            if(!args.verbose)message("   %ld transcripts (full list is in output file)\n",countUncoverged);
+            if(!args.verbose)message("   %ld transcripts (full list is in the output file)\n",countUncoverged);
          }
          // Close files and delete pointers.
          for(j=0;j<chainsN;j++){
@@ -519,7 +520,6 @@ string programDescription =
 
    //}}}
    // {{{ Read transcriptInfo and .prob file 
-   if(args.verbose)message("Reading data.\n");
    if((!args.isSet("trInfoFileName"))||(!trInfo.readInfo(args.getS("trInfoFileName")))){
       if(args.getS("outputType") == "rpkm"){
          error("Main: Missing transcript info file. The file is necessary for producing RPKM.\n");

@@ -10,7 +10,7 @@
 #include "VariationalBayes.h"
 
 
-SimpleSparse* readData(ArgumentParser &args, long trM){//{{{
+SimpleSparse* readData(const ArgumentParser &args, long trM){//{{{
 /*
  As parse(filename,maxreads=None) in python
  Python diferece:
@@ -34,11 +34,12 @@ SimpleSparse* readData(ArgumentParser &args, long trM){//{{{
       return NULL;
    }//}}}
    if(format == ns_fileHeader::OLD_FORMAT){
-      error("Please use new/log format of probfile.");
+      error("Please use new/log format of Prob file.");
       return NULL;
    }
-   message("Mappings: %ld\n",Nmap);
-   message("Ntotal: %ld\n",Ntotal);
+   message("N mapped: %ld\n",Nmap);
+   messageF("N total:  %ld\n",Ntotal);
+   if(args.verb())message("Reading alignments.\n");
    alignments->init(Nmap,0,M);
    long mod=10000;
    long bad = 0;
@@ -75,7 +76,7 @@ SimpleSparse* readData(ArgumentParser &args, long trM){//{{{
       alignments->pushRead();
       
       R_INTERUPT;
-      if((i % mod == 0)&&(i>0)){
+      if(args.verb() && (i % mod == 0) && (i>0)){
          message("  %ld ",i);
          timer.split();
          mod*=10;
@@ -89,8 +90,8 @@ SimpleSparse* readData(ArgumentParser &args, long trM){//{{{
    if(M<trM)M = trM;
    //}}}
    if(i<Nmap)message("Read only %ld reads.\n",NreadsReal);
-   message("Finished Reading!\nTotal hits = %ld\n",Nhits);
-   message("Isoforms: %ld\n",M);
+   message("All alignments: %ld\n",Nhits);
+   messageF("Isoforms: %ld\n",M);
    Nmap = NreadsReal;
 
    SimpleSparse *beta = new SimpleSparse(Nmap, M, Nhits);
@@ -115,12 +116,13 @@ string programDescription =
    args.addOptionS("o","outPrefix","outFilePrefix",1,"Prefix for the output files.");
    args.addOptionS("O","outType","outputType",0,"Output type (theta, RPKM, counts) of the samples sampled from the distribution.","theta");
    args.addOptionS("t","trInfoFile","trInfoFileName",0,"File containing transcript information. (Necessary for RPKM samples)");
-   args.addOptionS("m","method","optMethod",0,"Optimalization method (steepest, PR, FR, HS).","FR");
-   args.addOptionL("s","seed","seed",0,"Random initialization seed.");
-   args.addOptionL("","maxIter","maxIter",0,"Maximum number of iterations.");
    args.addOptionL("P","procN","procN",0,"Limit the maximum number of threads to be used.",4);
+   args.addOptionS("m","method","optMethod",0,"Optimization method (steepest, PR, FR, HS).","FR");
+   args.addOptionL("s","seed","seed",0,"Random initialization seed.");
+   args.addOptionL("","maxIter","maxIter",0,"Maximum number of iterations.",1e4);
+   args.addOptionD("","optLimit","limit",0,"Optimisation limit in terms of minimal gradient or change of bound.",1e-5); 
    args.addOptionL("","samples","samples",0,"Number of samples to be sampled from the distribution.");
-   args.addOptionB("V","veryVerbose","veryVerbose",0,"Very verbose output.");
+   args.addOptionB("V","veryVerbose","veryVerbose",0,"More verbose output, better if output forwarded into file.");
    if(!args.parse(*argc,argv))return 0;
    if(args.verbose)buildTime(argv[0],__DATE__,__TIME__);
    OPT_TYPE optM;
@@ -145,7 +147,6 @@ string programDescription =
    TranscriptInfo trInfo;
 
    // {{{ Read transcriptInfo and .prob file 
-   if(args.verbose)message("Reading data.\n");
    if((!args.isSet("trInfoFileName"))||(!trInfo.readInfo(args.getS("trInfoFileName")))){
       if(args.isSet("samples") && (args.getL("samples")>0) && (args.getS("outputType") == "rpkm")){
          error("Main: Missing transcript info file. The file is necessary for producing RPKM samples.\n");
@@ -156,7 +157,7 @@ string programDescription =
    }
    beta = readData(args,M);
    if(! beta){
-      error("Main: Reading probabilitites failed.");
+      error("Main: Reading probabilities failed.");
       return 1;
    }
    M = beta->M;
@@ -179,8 +180,9 @@ string programDescription =
    varB.setLog(args.getS("outFilePrefix")+".convLog",&timer);
 #endif
 
-   if(args.isSet("maxIter")) varB.optimize(args.flag("veryVerbose"),optM,args.getL("maxIter"),1e-7,1e-7);
-   else varB.optimize(args.flag("veryVerbose"),optM);
+   // Optimize:
+   if(!args.verbose)varB.beQuiet();
+   varB.optimize(args.flag("veryVerbose"),optM,args.getL("maxIter"),args.getD("limit"),args.getD("limit"));
 
    if(args.verbose){timer.split(0,'m');}
    double *alpha = varB.getAlphas();
@@ -192,8 +194,11 @@ string programDescription =
       return 1;
    }
    outF<<"# "<<args.args()[0]<<endl;
-   outF<<"# M "<<M<<endl;
-   outF<<"# mean alpha beta"<<endl;
+   outF<<"# M "<<M<<"\n"
+         "# List includes also 'noise' transcript (first line)\n"
+         "# <alpha> - parameter of Dirichlet distribution\n"
+         "# <alpha> <beta> - parameters of the marginal Gamma distribution\n"
+         "# columns: <mean theta> <alpha> <beta>"<<endl;
    outF<<scientific;
    outF.precision(9);
    for(i=0;i<M;i++){

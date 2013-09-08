@@ -283,10 +283,7 @@ string programDescription =
             //}}}
          }
          if((args.verbose)&&(!args.flag("veryVerbose"))){
-            message(".");
-#ifndef BIOC_BUILD
-            fflush(stdout);
-#endif
+            messageF(".");
          }
       }
       cond.close();

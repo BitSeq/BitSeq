@@ -6,8 +6,8 @@
 #include "MyTimer.h"
 #include "SimpleSparse.h"
 
-#define LOG_CONV
-#define LONG_LOG
+//#define LOG_CONV
+//#define LONG_LOG
 //#define SHOW_FIXED
 
 enum OPT_TYPE { OPTT_STEEPEST, OPTT_PR, OPTT_FR, OPTT_HS};
@@ -25,6 +25,7 @@ class VariationalBayes {
       MyTimer *logTimer;
       // mersen twister random number generator
       boost::random::mt11213b rng_mt;
+      bool quiet;
 
    public:
       VariationalBayes(SimpleSparse *_beta,double *_alpha=NULL,long seed = 0,long procN = 1);
@@ -38,6 +39,7 @@ class VariationalBayes {
       void setLog(string logFileName,MyTimer *timer);
       // Generates samples from the distribution. The 0 (noise) transcript is left out.
       void generateSamples(long samplesN, const string &outTypeS, const vector<double> *isoformLengths, ofstream *outF);
+      void beQuiet(){ quiet = true; }
 };
 
 #endif

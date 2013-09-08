@@ -26,6 +26,7 @@ VariationalBayes::VariationalBayes(SimpleSparse *_beta,double *_alpha,long seed,
  Python diferece:
   - python version excludes beta.data <= 1e-40
 */
+   quiet = false;
    logFileName = "tmp.convLog";
    logTimer = NULL;
 #ifdef SUPPORT_OPENMP
@@ -247,9 +248,8 @@ void VariationalBayes::optimize(bool verbose,OPT_TYPE method,long maxIter,double
          #else
             messageF("iter(%c): %5.ld  bound: %.3lf grad: %.7lf  beta: %.7lf\n",(usedSteepest?'s':'o'),iteration,bound,squareNorm,valBeta);
          #endif
-      }else{
-         message("\riter(%c): %5.ld  bound: %.3lf grad: %.7lf  beta: %.7lf              ",(usedSteepest?'s':'o'),iteration,bound,squareNorm,valBeta);
-         fflush(stdout);
+      }else if(!quiet){
+         messageF("\riter(%c): %5.ld  bound: %.3lf grad: %.7lf  beta: %.7lf      ",(usedSteepest?'s':'o'),iteration,bound,squareNorm,valBeta);
       }
 #ifdef LOG_CONV
    if((iteration%100==0) ||
@@ -275,19 +275,19 @@ void VariationalBayes::optimize(bool verbose,OPT_TYPE method,long maxIter,double
 
       // convergence check {{{
       if(bound<boundOld){
-         message("\nbound decrease\n");
+         message("\nEnd: bound decrease\n");
          break;
       }
       if(abs(bound-boundOld)<=ftol){
-         message("\nconverged (ftol)\n");
+         message("\nEnd: converged (ftol)\n");
          break;
       }
       if(squareNorm<=gtol){
-         message("\nconverged (gtol)\n");
+         message("\nEnd: converged (gtol)\n");
          break;
       }
       if(iteration>=maxIter){
-         message("\nmaxIter exceeded\n");
+         message("\nEnd: maxIter exceeded\n");
          break;
       }
       // }}}
@@ -295,6 +295,9 @@ void VariationalBayes::optimize(bool verbose,OPT_TYPE method,long maxIter,double
       squareNormOld=squareNorm;
       boundOld=bound;
       // }}}
+   }
+   if(quiet){
+      messageF("iter(%c): %5.ld  bound: %.3lf grad: %.7lf  beta: %.7lf\n",(usedSteepest?'s':'o'),iteration,bound,squareNorm,valBeta);
    }
 #ifdef LOG_CONV
    logF<<iteration<<" "<<bound<<" "<<squareNorm;

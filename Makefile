@@ -1,7 +1,7 @@
 CXX = g++
 HOSTNAME = $(shell hostname)
 ARCH = -mtune=generic
-VERSION = 0.6.1
+VERSION = 0.7.0
 
 ifeq ($(HOSTNAME), valiant)
 	ARCH = -march=core2
@@ -113,7 +113,7 @@ Sampler.o: Sampler.cpp Sampler.h GibbsParameters.h
 	$(CXX) $(CXXFLAGS) $(BOOSTFLAGS) -c Sampler.cpp
 
 SimpleSparse.o: SimpleSparse.cpp SimpleSparse.h
-	$(CXX) $(CXXFLAGS) $(BOOSTFLAGS) $(OPENMP) -c SimpleSparse.cpp
+	$(CXX) $(CXXFLAGS) $(OPENMP) -c SimpleSparse.cpp
 
 VariationalBayes.o: VariationalBayes.cpp VariationalBayes.h SimpleSparse.h
 	$(CXX) $(CXXFLAGS) $(BOOSTFLAGS) $(OPENMP) -c VariationalBayes.cpp 
@@ -136,7 +136,7 @@ samtools/sam.o:
 
 # CLEAN:
 clean:
-	rm asa103/*.o *.o $(PROGRAMS)
+	rm *.o $(PROGRAMS)
 
 clean-all:
 	rm samtools/*.o asa103/*.o *.o $(PROGRAMS)

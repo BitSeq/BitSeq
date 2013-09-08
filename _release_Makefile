@@ -1,6 +1,6 @@
 CXX = g++
 ARCH = -mtune=generic
-VERSION = 0.6.1
+VERSION = 0.7.0
 #	ARCH = -march=core2
 #	ARCH = -march=native
 
@@ -16,6 +16,7 @@ PROGRAMS = \
    estimateDE \
    estimateExpression \
    estimateHyperPar \
+   estimateVBExpression \
    extractSamples \
    getFoldChange \
    getGeneExpression \
@@ -40,6 +41,9 @@ estimateExpression: estimateExpression.cpp $(COMMON_DEPS) CollapsedSampler.o Gib
 
 estimateHyperPar: estimateHyperPar.cpp $(COMMON_DEPS) lowess.o PosteriorSamples.o TranscriptExpression.o 
 	$(CXX) $(CXXFLAGS) $(BOOSTFLAGS) $(LDFLAGS) estimateHyperPar.cpp $(COMMON_DEPS) lowess.o PosteriorSamples.o TranscriptExpression.o -o estimateHyperPar
+
+estimateVBExpression: estimateVBExpression.cpp asa103/asa103.o $(COMMON_DEPS) SimpleSparse.o TagAlignments.o TranscriptInfo.o transposeFiles.o VariationalBayes.o
+	$(CXX) $(CXXFLAGS) $(BOOSTFLAGS) $(OPENMP) $(LDFLAGS) estimateVBExpression.cpp asa103/asa103.o $(COMMON_DEPS) SimpleSparse.o TagAlignments.o TranscriptInfo.o transposeFiles.o VariationalBayes.o -o estimateVBExpression
 
 extractSamples: extractSamples.cpp $(COMMON_DEPS) PosteriorSamples.o
 	$(CXX) $(CXXFLAGS) $(LDFLAGS) extractSamples.cpp $(COMMON_DEPS) PosteriorSamples.o -o extractSamples
@@ -93,6 +97,12 @@ ReadDistribution.o: ReadDistribution.cpp ReadDistribution.h TranscriptExpression
 Sampler.o: Sampler.cpp Sampler.h GibbsParameters.h
 	$(CXX) $(CXXFLAGS) $(BOOSTFLAGS) -c Sampler.cpp
 
+SimpleSparse.o: SimpleSparse.cpp SimpleSparse.h
+	$(CXX) $(CXXFLAGS) $(OPENMP) -c SimpleSparse.cpp
+
+VariationalBayes.o: VariationalBayes.cpp VariationalBayes.h SimpleSparse.h
+	$(CXX) $(CXXFLAGS) $(BOOSTFLAGS) $(OPENMP) -c VariationalBayes.cpp 
+
 common.o: common.cpp common.h
 GibbsParameters.o: ArgumentParser.h GibbsParameters.cpp GibbsParameters.h
 lowess.o: lowess.cpp lowess.h
@@ -103,10 +113,13 @@ TranscriptSequence.o: TranscriptSequence.cpp TranscriptSequence.h
 transposeFiles.o: transposeFiles.cpp transposeFiles.h FileHeader.h
 
 # EXTERNAL LIBRARIES:
+asa103/asa103.o:
+	make --directory asa103
+
 samtools/sam.o:
 	make --directory samtools
 
 # CLEAN:
 clean:
-	rm samtools/*.o *.o $(PROGRAMS)
+	rm asa103/*.o samtools/*.o *.o $(PROGRAMS)
 

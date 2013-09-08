@@ -8,6 +8,7 @@ convertSamples.cpp
 estimateDE.cpp
 estimateExpression.cpp
 estimateHyperPar.cpp
+estimateVBExpression.cpp
 extractSamples.cpp
 FileHeader.cpp
 FileHeader.h
@@ -33,6 +34,8 @@ ReadDistribution.cpp
 ReadDistribution.h
 Sampler.cpp
 Sampler.h
+SimpleSparse.cpp
+SimpleSparse.h
 TagAlignments.cpp
 TagAlignments.h
 TranscriptExpression.cpp
@@ -44,6 +47,8 @@ TranscriptSequence.h
 transposeFiles.cpp
 transposeFiles.h
 transposeLargeFile.cpp
+VariationalBayes.cpp
+VariationalBayes.h
 extractTranscriptInfo.py
 getCounts.py
 parameters1.txt
