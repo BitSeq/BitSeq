@@ -373,4 +373,6 @@ void VariationalBayes::generateSamples(long samplesN, const string &outTypeS, co
       }
       (*outF)<<endl;
    }
+   // Delete lengths.
+   delete isoformLengths;
 }//}}}
