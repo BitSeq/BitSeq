@@ -2,6 +2,7 @@
 Improvements:
 - estimateVBexpression provides new expression inference method using fast collapsed VB
 - adding --unstranded flag to parseAlignment, to allow read pairs with various directions to be used
+- changing computation of Rhat to produce better estimates
 
 Bug fixes:
 - adding -lpthread option for parseAlignment compilation, so that samtools links even without -fopenmp
