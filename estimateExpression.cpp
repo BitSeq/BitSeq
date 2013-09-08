@@ -294,7 +294,7 @@ void MCMC(TagAlignments *alignments,gibbsParameters &gPar,ArgumentParser &args){
       message("rHat (for %ld samples) \n",samplesN);
       rMean.FF=0;
       rMean.SS=0;
-      message("    rHat  (rH theta|    tid | mean theta)\n");
+      message("    rHat   (rH theta|    tid | mean theta)\n");
       for(i=0;(i<10) && (i<M);i++){
          rH1 = sqrt(rHat2[i].FF.FF);
          rH2 = sqrt(rHat2[i].FF.SS);
