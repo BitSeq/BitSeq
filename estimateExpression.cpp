@@ -144,7 +144,7 @@ void MCMC(TagAlignments *alignments,gibbsParameters &gPar,ArgumentParser &args){
    // Declarations: {{{
    DEBUG(message("Declaratinos:\n"));
    long i,j,samplesHave=0,totalSamples=0,samplesN,chainsN,samplesSave,seed;
-   pairD rMean,tmpA,tmpV;
+   pairD rMean,tmpA,tmpV,sumNorms;
    double rH1,rH2;
    ofstream meansFile;
    ofstream *samplesFile = new ofstream[gPar.chainsN()];
@@ -253,7 +253,10 @@ void MCMC(TagAlignments *alignments,gibbsParameters &gPar,ArgumentParser &args){
       totAverage.assign(M,pairD(0,0));
       betwVar.assign(M,pairD(0,0));
       withVar.assign(M,pairD(0,0));
-      samplesHave = samplesN;
+      // Norms for sums (used for variance and mean), should be same for all
+      // samplers and all transcripts.
+      sumNorms = samplers[0]->getSumNorms();
+      samplesHave = (long)sumNorms.FF;
       for(i=0;i<M;i++){
          for(j=0;j<chainsN;j++){
             tmpA = samplers[j]->getAverage(i);
@@ -281,9 +284,10 @@ void MCMC(TagAlignments *alignments,gibbsParameters &gPar,ArgumentParser &args){
          if(withVar[i].FF == 0 ){
             rHat2[i].FF.FF = 0;
             rHat2[i].FF.SS = 0;
-         } else { 
-            rHat2[i].FF.FF = (samplesHave - 1.0) / samplesHave + betwVar[i].FF / withVar[i].FF ;
-            rHat2[i].FF.SS = (samplesHave - 1.0) / samplesHave + betwVar[i].SS / withVar[i].SS ;
+         } else {
+            // First 'column' is Rhat of logit(theta).
+            rHat2[i].FF.FF = (sumNorms.SS - 1.0) / sumNorms.SS + betwVar[i].SS / withVar[i].SS ;
+            rHat2[i].FF.SS = (sumNorms.FF - 1.0) / sumNorms.FF + betwVar[i].FF / withVar[i].FF ;
                //betwVar[i] / ( samplesHave * withVar[i] );
          }
       }
@@ -291,7 +295,7 @@ void MCMC(TagAlignments *alignments,gibbsParameters &gPar,ArgumentParser &args){
       message("rHat (for %ld samples) \n",samplesN);
       rMean.FF=0;
       rMean.SS=0;
-      message("   rHat (rHat from subset |    tid | mean theta)\n");
+      message("    rHat   (rH theta|    tid | mean theta)\n");
       for(i=0;(i<10) && (i<M);i++){
          rH1 = sqrt(rHat2[i].FF.FF);
          rH2 = sqrt(rHat2[i].FF.SS);
@@ -299,7 +303,7 @@ void MCMC(TagAlignments *alignments,gibbsParameters &gPar,ArgumentParser &args){
          rMean.SS+=rH2;
 //         message("   %lf (%lf | %ld | %lf|%lf|%lf)",rHat2[i].FF.FF,rHat2[i].FF.SS,rHat2[i].SS,totAverage[rHat2[i].SS].FF,withVar[rHat2[i].SS].FF,betwVar[rHat2[i].SS].FF/samplesHave);
          if((i<3) || args.verbose){
-            message("   %7.4lf (%7.4lf | %6ld | %7.4lf)",rH1,rH2,rHat2[i].SS-1,totAverage[rHat2[i].SS].FF);
+            message("   %7.4lf (%7.4lf | %6ld | %8.5lf)",rH1,rH2,rHat2[i].SS-1,totAverage[rHat2[i].SS].FF);
             message("\n");
          }
 //                  message("   %lf",sqrt(rHat2[i].FF));
@@ -344,8 +348,11 @@ void MCMC(TagAlignments *alignments,gibbsParameters &gPar,ArgumentParser &args){
          for(i=1;i<M;i++){
             // between variance was not multiplied by samplesHave===n
             // there is no chainsN in the denominator because samplesSave was already divided by chainsN
-            needS[i] = samplesSave * samplesHave/
-                     ((samplesHave-1.0)/samplesHave*withVar[i].FF/betwVar[i].FF+1.0);
+            // Use LOGIT(theta):
+            needS[i] = samplesSave * sumNorms.SS/
+                     ((sumNorms.SS-1.0)/sumNorms.SS*withVar[i].SS/betwVar[i].SS+1.0);
+            //needS[i] = samplesSave * samplesHave/
+            //         ((samplesHave-1.0)/samplesHave*withVar[i].FF/betwVar[i].FF+1.0);
          } 
          // log the number of effective samples, only when testing... //{{{
          #ifdef LOG_NEED
