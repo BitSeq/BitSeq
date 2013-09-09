@@ -20,6 +20,9 @@ fi
 
 mkdir $DIR
 
+# Cleanup:
+make clean-all
+
 #svn export asa103 $DIR/asa103
 if [[ -d .svn ]]
 then
@@ -27,7 +30,9 @@ then
    svn export boost $DIR/boost
    svn export samtools $DIR/samtools
 else
-   cp -r asa103 boost samtools $DIR
+   echo "Copying boost to '$DIR'."
+   cp -r boost $DIR
+   cp -rv asa103 boost samtools $DIR
 fi
 
 cp -v _release_Makefile $DIR/Makefile
