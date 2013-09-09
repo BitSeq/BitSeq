@@ -23,7 +23,7 @@ void VariationalBayes::setLog(string logFileName,MyTimer *timer){//{{{
 VariationalBayes::VariationalBayes(SimpleSparse *_beta,double *_alpha,long seed,long procN){//{{{
 /*
  As bitseq_vb::__init__(self, alpha, beta) in python
- Python diferece:
+ Python difference:
   - python version excludes beta.data <= 1e-40
 */
    quiet = false;
@@ -58,7 +58,7 @@ VariationalBayes::VariationalBayes(SimpleSparse *_beta,double *_alpha,long seed,
    phi_sm = new SimpleSparse(beta);
    for(i=0;i<T;i++)phi_sm->val[i] = normalD(rng_mt);
    phi = new SimpleSparse(beta);
-   // PyDif make phi a copy of phi_sm <- not important because of unpack() comming up next
+   // PyDif make phi a copy of phi_sm <- not important because of unpack() coming up next
    
    unpack(phi_sm->val); //unpack(pack()); 
 
@@ -96,7 +96,7 @@ void VariationalBayes::negGradient(double res[]){//{{{
       digA_pH[i]=digama(alpha[i]+phiHat[i], &err);
       totalError += err;
    }
-   if(totalError){error("VariationalBayes: digamma error (%d).\n",totalError); }
+   if(totalError){error("VariationalBayes: Digamma error (%d).\n",totalError); }
    // beta is logged now
    #pragma omp parallel for
    for(i=0;i<T;i++)res[i]= - (beta->val[i] - phi_sm->val[i] - 1.0 + digA_pH[beta->col[i]]);
@@ -260,7 +260,7 @@ void VariationalBayes::optimize(bool verbose,OPT_TYPE method,long maxIter,double
       if(logTimer)logF<<" "<<logTimer->current(0,'m');
       #ifdef LONG_LOG
       double alphaSum = 0, alphaVarNorm;
-      // True 'alpha' - dirichlet parameter is alpha+phiHat.
+      // True 'alpha' - Dirichlet parameter is alpha+phiHat.
       for(i=1;i<M;i++){
          dirAlpha[i] = alpha[i] + phiHat[i];
          alphaSum += dirAlpha[i];
@@ -304,7 +304,7 @@ void VariationalBayes::optimize(bool verbose,OPT_TYPE method,long maxIter,double
    if(logTimer)logF<<" "<<logTimer->current(0,'m');
    #ifdef LONG_LOG
    double alphaSum = 0, alphaVarNorm;
-   // True 'alpha' - dirichlet parameter is alpha+phiHat.
+   // True 'alpha' - Dirichlet parameter is alpha+phiHat.
    for(i=1;i<M;i++){
       dirAlpha[i] = alpha[i] + phiHat[i];
       alphaSum += dirAlpha[i];
@@ -344,7 +344,7 @@ void VariationalBayes::generateSamples(long samplesN, const string &outTypeS, co
    // Set normalisation.
    if(outTypeS == "counts") normC = N; // N is Nmap.
    if(outTypeS == "rpkm") normC = 1e9;
-   // Precompute dirichlet's alpha and save them as parameters for Gamma.
+   // Pre-compute Dirichlet's alpha and save them as parameters for Gamma.
    for(m=0;m<M;m++)alphaParam.push_back(gDP(alpha[m] + phiHat[m], 1.0));
    // Sample.
    outF->precision(9);

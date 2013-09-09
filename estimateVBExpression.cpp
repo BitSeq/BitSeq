@@ -13,7 +13,7 @@
 SimpleSparse* readData(const ArgumentParser &args, long trM){//{{{
 /*
  As parse(filename,maxreads=None) in python
- Python diferece:
+ Python difference:
   - missing maxreads check 
     (abort if more than maxreads reads were processed)
 */

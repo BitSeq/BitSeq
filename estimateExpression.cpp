@@ -28,7 +28,7 @@ TranscriptInfo trInfo;
 
 long  M;//, mAll; // M : number of transcripts (include transcript 0 ~ Noise)
 //long N, 
-long Nunmap; // N: number of read, unmappable read, mappable reads
+long Nunmap; // N: number of read, un-mappable read, mappable reads
 
 vector<string> samplesFileNames;
 string failedMessage;
@@ -142,7 +142,7 @@ TagAlignments* readData(const ArgumentParser &args) {//{{{
 
 void MCMC(TagAlignments *alignments,gibbsParameters &gPar,ArgumentParser &args){//{{{
    // Declarations: {{{
-   DEBUG(message("Declaratinos:\n"));
+   DEBUG(message("Declarations:\n"));
    long i,j,samplesHave=0,totalSamples=0,samplesN,chainsN,samplesSave,seed;
    pairD rMean,tmpA,tmpV,sumNorms;
    double rH1,rH2;
@@ -182,7 +182,7 @@ void MCMC(TagAlignments *alignments,gibbsParameters &gPar,ArgumentParser &args){
       // sampler is initialized with 'seed' and then sets 'seed' to new random seed for the next sampler
    }
    // parallel block: 
-   // make sure that all functions used are CONST and variables are beaing READ or private
+   // make sure that all functions used are CONST and variables are being READ or private
    // private: samplesHave (or subCounter)
 #ifdef BIOC_BUILD
    long samplesDo, subCounter;
@@ -194,7 +194,7 @@ void MCMC(TagAlignments *alignments,gibbsParameters &gPar,ArgumentParser &args){
            samplers[i]->sample();
          }
       }
-      // Check for interupt out of the parallel part.
+      // Check for interrupt out of the parallel part.
       R_INTERUPT;
    }
 #else
@@ -207,7 +207,7 @@ void MCMC(TagAlignments *alignments,gibbsParameters &gPar,ArgumentParser &args){
    }
 #endif
    message("Burn in: %ld DONE. ",gPar.burnIn());
-   DEBUG(message(" reseting samplers after burnin\n"));
+   DEBUG(message(" reseting samplers after BurnIn\n"));
    for(i=0;i<chainsN;i++){
       samplers[i]->resetSampler(samplesN);
    }
@@ -230,7 +230,7 @@ void MCMC(TagAlignments *alignments,gibbsParameters &gPar,ArgumentParser &args){
                samplers[i]->update();
             }
          }
-         // Check for interupt out of the parallel part.
+         // Check for interrupt out of the parallel part.
          R_INTERUPT;
       }
 #else
@@ -488,7 +488,7 @@ string programDescription =
    args.init(programDescription,"[prob file]",1);
    args.addOptionS("o","outPrefix","outFilePrefix",1,"Prefix for the output files.");
    args.addOptionS("O","outType","outputType",0,"Output type (theta, RPKM, counts, tau).","theta");
-   args.addOptionB("G","gibbs","gibbs",0,"Use gibbs sampling instead of collapsed gibbs sampling.");
+   args.addOptionB("G","gibbs","gibbs",0,"Use Gibbs sampling instead of collapsed Gibbs sampling.");
    args.addOptionS("p","parFile","parFileName",0,"File containing parameters for the sampler, which can be otherwise specified by --MCMC* options. As the file is checked after every MCMC iteration, the parameters can be adjusted while running.");
    args.addOptionS("t","trInfoFile","trInfoFileName",0,"File containing transcript information. (Necessary for RPKM)");
    args.addOptionL("P","procN","procN",0,"Limit the maximum number of threads to be used. (Default is the number of MCMC chains.)");
