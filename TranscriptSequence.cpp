@@ -49,7 +49,7 @@ bool TranscriptSequence::readSequence(string fileName, refFormatT format){//{{{
       // look for gene name if previous lines had gene name:
       if(gotGeneNames){
          if(format == GENCODE){
-            vector<string> lineTokens = ns_misc::tokenize(trDesc);
+            vector<string> lineTokens = ns_misc::tokenize(trDesc,"|");
             if(lineTokens.size()>1){
                geneNames.push_back(lineTokens[1]);
                trNames.push_back(lineTokens[0].substr(1));

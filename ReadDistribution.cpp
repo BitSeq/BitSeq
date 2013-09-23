@@ -820,7 +820,7 @@ vector<double> ReadDistribution::getEffectiveLengths(){ //{{{
          }
          // Check for weirdness and don't go below 0 (some transcripts already had 5 bases).
          // Function isnormal assumes C99 or C++11.
-         if((!isnormal(eL)) || (eL <= 0)){
+         if((!isnormal(eL)) || (eL <= 1)){
             effL[m] = trLen;
             DEBUG(message("weird: %lf %ld %ld\n",eL,trLen,m));
          }else{
