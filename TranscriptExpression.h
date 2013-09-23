@@ -6,7 +6,7 @@
 
 using namespace std;
 
-enum TE_FileType{ SAMPLER_MEANS, MEAN_VARIANCE };
+enum TE_FileType{ SAMPLER_MEANS, MEAN_VARIANCE , M_ALPHAS, GUESS };
 
 struct trExpInfoT{
    double exp,var;
@@ -21,11 +21,12 @@ class TranscriptExpression{
       long M;
       bool logged;
       vector<trExpInfoT> trs;
+      TE_FileType guessFileType(const string &fileName);
 
    public:
       TranscriptExpression();
-      TranscriptExpression(string fileName, TE_FileType fileType = SAMPLER_MEANS);
-      bool readExpression(string fileName, TE_FileType fileType = SAMPLER_MEANS);
+      TranscriptExpression(const string &fileName, TE_FileType fileType = SAMPLER_MEANS);
+      bool readExpression(const string &fileName, TE_FileType fileType = SAMPLER_MEANS);
       void doSort(bool reverse = false);
       long getM(){return M;}
       bool isLogged(){return logged;}

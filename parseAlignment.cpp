@@ -76,7 +76,7 @@ string programDescription =
    args.addOptionS("f","format","format",0,"Input format: either SAM, BAM.");
    args.addOptionS("t","trInfoFile","trInfoFileName",0,"If transcript(reference sequence) information is contained within SAM file, program will write this information into <trInfoFile>, otherwise it will look for this information in <trInfoFile>.");
    args.addOptionS("s","trSeqFile","trSeqFileName",1,"Transcript sequence in FASTA format --- for non-uniform read distribution estimation.");
-   args.addOptionS("","trSeqHeader","trSeqHeader",1,"Transcript sequence header format enables gene name extraction (standard/gencode).","standard");
+   args.addOptionS("","trSeqHeader","trSeqHeader",0,"Transcript sequence header format enables gene name extraction (standard/gencode).","standard");
    args.addOptionS("e","expressionFile","expFileName",0,"Transcript relative expression estimates --- for better non-uniform read distribution estimation.");
    args.addOptionL("N","readsN","readsN",0,"Total number of reads. This is not necessary if [SB]AM contains also reads with no valid alignments.");
    args.addOptionS("","failed","failed",0,"File name where to save names of reads that failed to align as pair.");
@@ -143,7 +143,7 @@ string programDescription =
       // Try loading expression file from previous estimation for non-uniform read model.
       if(args.isSet("expFileName")){
          if(args.verbose)message("Loading transcript initial expression data.\n");
-         trExp = new TranscriptExpression(args.getS("expFileName"));
+         trExp = new TranscriptExpression(args.getS("expFileName"), GUESS);
          if(trExp->getM() != M){
             error("Main: Number of transcripts in the alignment file and the expression file are different: %ld vs %ld\n",M,trExp->getM());
             return 1;
