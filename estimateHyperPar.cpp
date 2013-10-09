@@ -54,7 +54,7 @@ string programDescription =
    args.addOptionB("S","smoothOnly","smoothOnly",0,"Input file contains previously sampled hyperparameters which should smoothed only.");
    args.addOptionD("","lowess-f","lowess-f",0,"Parameter F for lowess smoothing specifying amount of smoothing.",0.2);
    args.addOptionL("","lowess-steps","lowess-steps",0,"Parameter Nsteps for lowess smoothing specifying number of iterations.",5);
-   args.addOptionB("","noforce","noforce",0,"Do not force smoothing of the parameters.",true);
+   args.addOptionB("","noforce","noforce",0,"Do not force smoothing of the parameters.",false);
    args.addOptionS("","norm","normalization",0,"Normalization constants for each input file provided as comma separated list of doubles (e.g. 1.0017,1.0,0.9999 ).");
    args.addOptionL("","seed","seed",0,"Random initialization seed.");
    if(!args.parse(*argc,argv))return 0;
