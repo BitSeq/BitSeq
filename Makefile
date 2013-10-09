@@ -57,8 +57,8 @@ estimateExpression: estimateExpression.cpp $(COMMON_DEPS) CollapsedSampler.o Gib
 estimateHyperPar: estimateHyperPar.cpp $(COMMON_DEPS) lowess.o PosteriorSamples.o TranscriptExpression.o 
 	$(CXX) $(CXXFLAGS) $(BOOSTFLAGS) $(LDFLAGS) estimateHyperPar.cpp $(COMMON_DEPS) lowess.o PosteriorSamples.o TranscriptExpression.o -o estimateHyperPar
 
-estimateVBExpression: estimateVBExpression.cpp asa103/asa103.o $(COMMON_DEPS) SimpleSparse.o TagAlignments.o TranscriptInfo.o transposeFiles.o VariationalBayes.o
-	$(CXX) $(CXXFLAGS) $(BOOSTFLAGS) $(OPENMP) $(LDFLAGS) estimateVBExpression.cpp asa103/asa103.o $(COMMON_DEPS) SimpleSparse.o TagAlignments.o TranscriptInfo.o transposeFiles.o VariationalBayes.o -o estimateVBExpression
+estimateVBExpression: estimateVBExpression.cpp $(COMMON_DEPS) SimpleSparse.o TagAlignments.o TranscriptInfo.o transposeFiles.o VariationalBayes.o
+	$(CXX) $(CXXFLAGS) $(BOOSTFLAGS) $(OPENMP) $(LDFLAGS) estimateVBExpression.cpp $(COMMON_DEPS) SimpleSparse.o TagAlignments.o TranscriptInfo.o transposeFiles.o VariationalBayes.o -o estimateVBExpression
 
 extractSamples: extractSamples.cpp $(COMMON_DEPS) PosteriorSamples.o
 	$(CXX) $(CXXFLAGS) $(LDFLAGS) extractSamples.cpp $(COMMON_DEPS) PosteriorSamples.o -o extractSamples
@@ -128,9 +128,6 @@ TranscriptSequence.o: TranscriptSequence.cpp TranscriptSequence.h
 transposeFiles.o: transposeFiles.cpp transposeFiles.h FileHeader.h
 
 # EXTERNAL LIBRARIES:
-asa103/asa103.o:
-	make --directory asa103
-
 samtools/sam.o:
 	make --directory samtools
 
@@ -139,4 +136,4 @@ clean:
 	rm *.o $(PROGRAMS)
 
 clean-all:
-	rm samtools/*.o asa103/*.o *.o $(PROGRAMS)
+	rm samtools/*.o *.o $(PROGRAMS)

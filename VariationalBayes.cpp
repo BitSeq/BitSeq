@@ -295,6 +295,7 @@ void VariationalBayes::optimize(bool verbose,OPT_TYPE method,long maxIter,double
       squareNormOld=squareNorm;
       boundOld=bound;
       // }}}
+      R_INTERUPT;
    }
    if(quiet){
       messageF("iter(%c): %5.ld  bound: %.3lf grad: %.7lf  beta: %.7lf\n",(usedSteepest?'s':'o'),iteration,bound,squareNorm,valBeta);
@@ -372,6 +373,7 @@ void VariationalBayes::generateSamples(long samplesN, const string &outTypeS, co
          (*outF)<<gamma[m] * norm<<" ";
       }
       (*outF)<<endl;
+      R_INTERUPT;
    }
    // Delete lengths.
    delete isoformLengths;
