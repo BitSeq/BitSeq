@@ -38,6 +38,9 @@ class TagAlignment{//{{{
       void setProb(double p){prob=p;}
 }; //}}}
 
+// String comparsion allowing last cmpEPS bases different as long as length 
+// is the same.
+long readNameCmp(const char *str1, const char *str2);
 // Read Fragment from SAM file.
 // Copies data from 'next' fragment into 'cur' fragment and reads new fragment information into 'next'.
 // Fragment is either both paired-ends or just single read.
@@ -176,14 +179,14 @@ string programDescription =
    }
    // fill in "next" fragment:
    // Counters for all, Good Alignments; and weird alignments
-   long observeN, pairedGA, firstGA, secondGA, singleGA, weirdGA, allGA;
-   long RE_noEndInfo, RE_weirdPairdInfo;
+   long observeN, pairedGA, firstGA, secondGA, singleGA, weirdGA, allGA, pairedBad;
+   long RE_noEndInfo, RE_weirdPairdInfo, RE_nameMismatch;
    long maxAlignments = 0;
    if(args.isSet("maxAlignments") && (args.getL("maxAlignments")>0))
       maxAlignments = args.getL("maxAlignments");
    // start counting (and possibly estimating):
-   observeN = pairedGA = firstGA = secondGA = singleGA = weirdGA = 0;
-   RE_noEndInfo = RE_weirdPairdInfo = 0;
+   observeN = pairedGA = firstGA = secondGA = singleGA = weirdGA = pairedBad = 0;
+   RE_noEndInfo = RE_weirdPairdInfo = RE_nameMismatch = 0;
    ns_parseAlignment::readNextFragment(samData, curF, nextF);
    while(ns_parseAlignment::readNextFragment(samData,curF,nextF)){
       R_INTERUPT;
@@ -191,7 +194,16 @@ string programDescription =
          // (at least) The first read was mapped.
          if( curF->paired ) {
             // Fragment's both reads are mapped as a pair.
-            pairedGA++;
+            if(ns_parseAlignment::readNameCmp(bam1_qname(curF->first), bam1_qname(curF->second))==0){
+               pairedGA++;
+            }else{
+               pairedBad++;
+               if(RE_nameMismatch == 0){
+                  warning("Paired read name mismatch: %s %s\n",bam1_qname(curF->first), bam1_qname(curF->second));
+               }
+               RE_nameMismatch++;
+               if(RE_nameMismatch>10)break;
+            }
          }else {
             if (curF->first->core.flag & BAM_FPAIRED) {
                // Read was part of pair (meaning that the other is unmapped).
@@ -207,7 +219,7 @@ string programDescription =
          }
       }
       // Next fragment is different.
-      if(strcmp(bam1_qname(curF->first), bam1_qname(nextF->first))!=0){
+      if(ns_parseAlignment::readNameCmp(bam1_qname(curF->first), bam1_qname(nextF->first))!=0){
          Ntotal++;
          allGA = singleGA + pairedGA + firstGA +secondGA+ weirdGA;
          if( allGA == 0 ){ 
@@ -218,15 +230,20 @@ string programDescription =
          if(weirdGA)RE_noEndInfo++;
          if((singleGA>0) && (pairedGA>0)) RE_weirdPairdInfo++;
          // If it's good uniquely aligned fragment/read, add it to the observation.
-         if(( allGA == 1) && analyzeReads){
+         if(( allGA == 1) && analyzeReads && (pairedBad == 0)){
             if(readD.observed(curF))observeN++;
          }else if(maxAlignments && (allGA>maxAlignments)) {
             // This read will be ignored.
             ignoredReads.insert(bam1_qname(curF->first));
             Nmap --;
          }
-         pairedGA = firstGA = secondGA = singleGA = weirdGA = 0;
+         pairedGA = firstGA = secondGA = singleGA = weirdGA = pairedBad = 0;
       }
+   }
+   if(RE_nameMismatch>10){
+      error("Names of paired mates didn't match at least 10 times.\n"
+            "   Something is possibly wrong with your data or the reads have to be renamed.\n");
+      return 1;
    }
    message("Reads: all(Ntotal): %ld  mapped(Nmap): %ld\n",Ntotal,Nmap);
    if(args.verbose)message("  %ld reads were used to estimate non-uniform distribution.\n",observeN);
@@ -269,6 +286,7 @@ string programDescription =
    bool invalidAlignment = false;
    long readC, pairedN, singleN, firstN, secondN, weirdN, invalidN, noN;
    readC = pairedN = singleN = firstN = secondN = weirdN = invalidN = noN = 0;
+   RE_nameMismatch = 0 ;
    // fill in "next" fragment:
    ns_parseAlignment::readNextFragment(samData, curF, nextF);
    while(ns_parseAlignment::readNextFragment(samData,curF,nextF)){
@@ -277,7 +295,7 @@ string programDescription =
       if(ignoredReads.count(bam1_qname(curF->first))>0){
          // Read reads while the name is the same.
          while(ns_parseAlignment::readNextFragment(samData,curF,nextF)){
-            if(strcmp(bam1_qname(curF->first), bam1_qname(nextF->first))!=0)
+            if(ns_parseAlignment::readNameCmp(bam1_qname(curF->first), bam1_qname(nextF->first))!=0)
                break;
          }
          readC++;
@@ -286,7 +304,14 @@ string programDescription =
       }
       if( !(curF->first->core.flag & BAM_FUNMAP) ){
          // (at least) The first read was mapped.
-         if(readD.getP(curF, prob, probNoise)){
+         if(curF->paired && (ns_parseAlignment::readNameCmp(bam1_qname(curF->first), bam1_qname(curF->second))!=0)){
+            if(RE_nameMismatch == 0){
+               warning("Paired read name mismatch: %s %s\n",bam1_qname(curF->first), bam1_qname(curF->second));
+            }
+            RE_nameMismatch++;
+            if(RE_nameMismatch>10)break;
+            invalidAlignment = true;
+         }else if(readD.getP(curF, prob, probNoise)){
             // We calculated valid probabilities for this alignment.   
             // Add alignment:
             alignments.push_back(ns_parseAlignment::TagAlignment(curF->first->core.tid+1, prob, probNoise));
@@ -313,7 +338,7 @@ string programDescription =
          }
       }
       // next fragment has different name
-      if(strcmp(bam1_qname(curF->first), bam1_qname(nextF->first))!=0){
+      if(ns_parseAlignment::readNameCmp(bam1_qname(curF->first), bam1_qname(nextF->first))!=0){
          readC++;
          if(args.verbose){ if(progressLog(readC,Ntotal,10,' '))timer.split(1,'m');}
          if(Sof(alignments)>0){
@@ -344,6 +369,11 @@ string programDescription =
          }
          invalidAlignment = false;
       }
+   }
+   if(RE_nameMismatch>10){
+      error("Names of paired mates didn't match at least 10 times.\n"
+            "   Something is possibly wrong with your data or the reads have to be renamed.\n");
+      return 1;
    }
    outF.close();
    timer.split(0,'m');
@@ -411,6 +441,24 @@ int main(int argc,char* argv[]){
 #endif
 
 namespace ns_parseAlignment {
+
+long readNameCmp(const char *str1, const char *str2){//{{{
+   // Check first character(so that we can look back later).
+   if(*str1 != *str2)return *str1 - *str2;
+   while(*str1 || *str2){
+      if(*str1 != *str2){
+         // They can differ in last character if its preceeeded by /:_.
+         if(*str1 && *str2 && (!*(str1+1)) && (!*(str2+1)) && 
+            ((*(str1-1) == '/') || (*(str1-1) == ':') || (*(str1-1) == '_'))){
+            return 0;
+         }
+         return *str1 - *str2;
+      }
+      str1++;
+      str2++;
+   }
+   return 0;
+}//}}}
 
 bool readNextFragment(samfile_t* samData, ns_rD::fragmentP &cur, ns_rD::fragmentP &next){//{{{
    static ns_rD::fragmentP tmpF = NULL;

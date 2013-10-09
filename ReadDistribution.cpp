@@ -16,10 +16,10 @@ namespace ns_rD {
 // Base 2 Int mapping.
 vector<char> tableB2I;
 
-void inline progressLogRD(long cur,long outOf) {//{{{
+/*void inline progressLogRD(long cur,long outOf) {//{{{
    // output progress status every 10%
    if((outOf>10)&&(cur%((long)(outOf/10))==0)&&(cur!=0))message("# %ld done.\n",cur);
-}//}}}
+}//}}} */
 void fillTable() {//{{{
    tableB2I.assign(256,-1);
    tableB2I['A'] = tableB2I['a'] = 0;
@@ -265,7 +265,7 @@ void ReadDistribution::normalize(){ //{{{
    // set Uniform position position bias: //{{{
    if(verbose)message("ReadDistribution: Computing uniform positional bias.\n");
    for(m=0;m<M;m++){
-      if(verbose)progressLogRD(m,M);
+      //if(verbose)progressLogRD(m,M);
       trLen = trInf->L(m);
       if(trLen<trNumberOfBins)continue;
       binSize = (double)trLen / trNumberOfBins;
@@ -326,7 +326,7 @@ void ReadDistribution::normalize(){ //{{{
    map<long,double>::reverse_iterator mItR;
    long p;
    for(m=0;m<M;m++){
-      if(verbose)progressLogRD(m,M);
+      //if(verbose)progressLogRD(m,M);
       trLen = trInf->L(m);
       IexpSum5=0;
       for(mIt=trFragSeen5[m].begin();mIt!= trFragSeen5[m].end();mIt++)
