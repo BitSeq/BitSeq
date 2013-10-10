@@ -5,9 +5,10 @@
 
 using namespace std;
 
-#include "common.h"
 #include "FileHeader.h"
 #include "transposeFiles.h"
+
+#include "common.h"
 
 bool transposeFiles(vector<string> inFileNames, string outFileName, bool verbose, string message){
    long M=0,fileN=1,i,j,bufMax,bufN,m,n,totalN,maxN=0,f;

@@ -1,6 +1,4 @@
-
 #include "ArgumentParser.h"
-#include "common.h"
 #include "FileHeader.h"
 #include "misc.h"
 #include "MyTimer.h"
@@ -9,6 +7,7 @@
 #include "transposeFiles.h"
 #include "VariationalBayes.h"
 
+#include "common.h"
 
 SimpleSparse* readData(const ArgumentParser &args, long trM){//{{{
 /*

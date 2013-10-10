@@ -8,7 +8,6 @@
 using namespace std;
 
 #include "ArgumentParser.h"
-#include "common.h"
 #include "misc.h"
 #include "MyTimer.h"
 #include "ReadDistribution.h"
@@ -16,8 +15,8 @@ using namespace std;
 #include "TranscriptInfo.h"
 #include "TranscriptSequence.h"
 
+#include "common.h"
 //}}}
-#define Sof(x) (long)x.size()
 
 namespace ns_parseAlignment {
 class TagAlignment{//{{{
@@ -341,10 +340,10 @@ string programDescription =
       if(ns_parseAlignment::readNameCmp(bam1_qname(curF->first), bam1_qname(nextF->first))!=0){
          readC++;
          if(args.verbose){ if(progressLog(readC,Ntotal,10,' '))timer.split(1,'m');}
-         if(Sof(alignments)>0){
-            outF<<bam1_qname(curF->first)<<" "<<Sof(alignments)+1;
+         if(!alignments.empty()){
+            outF<<bam1_qname(curF->first)<<" "<<alignments.size()+1;
             minProb = 1;
-            for(i=0;i<Sof(alignments);i++){
+            for(i=0;i<(long)alignments.size();i++){
                if(minProb>alignments[i].getLowProb())minProb = alignments[i].getLowProb();
                outF<<" "<<alignments[i].getTrId()
 //                   <<" "<<getStrandC(alignments[i].getStrand())
@@ -379,7 +378,7 @@ string programDescription =
    timer.split(0,'m');
    if(args.verbose){
       message("Analyzed %ld reads:\n",readC);
-      if(Sof(ignoredReads)>0)message(" %ld ignored due to --limitA flag\n",Sof(ignoredReads));
+      if(! ignoredReads.empty())message(" %ld ignored due to --limitA flag\n",ignoredReads.size());
       if(invalidN>0)message(" %ld had only invalid alignments (see warnings)\n",invalidN);
       if(noN>0)message(" %ld had no alignments\n",noN);
       message("The rest had %ld alignments:\n",pairedN+singleN+firstN+secondN+weirdN);

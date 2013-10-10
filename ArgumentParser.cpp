@@ -1,10 +1,12 @@
-#include"ArgumentParser.h"
 #include<algorithm>
 #include<cstdlib>
 #include<sstream>
 
-#include "common.h"
+#include"ArgumentParser.h"
+
 #include "misc.h"
+
+#include "common.h"
 
 #define FF first
 #define SS second

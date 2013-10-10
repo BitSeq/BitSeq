@@ -8,7 +8,6 @@
 
 #include "ArgumentParser.h"
 #include "CollapsedSampler.h"
-#include "common.h"
 #include "FileHeader.h"
 #include "GibbsSampler.h"
 #include "misc.h"
@@ -18,6 +17,7 @@
 #include "TranscriptInfo.h"
 #include "transposeFiles.h"
 
+#include "common.h"
 
 #define DEBUG(x)
 #define FF first

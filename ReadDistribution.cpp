@@ -4,11 +4,12 @@
 #include<omp.h>
 #endif
 
-#include "common.h"
-#include "misc.h"
-#include "MyTimer.h"
 #include "ReadDistribution.h"
 
+#include "misc.h"
+#include "MyTimer.h"
+
+#include "common.h"
 
 #define DEBUG(x) 
 

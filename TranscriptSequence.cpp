@@ -5,9 +5,9 @@
 
 #include "TranscriptSequence.h"
 
-#include "common.h"
 #include "misc.h"
 
+#include "common.h"
 
 // Number of times we randomly probe for old cache record.
 // CR: #define WORST_SEARCH_N 10

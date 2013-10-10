@@ -4,11 +4,12 @@
 
 using namespace std;
 
-#include "common.h"
+#include "PosteriorSamples.h"
+
 #include "FileHeader.h"
 #include "misc.h"
 
-#include "PosteriorSamples.h"
+#include "common.h"
    
 #define Sof(x) (long)x.size()
 #define SS second

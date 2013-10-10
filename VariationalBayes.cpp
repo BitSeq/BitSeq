@@ -1,15 +1,17 @@
-#include<cmath>
-#include<cstring>
 #include<fstream>
 #include<iomanip>
+#include<cmath>
+#include<cstring>
+#ifdef _OPENMP
 #include<omp.h>
+#endif
+#include "asa103/asa103.hpp"
 #include "boost/random/normal_distribution.hpp"
 #include "boost/random/gamma_distribution.hpp"
 
-#include "asa103/asa103.hpp"
-#include "common.h"
-
 #include "VariationalBayes.h"
+
+#include "common.h"
 
 #define SWAPD(x,y) {tmpD=x;x=y;y=tmpD;}
 #define ZERO_LIMIT 1e-12

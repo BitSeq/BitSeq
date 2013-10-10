@@ -8,10 +8,11 @@
 
 using namespace std;
 
-#include "PosteriorSamples.h"
 #include "ArgumentParser.h"
-#include "common.h"
 #include "misc.h"
+#include "PosteriorSamples.h"
+
+#include "common.h"
 
 extern "C" int getVariance(int *argc,char* argv[]){
    string programDescription=

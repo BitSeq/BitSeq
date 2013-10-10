@@ -1,8 +1,9 @@
 #include<cstdlib>
 
 #include "FileHeader.h"
-#include "common.h"
 #include "misc.h"
+
+#include "common.h"
 
 using namespace ns_fileHeader;
 

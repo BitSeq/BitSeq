@@ -1,8 +1,9 @@
 #include<fstream>
 #include<set>
 
-#include "common.h"
 #include"TranscriptInfo.h"
+
+#include "common.h"
 
 bool TranscriptInfo::writeInfo(string fileName, bool force) const{//{{{
    ofstream trF;

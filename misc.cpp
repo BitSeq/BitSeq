@@ -1,12 +1,12 @@
-#include "misc.h"
 #include <algorithm>
 #include <ctime>
 #include <cmath>
 
 #include "misc.h"
 
-#include "common.h"
 #include "FileHeader.h"
+
+#include "common.h"
 
 namespace ns_math {
 double logAddExp(double a, double b){ //{{{

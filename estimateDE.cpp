@@ -13,13 +13,11 @@
 using namespace std;
 
 #include "ArgumentParser.h"
-#include "common.h"
 #include "misc.h"
 #include "MyTimer.h"
 #include "PosteriorSamples.h"
 
-#define FF first
-#define SS second
+#include "common.h"
 
 //#define PERCENT 0.9
 

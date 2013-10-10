@@ -5,8 +5,6 @@
 #include "Sampler.h"
 #include "common.h"
 
-#define Sof(x) (long)x.size()
-
 Sampler::Sampler(){ //{{{
    m=samplesN=samplesLogged=samplesTotal=samplesOut=Nmap=Nunmap=0;
    isoformLengths = NULL;
@@ -59,7 +57,7 @@ long Sampler::getAverageC0(){//{{{
 }//}}}
 void Sampler::getAverage(vector<pairD> &av){//{{{
    long i;
-   if(Sof(av)<m)
+   if((long)av.size()<m)
       av.assign(m,pairD(0,0));
    for(i=0;i<m;i++){
       if(sumNorm.first != 0)
@@ -101,22 +99,21 @@ void Sampler::getThetaSums(long i, double *thSqSum, double *thSum, double *sumN)
    *sumN = sumNorm.first;
 }//}}}
 void Sampler::getTau(vector<double> &tau, double norm){//{{{
-   long i;
    double tauSum=0;
 
-   if ((Sof(theta) > Sof(tau)) || (Sof((*isoformLengths)) != Sof(tau)))
+   if ((theta.size() > tau.size()) || (isoformLengths->size() != tau.size()))
      error("Sampler failed");
 
-   tau.assign(Sof(tau),0);
+   tau.assign(tau.size(),0);
 
    tau[0]=theta[0]; // set thetaAct
    // divide by length:
-   for(i=1;i<Sof(theta);i++){
+   for(size_t i=1;i<theta.size();i++){
       tau[ i ] = theta[i] / (*isoformLengths)[ i ] * norm;
       tauSum += tau[i];
    }
    // DO normalize:
-   for(i=1;i<Sof(tau);i++)
+   for(size_t i=1;i<tau.size();i++)
       if(tau[i]>0) tau[i] /= tauSum;
 }//}}}
 void Sampler::appendFile(){//{{{

@@ -13,12 +13,13 @@
 using namespace std;
 
 #include "ArgumentParser.h"
-#include "common.h"
 #include "lowess.h"
 #include "MyTimer.h"
 #include "misc.h"
 #include "PosteriorSamples.h"
 #include "TranscriptExpression.h"
+
+#include "common.h"
 
 using ns_params::paramT;
 

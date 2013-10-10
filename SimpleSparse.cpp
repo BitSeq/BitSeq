@@ -1,6 +1,8 @@
-#include<omp.h>
-#include<cstring>
 #include<cmath>
+#include<cstring>
+#ifdef _OPENMP
+#include<omp.h>
+#endif
 
 #include "SimpleSparse.h"
 

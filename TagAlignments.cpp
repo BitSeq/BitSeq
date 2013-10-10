@@ -2,8 +2,9 @@
 
 #include "TagAlignments.h"
 
-#include "common.h"
 #include "misc.h"
+
+#include "common.h"
 
 //#define MEM_USAGE
 

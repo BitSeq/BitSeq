@@ -8,10 +8,11 @@
 using namespace std;
 
 #include "ArgumentParser.h"
-#include "common.h"
 #include "misc.h"
 #include "PosteriorSamples.h"
 #include "TranscriptInfo.h"
+
+#include "common.h"
 
 extern "C" int getGeneExpression(int *argc,char* argv[]){
    string programDescription=
