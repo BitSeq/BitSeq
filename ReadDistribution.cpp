@@ -16,6 +16,7 @@
 namespace ns_rD {
 // Base 2 Int mapping.
 vector<char> tableB2I;
+vector<int> tableB2BI;
 
 /*void inline progressLogRD(long cur,long outOf) {//{{{
    // output progress status every 10%
@@ -27,6 +28,11 @@ void fillTable() {//{{{
    tableB2I['C'] = tableB2I['c'] = 1;
    tableB2I['G'] = tableB2I['g'] = 2;
    tableB2I['T'] = tableB2I['t'] = 3;
+   tableB2BI.assign(256,15);
+   tableB2BI['A'] = tableB2BI['a'] = 1;
+   tableB2BI['C'] = tableB2BI['c'] = 2;
+   tableB2BI['G'] = tableB2BI['g'] = 4;
+   tableB2BI['T'] = tableB2BI['t'] = 8;
 }//}}}
 inline char base2int(char B){//{{{
    /* switch(B){
@@ -38,20 +44,40 @@ inline char base2int(char B){//{{{
    } */
    return tableB2I[B];
 }//}}}
-inline long bamBase2int(int B){//{{{
-   switch(B){
-      case 1: return 0;
-      case 2: return 1;
-      case 4: return 2;
-      case 8: return 3;
-      default: return -1;
-   }
+inline int base2BAMint(char B){//{{{
+   return tableB2BI[B];
 }//}}}
 inline void mapAdd(map<long,double > &m, long key, double val){//{{{
    if(m.count(key)==0)
       m[key] = val;
    else
       m[key] += val;
+}//}}}
+inline bool readHasPhred(const bam1_t *samA){//{{{
+   if(samA->core.l_qseq < 1) return false;
+   return bam1_qual(samA)[0] != 0xff;
+}//}}}
+// Count (number of deleteions) - (number of insertions).
+long countDeletions(const bam1_t *samA){//{{{
+   long deletionN = 0;
+   for(long i=0;i<samA->core.n_cigar;i++){
+      switch(bam1_cigar(samA)[i]&BAM_CIGAR_MASK){
+         case BAM_CDEL:
+            deletionN += (long)(bam1_cigar(samA)[i]>>BAM_CIGAR_SHIFT);
+            break;
+         case BAM_CINS:
+            deletionN -= (long)(bam1_cigar(samA)[i]>>BAM_CIGAR_SHIFT);
+            break;
+      }
+   }
+   return deletionN;
+}//}}}
+inline bool getCigarOp(const bam1_t *samA, long cigarI, long *cigarOp,
+                       long *cigarOpCount){//{{{
+   if((cigarI<0) || (cigarI >= samA->core.n_cigar)) return false;
+   *cigarOp = bam1_cigar(samA)[cigarI]&BAM_CIGAR_MASK;
+   *cigarOpCount = (long)(bam1_cigar(samA)[cigarI]>>BAM_CIGAR_SHIFT);
+   return true;
 }//}}}
 } // namespace ns_rD
 
@@ -67,9 +93,9 @@ ReadDistribution::ReadDistribution(){ //{{{
    singleReadLength = 0;
    minFragLen=10000;
    lowProbMismatches = LOW_PROB_MISSES;
-   lProbMis.resize(230,0);
-   lProbHit.resize(230,0);
-   for(long i=0; i<230; i++){
+   lProbMis.resize(256,0);
+   lProbHit.resize(256,0);
+   for(long i=0; i<256; i++){
       lProbMis[i] = - i / 10.0 * log(10.0);
       lProbHit[i] = log1p(-exp(lProbMis[i]));
    }
@@ -190,6 +216,12 @@ bool ReadDistribution::observed(fragmentP frag){ //{{{
       singleReadLength = (long)len;
       if(singleReadLength<minFragLen)minFragLen = singleReadLength;
    } //}}}
+   // Update Mismatch frequencies if no Phred. //{{{
+   if((!readHasPhred(frag->first)) || (frag->paired && !readHasPhred(frag->second))){
+      updateMismatchFreq(frag->first);
+      if(frag->paired)updateMismatchFreq(frag->second);
+   }
+   // }}}
    // for uniform distribution ignore other estimation:
    if(uniform) return true;
 
@@ -256,6 +288,14 @@ void ReadDistribution::normalize(){ //{{{
       lMu = newMu;
       lSigma = newSigma;
       if(validLength)computeLengthProb();
+   }
+   // }}}
+   // mismatch frequencies: {{{
+   double lFreqSum;
+   for(size_t i=0;i<lFreqHit.size();i++){
+      lFreqSum = log(lFreqHit[i]+lFreqMis[i]);
+      lFreqHit[i] = log(lFreqHit[i]) - lFreqSum;
+      lFreqMis[i] = log(lFreqMis[i]) - lFreqSum;
    }
    // }}}
    if(uniform) return;
@@ -353,127 +393,179 @@ void ReadDistribution::normalize(){ //{{{
 void ReadDistribution::logProfiles(string logFileName){//{{{
    ofstream outF;
    outF.open(logFileName.c_str());
+   outF.precision(6);
+   outF<<scientific;
    if(!outF.is_open()){
       error("ReadDistribution: Unable to open profile file: %s\n",(logFileName).c_str());
       return;
    }
    long i,j,g;
    outF<<"# BASES: (readM_5, readM_3, uniformM_5, uniformM_3)"<<endl;
-   for(j=0;j<4;j++){
-      outF<<"# "<<endl;
-      for(i=0;i<vlmmNodesN;i++){
-         outF<<seqProb[j][i].getPsum('A')<<" "<<seqProb[j][i].getPsum('C')<<" "<<seqProb[j][i].getPsum('G')<<" "<<seqProb[j][i].getPsum('T')<<endl;
+   if(!uniform){
+      for(j=0;j<4;j++){
+         outF<<"# "<<endl;
+         for(i=0;i<vlmmNodesN;i++){
+            outF<<seqProb[j][i].getPsum('A')<<" "<<seqProb[j][i].getPsum('C')<<" "<<seqProb[j][i].getPsum('G')<<" "<<seqProb[j][i].getPsum('T')<<endl;
+         }
       }
    }
 
    outF<<"#\n# Position: (readM_5, readM_3, uniformM_5, uniformM_3, weight_5, weight_3)"<<endl;
-   for(j=0;j<6;j++){
-      outF<<"# "<<endl;
-      for(g=0;g<=trSizesN;g++){
-         for(i=0;i<trNumberOfBins;i++)
-            outF<<posProb[j][g][i]<<" ";
-         outF<<endl;
+   if(!uniform){
+      for(j=0;j<6;j++){
+         outF<<"# "<<endl;
+         for(g=0;g<=trSizesN;g++){
+            for(i=0;i<trNumberOfBins;i++)
+               outF<<posProb[j][g][i]<<" ";
+            outF<<endl;
+         }
       }
    }
+   outF<<"#\n# Mismatch likelihood: (probHit, probMis)"<<endl;
+   for(i=0;i<(long)lFreqHit.size();i++)outF<<exp(lFreqHit[i])<<" ";
+   outF<<endl;
+   for(i=0;i<(long)lFreqMis.size();i++)outF<<exp(lFreqMis[i])<<" ";
+   outF<<endl;
    outF.close();
+}//}}}
+void ReadDistribution::updateMismatchFreq(bam1_t *samA) {//{{{
+   if(! samA) return;
+   bam1_core_t *samC = &samA->core;
+   long i,j,k,kStart,kDir,len=samC->l_qseq;
+   // Make sure we have place for storing data.
+   if(len>(long)lFreqHit.size()){
+      lFreqHit.resize(len,1.0);
+      lFreqMis.resize(len,1.0);
+   }
+   // Set direction for storing mismatches depending on read orientation.
+   if(samC->flag & BAM_FREVERSE){
+      kStart = len - 1;
+      kDir = -1;
+   }else{
+      kStart = 0;
+      kDir = +1;
+   }
+   long deletionN = countDeletions(samA);
+   string seq = trSeq->getSeq(samC->tid, samC->pos, len+deletionN, false);
+   long cigarOp,cigarI,cigarOpCount;
+   cigarOp=cigarI=cigarOpCount=0;
+   // i - iterates within reference sequence
+   // j - iterates within read
+   // k - iterates within frequency arrays, can be reversed
+   for(i=j=0,k=kStart;(i<len+deletionN) && (j<len);){
+      if(cigarOpCount == 0){
+         if(! getCigarOp(samA, cigarI, &cigarOp, &cigarOpCount))break;
+         cigarI++;
+      }
+      switch(cigarOp){
+         case BAM_CDEL: i+=cigarOpCount; cigarOpCount=0; continue;
+         case BAM_CINS:
+            j+= cigarOpCount; 
+            k+= kDir * cigarOpCount;
+            cigarOpCount=0; 
+            continue;
+      }
+      if(base2int(seq[i]) > -1){
+         if(base2BAMint(seq[i]) != bam1_seqi(bam1_seq(samA),j))lFreqMis[k]+=1;
+         else lFreqHit[k]+=1;
+      }
+      i++;
+      j++;
+      k+=kDir;
+      cigarOpCount --;
+   }
 }//}}}
 pair<double,double> ReadDistribution::getSequenceLProb(bam1_t *samA) const{//{{{
    if(! samA) return pair<double, double>(0,0);
-   double lProb=0,lowLProb=0;
+   double lProb=0,lowLProb=0, lPHit, lPMis;
    bam1_core_t *samC = &samA->core;
    uint8_t *qualP=bam1_qual(samA);
-   long i,j,misses,len=samC->l_qseq;
-   long deletionN=0;
-   // Count number of deletions-insertions
-   for(i=0;i<samC->n_cigar;i++){
-      switch(bam1_cigar(samA)[i]&BAM_CIGAR_MASK){
-         case BAM_CDEL:
-            deletionN += (long)(bam1_cigar(samA)[i]>>BAM_CIGAR_SHIFT);
-            break;
-         case BAM_CINS:
-            deletionN -= (long)(bam1_cigar(samA)[i]>>BAM_CIGAR_SHIFT);
-            break;
-      }
-   }
+   bool hasPhred = readHasPhred(samA);
+   long i,j,k,len=samC->l_qseq;
+   long deletionN = countDeletions(samA);
    string seq = trSeq->getSeq(samC->tid, samC->pos, len+deletionN, false);
-   misses=lowProbMismatches;
+   long hitC, misC, addMisC;
    long cigarOp,cigarI,cigarOpCount;
-   cigarOp=cigarI=cigarOpCount=0;
-   // i - iterates within reference sequence, j - iterates within read
-   i=j=0;
-   while((i<len+deletionN) && (j<len)){
+   bool reversed = (samC->flag & BAM_FREVERSE);
+
+   // First count the number fo misses to add for low probability. {{{
+   cigarOp = cigarI = cigarOpCount = 0;
+   hitC = misC = 0;
+   // i - iterates within reference sequence
+   // j - iterates within read
+   for(i=j=0;(i<len+deletionN) && (j<len);){
       if(cigarOpCount == 0){
-         if(cigarI >= samC->n_cigar) break;
-         cigarOp = bam1_cigar(samA)[cigarI]&BAM_CIGAR_MASK;
-         cigarOpCount = (long)(bam1_cigar(samA)[cigarI]>>BAM_CIGAR_SHIFT);
+         if(! getCigarOp(samA, cigarI, &cigarOp, &cigarOpCount))break;
          cigarI++;
       }
-      cigarOpCount --;
       switch(cigarOp){
-         case BAM_CDEL:
-            i++; break;
-         case BAM_CINS:
-            j++; break;
-         case BAM_CMATCH:
-         case BAM_CEQUAL:
-         case BAM_CDIFF:
-            if((base2int(seq[i]) == -1)||
-               (base2int(seq[i]) != bamBase2int(bam1_seqi(bam1_seq(samA),j))))misses--;
-            i++;
-            j++;
+         case BAM_CDEL: i+=cigarOpCount; cigarOpCount=0; continue;
+         case BAM_CINS: j+=cigarOpCount; cigarOpCount=0; continue;
       }
+      if((base2int(seq[i]) == -1)||
+         (base2BAMint(seq[i]) != bam1_seqi(bam1_seq(samA),j)))misC++;
+      else hitC++;
+      i++;
+      j++;
+      cigarOpCount --;
    }
-   if(misses<=0)misses=1;
-   // start from the end so the "mismatched" bases for lowProb are at the end
-   i=len+deletionN-1;
-   j=len-1;
-   cigarI = samC->n_cigar-1;
-   while((i>=0) && (j>=0)){
+   addMisC = max((long)1, lowProbMismatches - misC);
+   // }}}
+   
+   cigarOp = cigarI = cigarOpCount = 0;
+   for(i=j=0;(i<len+deletionN) && (j<len);){
       if(cigarOpCount == 0){
-         if(cigarI < 0) break;
-         cigarOp = bam1_cigar(samA)[cigarI]&BAM_CIGAR_MASK;
-         cigarOpCount = (long)(bam1_cigar(samA)[cigarI]>>BAM_CIGAR_SHIFT);
-         cigarI--;
+         if(! getCigarOp(samA, cigarI, &cigarOp, &cigarOpCount))break;
+         cigarI++;
       }
-      cigarOpCount --;
       switch(cigarOp){
-         case BAM_CDEL:
-            i--; continue;
-         case BAM_CINS:
-            j--; continue;
+         case BAM_CDEL: i+=cigarOpCount; cigarOpCount=0; continue;
+         case BAM_CINS: j+=cigarOpCount; cigarOpCount=0; continue;
          /*case BAM_CMATCH:
          case BAM_CEQUAL:
          case BAM_CDIFF:*/
       }
-      if((base2int(seq[i]) == -1)||(base2int(seq[i]) != bamBase2int(bam1_seqi(bam1_seq(samA),j)))){
-         // If bases don't match, multiply probability by probability of error.
-         lProb += lProbMis[qualP[j]];
-         lowLProb += lProbMis[qualP[j]];
+      if(hasPhred){
+         lPHit = lProbHit[qualP[j]];
+         lPMis = lProbMis[qualP[j]];
       }else{
-         // If bases do match, multiple probability by inverse of probability of error.
-         lProb += lProbHit[qualP[j]];
-         if(misses>0){
-            // If there are some misses left add a 'miss' to the 'low probability'.
-            lowLProb += lProbMis[qualP[j]];
-            misses--;
+         if(!reversed)k = j;
+         else k = len-j-1;
+         if((k>=0)&&(k<(long)lFreqHit.size())){
+            lPHit = lFreqHit[k];
+            lPMis = lFreqMis[k];
          }else{
-            lowLProb += lProbHit[qualP[j]];
+            lPHit = lPMis = 0.5;
          }
       }
-      i--;
-      j--;
+      if((base2int(seq[i]) == -1) ||
+         (base2BAMint(seq[i]) != bam1_seqi(bam1_seq(samA),j))){
+         // If bases don't match, multiply probability by probability of error.
+         lProb += lPMis;
+         lowLProb += lPMis;
+      }else{
+         lProb += lPHit;
+         hitC --;
+         if((addMisC>0) && (reversed || (addMisC>hitC))){
+            // If there are some misses left add a 'miss' to the 'low probability'.
+            lowLProb += lPMis;
+            addMisC--;
+         }else{
+            lowLProb += lPHit;
+         }
+      }
+      i++;
+      j++;
+      cigarOpCount --;
    }
    return pair<double, double>(lProb,lowLProb);
 }//}}}
 bool ReadDistribution::getP(fragmentP frag,double &lProb,double &lProbNoise){ //{{{
-   double lP = 0;
    lProb = ns_misc::LOG_ZERO;
    lProbNoise = ns_misc::LOG_ZERO;
-   pair<double, double> lpSeq1,lpSeq2;
-   // Get probability based on base mismatches: {{{
-   lpSeq1 = getSequenceLProb(frag->first);
-   lpSeq2 = getSequenceLProb(frag->second);
    long tid = frag->first->core.tid;
+   long trLen = trInf->L(tid),len;
+   // Check transcript IDs {{{
    if((frag->paired)&&(tid!=frag->second->core.tid)){
       warnTIDmismatch++;
       return false;
@@ -482,25 +574,31 @@ bool ReadDistribution::getP(fragmentP frag,double &lProb,double &lProbNoise){ //
       warnUnknownTID++;
       return false;
    }
-   // Calculate reads' true end position:
+   //}}}
+   double lP = 0;
+   // Get probability based on base mismatches: {{{
+   pair<double, double> lpSeq1(0,0),lpSeq2(0,0);
+   lpSeq1 = getSequenceLProb(frag->first);
+   if(frag->paired)lpSeq2 = getSequenceLProb(frag->second);
+   // }}}
+   // Calculate reads' true end position: {{{
    long frag_first_endPos, frag_second_endPos=0;
    frag_first_endPos = bam_calend(&frag->first->core, bam1_cigar(frag->first));
    if(frag->paired){
       frag_second_endPos = bam_calend(&frag->second->core, bam1_cigar(frag->second));
    }
-   long trLen = trInf->L(tid),len;
    // }}}
    if(frag->paired){
    // Get probability of length {{{
-      if(frag->second->core.pos>frag->first->core.pos)
+      if(frag->second->core.pos > frag->first->core.pos)
          len = frag_second_endPos - frag->first->core.pos;
       else{
          len = frag_first_endPos - frag->second->core.pos;
       }
       // compute length probability and normalize by probability of all possible lengths (cdf):
       // P*=lengthP/lengthNorm
-      if(validLength) lP += getLengthLP(len) - getLengthLNorm(trLen);
       // }}}
+      if(validLength) lP += getLengthLP(len) - getLengthLNorm(trLen);
    }else{
       len = frag_first_endPos - frag->first->core.pos;
    }
