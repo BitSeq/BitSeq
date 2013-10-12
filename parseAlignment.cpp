@@ -1,8 +1,5 @@
 // DECLARATIONS: {{{
 #include<cmath>
-#ifdef _OPENMP
-#include<omp.h>
-#endif
 #include<set>
 
 using namespace std;
@@ -89,16 +86,14 @@ string programDescription =
    args.addOptionD("","lenMu","lenMu",0,"Set mean of log fragment length distribution. (l_frag ~ LogNormal(mu,sigma^2))");
    args.addOptionD("","lenSigma","lenSigma",0,"Set sigma^2 (or variance) of log fragment length distribution. (l_frag ~ LogNormal(mu,sigma^2))");
    args.addOptionS("","distributionFile","distributionFileName",0,"Name of file to which read-distribution should be saved.");
-   args.addOptionL("P","procN","procN",0,"Maximum number of threads to be used. This provides parallelization only when computing non-uniform read distribution (i.e. runs without --uniform flag).",3);
+   args.addOptionL("P","procN","procN",0,"Maximum number of threads to be used. This provides speedup mostly when using non-uniform read distribution model (i.e. no --uniform flag).",4);
    args.addOptionB("V","veryVerbose","veryVerbose",0,"Very verbose output.");
    args.addOptionL("","noiseMismatches","numNoiseMismatches",0,"Number of mismatches to be considered as noise.",ns_rD::LOW_PROB_MISSES);
    args.addOptionL("l","limitA","maxAlignments",0,"Limit maximum number of alignments per read. (Reads with more alignments are skipped.)");
    args.addOptionB("","unstranded","unstranded",0,"Paired read are not strand specific.");
    if(!args.parse(*argc,argv))return 0;
    if(args.verbose)buildTime(argv[0],__DATE__,__TIME__);
-#ifdef SUPPORT_OPENMP
-   omp_set_num_threads(args.getL("procN"));
-#endif
+   readD.setProcN(args.getL("procN"));
    // }}}
    if(!ns_parseAlignment::setInputFormat(args, &inFormat))return 1;
    if(!ns_parseAlignment::openSamFile(args.args()[0], inFormat, &samData))return 1;

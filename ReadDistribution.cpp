@@ -87,6 +87,10 @@ ReadDistribution::ReadDistribution(){ //{{{
    M=0;
    uniform = lengthSet = gotExpression = normalized = validLength = false;
    warnPos = warnTIDmismatch = warnUnknownTID = noteFirstMateDown = 0;
+   procN = 1; 
+#ifdef _OPENMP
+   omp_set_num_threads(procN);
+#endif
    lMu=100;
    lSigma=10;
    verbose = true;
@@ -115,6 +119,16 @@ void ReadDistribution::writeWarnings() {//{{{
       message("NOTE: ReadDistribution: First mate from a pair was downstream (%ld times).\n", noteFirstMateDown);
    }
    warnPos = warnTIDmismatch = warnUnknownTID = noteFirstMateDown = 0;
+}//}}}
+void ReadDistribution::setProcN(long procN){//{{{
+   if(procN<0)procN=1;
+   if(procN>32)procN=4;
+#ifdef _OPENMP
+   this->procN = procN;
+   omp_set_num_threads(procN);
+#else
+   this->procN = 1;
+#endif
 }//}}}
 bool ReadDistribution::init(long m, TranscriptInfo* trI, TranscriptSequence* trS, TranscriptExpression* trE, bool unstranded, bool verb){ //{{{
    M = m;
@@ -862,13 +876,14 @@ vector<double> ReadDistribution::getEffectiveLengths(){ //{{{
    long m,len,trLen,pos;
    double eL, lCdfNorm,lenP, wNorm;
    string trRS;
-   vector<double> posBias5,posBias3;
+   // Make one caching array for each process.
+   vector<vector<double> > posBias5All(procN),posBias3All(procN);
    MyTimer timer;
    timer.start();
    DEBUG(message("Eff length: validLength %d ; minFragLen: %ld.\n",(int)validLength,minFragLen));
    #pragma omp parallel for \
       schedule (dynamic,5) \
-      private (len,trLen,pos,eL,lenP,wNorm,lCdfNorm,posBias5,posBias3,trRS)
+      private (len,trLen,pos,eL,lenP,wNorm,lCdfNorm,trRS)
    for(m=0;m<M;m++){
       if(verbose && (m!=0) && (M>20) && (m%(M/10)==0)){
          #pragma omp critical
@@ -877,6 +892,10 @@ vector<double> ReadDistribution::getEffectiveLengths(){ //{{{
             timer.current();
          }
       }
+      long threadID = 0;
+#ifdef _OPENMP
+      threadID = omp_get_thread_num();
+#endif
       trLen = trInf->L(m);
       if(!validLength){
          if(trLen>singleReadLength*2) effL[m] = trLen - singleReadLength; 
@@ -896,6 +915,8 @@ vector<double> ReadDistribution::getEffectiveLengths(){ //{{{
       }else{
          DEBUG(message("Copy sequence.\n"));
          const string &trS = trSeq->getTr(m);
+         vector<double> &posBias5 = posBias5All[threadID];
+         vector<double> &posBias3 = posBias3All[threadID];
          posBias5.resize(trLen);
          posBias3.resize(trLen);
          DEBUG(message("Precomputing posBias.\n"));
