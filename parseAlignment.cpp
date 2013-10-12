@@ -37,7 +37,7 @@ class TagAlignment{//{{{
       void setProb(double p){prob=p;}
 }; //}}}
 
-// String comparsion allowing last cmpEPS bases different as long as length 
+// String comparison allowing last cmpEPS bases different as long as length
 // is the same.
 long readNameCmp(const char *str1, const char *str2);
 // Read Fragment from SAM file.
@@ -68,7 +68,7 @@ string programDescription =
    string inFormat;
    samfile_t *samData=NULL;
    ReadDistribution readD;
-   ns_rD::fragmentP curF = new ns_rD::fragmentT, nextF = new ns_rD::fragmentT;
+   ns_rD::fragmentP curF = new ns_rD::fragmentT, nextF = new ns_rD::fragmentT, validAF = new ns_rD::fragmentT;
    // This could be changed to either GNU's hash_set or C++11's unsorted_set, once it's safe.
    set<string> ignoredReads;
    // Intro: {{{
@@ -179,6 +179,7 @@ string programDescription =
    // fill in "next" fragment:
    // Counters for all, Good Alignments; and weird alignments
    long observeN, pairedGA, firstGA, secondGA, singleGA, weirdGA, allGA, pairedBad;
+   bool storedValidA = false;
    long RE_noEndInfo, RE_weirdPairdInfo, RE_nameMismatch;
    long maxAlignments = 0;
    if(args.isSet("maxAlignments") && (args.getL("maxAlignments")>0))
@@ -216,27 +217,35 @@ string programDescription =
                singleGA++;
             }
          }
+         // Unless pairedBad>0 the alignment is valid.
+         if((!storedValidA) && (pairedBad == 0)){
+            validAF->copyFragment(curF);
+            storedValidA=true;
+         }
       }
       // Next fragment is different.
       if(ns_parseAlignment::readNameCmp(bam1_qname(curF->first), bam1_qname(nextF->first))!=0){
          Ntotal++;
          allGA = singleGA + pairedGA + firstGA +secondGA+ weirdGA;
-         if( allGA == 0 ){ 
-            // No good alignment.
+         if( allGA == 0 ){ // No good alignment.
+            // Just in case:
+            storedValidA=false;
+            pairedBad = 0;
             continue;
          }
          Nmap ++;
          if(weirdGA)RE_noEndInfo++;
          if((singleGA>0) && (pairedGA>0)) RE_weirdPairdInfo++;
          // If it's good uniquely aligned fragment/read, add it to the observation.
-         if(( allGA == 1) && analyzeReads && (pairedBad == 0)){
-            if(readD.observed(curF))observeN++;
+         if(( allGA == 1) && analyzeReads && (pairedBad == 0) && storedValidA){
+            if(readD.observed(validAF))observeN++;
          }else if(maxAlignments && (allGA>maxAlignments)) {
             // This read will be ignored.
             ignoredReads.insert(bam1_qname(curF->first));
             Nmap --;
          }
          pairedGA = firstGA = secondGA = singleGA = weirdGA = pairedBad = 0;
+         storedValidA = false;
       }
    }
    if(RE_nameMismatch>10){
@@ -245,7 +254,7 @@ string programDescription =
       return 1;
    }
    message("Reads: all(Ntotal): %ld  mapped(Nmap): %ld\n",Ntotal,Nmap);
-   if(args.verbose)message("  %ld reads were used to estimate non-uniform distribution.\n",observeN);
+   if(args.verbose)message("  %ld reads were used to estimate empirical distributions.\n",observeN);
    if(ignoredReads.size()>0)message("  %ld reads are skipped due to having more than %ld alignments.\n",ignoredReads.size(), maxAlignments);
    if(RE_noEndInfo)warning("  %ld reads that were paired, but do not have \"end\" information.\n  (is your alignment file valid?)", RE_noEndInfo);
    if(RE_weirdPairdInfo)warning("  %ld reads that were reported as both paired and single end.\n  (is your alignment file valid?)", RE_weirdPairdInfo);
@@ -433,6 +442,7 @@ string programDescription =
    // Close, free and write failed reads if filename provided {{{
    delete curF;
    delete nextF;
+   delete validAF;
    delete trInfo;
    delete trSeq;
    delete trExp;

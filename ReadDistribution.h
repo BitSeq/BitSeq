@@ -24,13 +24,6 @@ using namespace std;
 #include "bam.h"
 #include "sam.h"
 
-//#define bam_init1() ((bam1_t*)calloc(1, sizeof(bam1_t)))
-/*
-#define bam_destroy1(b) do { \
-   if (b) { free((b)->data); free(b); }	\
-} while (0)
-*/
-
 #endif
 
 namespace ns_rD {
@@ -59,9 +52,14 @@ struct fragmentT{//{{{
       bam_destroy1(first);
       bam_destroy1(second);
    }
+   void copyFragment(const fragmentT *sourceF){
+      paired = sourceF->paired;
+      bam_copy1(first, sourceF->first);
+      bam_copy1(second, sourceF->first);
+   }
 };
 
-typedef fragmentT* fragmentP;
+typedef fragmentT *fragmentP;
 //}}}
 
 class VlmmNode{//{{{
