@@ -7,24 +7,11 @@
 using namespace std;
 
 #include "TranscriptInfo.h"
-#include "TranscriptSequence.h"
 #include "TranscriptExpression.h"
+#include "TranscriptSequence.h"
 
-#ifdef BIOC_BUILD
-
-#include "samtoolsHeader.h"
-#include <Rinternals.h>
-
-#define bam_init1() ((bam1_t*)S_alloc(1, sizeof(bam1_t)))
-// empty destroy, R frees memory itself
-#define bam_destroy1(b) 
-
-#else
-
-#include "bam.h"
-#include "sam.h"
-
-#endif
+#include "samtools/bam.h"
+#include "samtools/sam.h"
 
 namespace ns_rD {
 
