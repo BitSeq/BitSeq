@@ -89,7 +89,7 @@ class ReadDistribution{
       long procN,M,fragSeen,singleReadLength,minFragLen;
       double lMu,lSigma,logLengthSum,logLengthSqSum;
       long lowProbMismatches;
-      bool verbose,uniform,unstranded,lengthSet,gotExpression,normalized;
+      bool verbose,warnFirst,uniform,unstranded,lengthSet,gotExpression,normalized;
       bool validLength;
       long warnPos, warnTIDmismatch, warnUnknownTID, noteFirstMateDown;
       TranscriptInfo* trInf;
@@ -131,6 +131,7 @@ class ReadDistribution{
    public:
       ReadDistribution();
       void setProcN(long procN);
+      void showFirstWarnings();
       void writeWarnings();
       bool init(long m, TranscriptInfo* trI, TranscriptSequence* trS, TranscriptExpression* trE, bool unstranded, bool verb = true);
       bool initUniform(long m, TranscriptInfo* trI, TranscriptSequence* trS, bool verb = true);

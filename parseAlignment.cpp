@@ -91,9 +91,11 @@ string programDescription =
    args.addOptionL("","noiseMismatches","numNoiseMismatches",0,"Number of mismatches to be considered as noise.",ns_rD::LOW_PROB_MISSES);
    args.addOptionL("l","limitA","maxAlignments",0,"Limit maximum number of alignments per read. (Reads with more alignments are skipped.)");
    args.addOptionB("","unstranded","unstranded",0,"Paired read are not strand specific.");
+   args.addOptionB("","show1warning","show1warning",0,"Show first alignments that are considered wrong (TID unknown, TID mismatch, wrong strand).");
    if(!args.parse(*argc,argv))return 0;
    if(args.verbose)buildTime(argv[0],__DATE__,__TIME__);
    readD.setProcN(args.getL("procN"));
+   if(args.flag("show1warning"))readD.showFirstWarnings();
    // }}}
    if(!ns_parseAlignment::setInputFormat(args, &inFormat))return 1;
    if(!ns_parseAlignment::openSamFile(args.args()[0], inFormat, &samData))return 1;

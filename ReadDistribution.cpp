@@ -14,20 +14,23 @@
 #define DEBUG(x) 
 
 namespace ns_rD {
-// Base 2 Int mapping.
+// Base 2 Int mapping. //{{{
 vector<char> tableB2I;
 vector<int> tableB2BI;
-
+//}}}
 /*void inline progressLogRD(long cur,long outOf) {//{{{
    // output progress status every 10%
    if((outOf>10)&&(cur%((long)(outOf/10))==0)&&(cur!=0))message("# %ld done.\n",cur);
 }//}}} */
 void fillTable() {//{{{
-   tableB2I.assign(256,-1);
-   tableB2I['A'] = tableB2I['a'] = 0;
-   tableB2I['C'] = tableB2I['c'] = 1;
-   tableB2I['G'] = tableB2I['g'] = 2;
-   tableB2I['T'] = tableB2I['t'] = 3;
+   if(tableB2I.size()<256){
+      tableB2I.assign(256,-1);
+      tableB2I['A'] = tableB2I['a'] = 0;
+      tableB2I['C'] = tableB2I['c'] = 1;
+      tableB2I['G'] = tableB2I['g'] = 2;
+      tableB2I['T'] = tableB2I['t'] = 3;
+   }
+   if(tableB2BI.size()>=256)return;
    tableB2BI.assign(256,15);
    tableB2BI['A'] = tableB2BI['a'] = 1;
    tableB2BI['C'] = tableB2BI['c'] = 2;
@@ -57,8 +60,8 @@ inline bool readHasPhred(const bam1_t *samA){//{{{
    if(samA->core.l_qseq < 1) return false;
    return bam1_qual(samA)[0] != 0xff;
 }//}}}
-// Count (number of deleteions) - (number of insertions).
-long countDeletions(const bam1_t *samA){//{{{
+// Count (number of deletions) - (number of insertions). {{{
+long countDeletions(const bam1_t *samA){
    long deletionN = 0;
    for(long i=0;i<samA->core.n_cigar;i++){
       switch(bam1_cigar(samA)[i]&BAM_CIGAR_MASK){
@@ -72,8 +75,7 @@ long countDeletions(const bam1_t *samA){//{{{
    }
    return deletionN;
 }//}}}
-inline bool getCigarOp(const bam1_t *samA, long cigarI, long *cigarOp,
-                       long *cigarOpCount){//{{{
+inline bool getCigarOp(const bam1_t *samA, long cigarI, long *cigarOp, long *cigarOpCount){//{{{
    if((cigarI<0) || (cigarI >= samA->core.n_cigar)) return false;
    *cigarOp = bam1_cigar(samA)[cigarI]&BAM_CIGAR_MASK;
    *cigarOpCount = (long)(bam1_cigar(samA)[cigarI]>>BAM_CIGAR_SHIFT);
@@ -86,6 +88,7 @@ using namespace ns_rD;
 ReadDistribution::ReadDistribution(){ //{{{
    M=0;
    uniform = lengthSet = gotExpression = normalized = validLength = false;
+   warnFirst = false;
    warnPos = warnTIDmismatch = warnUnknownTID = noteFirstMateDown = 0;
    procN = 1; 
 #ifdef _OPENMP
@@ -129,6 +132,9 @@ void ReadDistribution::setProcN(long procN){//{{{
 #else
    this->procN = 1;
 #endif
+}//}}}
+void ReadDistribution::showFirstWarnings(){//{{{
+   warnFirst = true;
 }//}}}
 bool ReadDistribution::init(long m, TranscriptInfo* trI, TranscriptSequence* trS, TranscriptExpression* trE, bool unstranded, bool verb){ //{{{
    M = m;
@@ -195,12 +201,18 @@ void ReadDistribution::setLength(double mu, double sigma){ //{{{
 bool ReadDistribution::observed(fragmentP frag){ //{{{
    DEBUG(message("%s===%s\n",bam1_qname(frag->first),bam1_qname(frag->second));)
    long tid = frag->first->core.tid;
-   if((frag->paired)&&(tid!=frag->second->core.tid)){
-      warnTIDmismatch++;
+   if((tid < 0)||(tid>=M)){
+      if(warnFirst && (warnUnknownTID==0))
+         warning("TID unknown: %s: %ld\n",bam1_qname(frag->first),tid);
+      warnUnknownTID++;
       return false;
    }
-   if((tid < 0)||(tid>=M)){
-      warnUnknownTID++;
+   if((frag->paired)&&(tid!=frag->second->core.tid)){
+      if(warnFirst && (warnTIDmismatch==0))
+         warning("TID mismatch: %s: %s %s\n",bam1_qname(frag->first),
+                 trInf->trName(tid).c_str(),
+                 trInf->trName(frag->second->core.tid).c_str());
+      warnTIDmismatch++;
       return false;
    }
    // Set inverse expression
@@ -249,6 +261,9 @@ bool ReadDistribution::observed(fragmentP frag){ //{{{
    if((frag->paired) && (!unstranded) && 
       ((frag->first->core.flag & BAM_FREVERSE) ||
        (! frag->second->core.flag & BAM_FREVERSE))){
+      if(warnFirst && (warnPos==0))
+         warning("wrong strand: %s: %s\n",bam1_qname(frag->first),
+                 trInf->trName(tid).c_str());
       warnPos ++;
       return false;
    }//}}}
@@ -580,12 +595,18 @@ bool ReadDistribution::getP(fragmentP frag,double &lProb,double &lProbNoise){ //
    long tid = frag->first->core.tid;
    long trLen = trInf->L(tid),len;
    // Check transcript IDs {{{
-   if((frag->paired)&&(tid!=frag->second->core.tid)){
-      warnTIDmismatch++;
+   if((tid < 0)||(tid>=M)){
+      if(warnFirst && (warnUnknownTID==0))
+         warning("TID unknown: %s: %ld\n",bam1_qname(frag->first),tid);
+      warnUnknownTID++;
       return false;
    }
-   if((tid < 0)||(tid>=M)){
-      warnUnknownTID++;
+   if((frag->paired)&&(tid!=frag->second->core.tid)){
+      if(warnFirst && (warnTIDmismatch==0))
+         warning("TID mismatch: %s: %s %s\n",bam1_qname(frag->first),
+                 trInf->trName(tid).c_str(),
+                 trInf->trName(frag->second->core.tid).c_str());
+      warnTIDmismatch++;
       return false;
    }
    //}}}
@@ -649,6 +670,9 @@ bool ReadDistribution::getP(fragmentP frag,double &lProb,double &lProbNoise){ //
          if((!unstranded) && 
             ((frag->first->core.flag & BAM_FREVERSE) ||
             (! frag->second->core.flag & BAM_FREVERSE))){
+               if(warnFirst && (warnPos==0))
+                  warning("wrong strand: %s: %s\n",bam1_qname(frag->first),
+                          trInf->trName(tid).c_str());
                warnPos ++;
                return false;
          }
