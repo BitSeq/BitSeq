@@ -115,6 +115,7 @@ void TranscriptInfo::clearTranscriptInfo(){//{{{
    genes.clear();
 }//}}}
 TranscriptInfo::TranscriptInfo(string fileName){//{{{
+   noName="wrongID";
    // TranscriptInfo();
    readInfo(fileName);
 }//}}}
@@ -174,13 +175,13 @@ long TranscriptInfo::L(long i) const{//{{{
    if(isInitialized && (i<M))return transcripts[i].l;
    return 0;
 }//}}}
-string TranscriptInfo::trName(long i) const{//{{{
+const string &TranscriptInfo::trName(long i) const{//{{{
    if(isInitialized && (i<M))return transcripts[i].t;
-   return "";
+   return noName;
 }//}}}
-string TranscriptInfo::geName(long i) const{//{{{
+const string &TranscriptInfo::geName(long i) const{//{{{
    if(isInitialized && (i<M))return transcripts[i].g;
-   return "";
+   return noName;
 }//}}}
 long TranscriptInfo::geId(long i) const{//{{{
    if(isInitialized && (i<M))return transcripts[i].gI;

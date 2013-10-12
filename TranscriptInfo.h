@@ -38,6 +38,8 @@ class TranscriptInfo{
       vector<geneT> genes;
       // Populate genes variable with gene information based on gene names saved in transcript information.
       void setGeneInfo();
+      string noName;
+
    public:
       TranscriptInfo();
       // Clears all information.
@@ -56,8 +58,8 @@ class TranscriptInfo{
       const vector<long> &getGtrs(long i) const;
       long L(long i) const;
       double effL(long i) const;
-      string trName(long i) const;
-      string geName(long i) const;
+      const string &trName(long i) const;
+      const string &geName(long i) const;
       long geId(long i) const;
       bool genesOrdered() const{ return groupedByGenes; }
       void setEffectiveLength(vector<double> effL);
