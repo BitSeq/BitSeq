@@ -71,17 +71,19 @@ string programDescription =
    ns_rD::fragmentP curF = new ns_rD::fragmentT, nextF = new ns_rD::fragmentT, validAF = new ns_rD::fragmentT;
    // This could be changed to either GNU's hash_set or C++11's unsorted_set, once it's safe.
    set<string> ignoredReads;
+   long ignoredMaxAlignments = 0, ignoredSingletons = 0;
    // Intro: {{{
    // Set options {{{
    ArgumentParser args(programDescription,"[alignment file]",1);
    args.addOptionS("o","outFile","outFileName",1,"Name of the output file.");
    args.addOptionS("f","format","format",0,"Input format: either SAM, BAM.");
-   args.addOptionS("t","trInfoFile","trInfoFileName",0,"If transcript(reference sequence) information is contained within SAM file, program will write this information into <trInfoFile>, otherwise it will look for this information in <trInfoFile>.");
+   args.addOptionS("t","trInfoFile","trInfoFileName",0,"File to save transcript information extracted from [BS]AM file and reference.");
+   //args.addOptionS("t","trInfoFile","trInfoFileName",0,"If transcript(reference sequence) information is contained within SAM file, program will write this information into <trInfoFile>, otherwise it will look for this information in <trInfoFile>.");
    args.addOptionS("s","trSeqFile","trSeqFileName",1,"Transcript sequence in FASTA format --- for non-uniform read distribution estimation.");
    args.addOptionS("","trSeqHeader","trSeqHeader",0,"Transcript sequence header format enables gene name extraction (standard/gencode).","standard");
    args.addOptionS("e","expressionFile","expFileName",0,"Transcript relative expression estimates --- for better non-uniform read distribution estimation.");
    args.addOptionL("N","readsN","readsN",0,"Total number of reads. This is not necessary if [SB]AM contains also reads with no valid alignments.");
-   args.addOptionS("","failed","failed",0,"File name where to save names of reads that failed to align as pair.");
+   args.addOptionS("","failed","failed",0,"File name where to save names of reads that failed to align.");
    args.addOptionB("","uniform","uniform",0,"Use uniform read distribution.");
    args.addOptionD("","lenMu","lenMu",0,"Set mean of log fragment length distribution. (l_frag ~ LogNormal(mu,sigma^2))");
    args.addOptionD("","lenSigma","lenSigma",0,"Set sigma^2 (or variance) of log fragment length distribution. (l_frag ~ LogNormal(mu,sigma^2))");
@@ -246,10 +248,12 @@ string programDescription =
          }else if(maxAlignments && (allGA>maxAlignments)) {
             // This read will be ignored.
             ignoredReads.insert(bam1_qname(curF->first));
+            ignoredMaxAlignments++;
             Nmap --;
          }else if(args.flag("excludeSingletons") && (pairedGA + singleGA == 0)){
             // When excluding singletons only alignments of full pair or single-end read count.
             ignoredReads.insert(bam1_qname(curF->first));
+            ignoredSingletons++;
             Nmap --;
          }
          pairedGA = firstGA = secondGA = singleGA = weirdGA = pairedBad = 0;
@@ -263,7 +267,8 @@ string programDescription =
    }
    message("Reads: all(Ntotal): %ld  mapped(Nmap): %ld\n",Ntotal,Nmap);
    if(args.verbose)message("  %ld reads were used to estimate empirical distributions.\n",observeN);
-   if(ignoredReads.size()>0)message("  %ld reads are skipped due to having more than %ld alignments.\n",ignoredReads.size(), maxAlignments);
+   if(ignoredMaxAlignments>0)message("  %ld reads are skipped due to having more than %ld alignments.\n",ignoredMaxAlignments, maxAlignments);
+   if(ignoredSingletons>0)message("  %ld reads skipped due to having just single mate alignments.\n",ignoredSingletons);
    if(RE_noEndInfo)warning("  %ld reads that were paired, but do not have \"end\" information.\n  (is your alignment file valid?)", RE_noEndInfo);
    if(RE_weirdPairdInfo)warning("  %ld reads that were reported as both paired and single end.\n  (is your alignment file valid?)", RE_weirdPairdInfo);
    readD.writeWarnings();
@@ -410,7 +415,7 @@ string programDescription =
    timer.split(0,'m');
    if(args.verbose){
       message("Analyzed %ld reads:\n",readC);
-      if(! ignoredReads.empty())message(" %ld ignored due to --limitA flag\n",ignoredReads.size());
+      if(ignoredMaxAlignments>0)message(" %ld ignored due to --limitA flag\n",ignoredMaxAlignments);
       if(invalidN>0)message(" %ld had only invalid alignments (see warnings)\n",invalidN);
       if(noN>0)message(" %ld had no alignments\n",noN);
       message("The rest had %ld alignments:\n",pairedN+singleN+firstN+secondN+weirdN);
