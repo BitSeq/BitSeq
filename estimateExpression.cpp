@@ -40,7 +40,7 @@ void clearDataEE(){
 TagAlignments* readData(const ArgumentParser &args) {//{{{
    long i,j,num,tid;
    double prb;
-   long Ntotal=0,Nmap=0;
+   long Ntotal=0,Nmap=0,probM=0;
    string readId,strand,blank;
    ifstream inFile;
    MyTimer timer;
@@ -50,10 +50,12 @@ TagAlignments* readData(const ArgumentParser &args) {//{{{
    inFile.open(args.args()[0].c_str());
    FileHeader fh(&inFile);
    ns_fileHeader::AlignmentFileType format;
-   if((!fh.probHeader(&Nmap,&Ntotal,&format)) || (Nmap ==0)){//{{{
+   if((!fh.probHeader(&Nmap,&Ntotal,&probM,&format)) || (Nmap ==0)){//{{{
       error("Prob file header read failed.\n");
       return NULL;
    }//}}}
+   // Use number of transcripts from prob file if it is higher.
+   if(probM>M)M = probM;
    message("N mapped: %ld\n",Nmap);
    messageF("N total:  %ld\n",Ntotal);
    if(args.verb())message("Reading alignments.\n");

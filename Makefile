@@ -1,7 +1,7 @@
 CXX = g++
 HOSTNAME = $(shell hostname)
 ARCH = -mtune=generic
-VERSION = 0.7.2
+VERSION = 0.7.3
 
 ifeq ($(HOSTNAME), valiant)
 	ARCH = -march=core2

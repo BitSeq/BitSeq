@@ -78,8 +78,9 @@ bool FileHeader::transcriptsHeader(long *m, long *colN){//{{{
    return true;
 }//}}}
 
-bool FileHeader::probHeader(long *Nmap,long *Ntotal, AlignmentFileType *format){//{{{
+bool FileHeader::probHeader(long *Nmap, long *Ntotal, long *M, AlignmentFileType *format){//{{{
    if(!readValues()){
+      *M=0;
       *Nmap=0;
       return false;
    }
@@ -88,6 +89,7 @@ bool FileHeader::probHeader(long *Nmap,long *Ntotal, AlignmentFileType *format){
    else *format = OLD_FORMAT;
    if(values.count("Ntotal") && (values["Ntotal"]!=no_value))*Ntotal = values["Ntotal"];
    if(values.count("Nmap") && (values["Nmap"]!=no_value))*Nmap = values["Nmap"];
+   if(values.count("M") && (values["M"]!=no_value))*M = values["M"];
    return true;
 }//}}}
 

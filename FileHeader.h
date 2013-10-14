@@ -37,7 +37,7 @@ class FileHeader {
    }
    bool samplesHeader(long *n, long *m, bool *transposed, bool *logged = NULL);
    bool transcriptsHeader(long *m, long *colN);
-   bool probHeader(long *Nmap, long *Ntotal, ns_fileHeader::AlignmentFileType *format);
+   bool probHeader(long *Nmap, long *Ntotal, long *M, ns_fileHeader::AlignmentFileType *format);
    bool varianceHeader(long *m, bool *logged);
    bool paramsHeader(long *parN, ofstream *outF);
 };

@@ -92,6 +92,7 @@ string programDescription =
    args.addOptionL("l","limitA","maxAlignments",0,"Limit maximum number of alignments per read. (Reads with more alignments are skipped.)");
    args.addOptionB("","unstranded","unstranded",0,"Paired read are not strand specific.");
    args.addOptionB("","show1warning","show1warning",0,"Show first alignments that are considered wrong (TID unknown, TID mismatch, wrong strand).");
+   args.addOptionB("","excludeSingletons","excludeSingletons",0,"Exclude single mate alignments for paired-end reads.");
    if(!args.parse(*argc,argv))return 0;
    if(args.verbose)buildTime(argv[0],__DATE__,__TIME__);
    readD.setProcN(args.getL("procN"));
@@ -218,7 +219,10 @@ string programDescription =
             }
          }
          // Unless pairedBad>0 the alignment is valid.
-         if((!storedValidA) && (pairedBad == 0)){
+         // If excludeSingletons is set, only use paired alignment and alignments of single-end reads.
+         if((!storedValidA) && 
+            (((!args.flag("excludeSingletons")) && (pairedBad == 0)) ||
+             (pairedBad + firstGA + secondGA + weirdGA == 0))){
             validAF->copyFragment(curF);
             storedValidA=true;
          }
@@ -241,6 +245,10 @@ string programDescription =
             if(readD.observed(validAF))observeN++;
          }else if(maxAlignments && (allGA>maxAlignments)) {
             // This read will be ignored.
+            ignoredReads.insert(bam1_qname(curF->first));
+            Nmap --;
+         }else if(args.flag("excludeSingletons") && (pairedGA + singleGA == 0)){
+            // When excluding singletons only alignments of full pair or single-end read count.
             ignoredReads.insert(bam1_qname(curF->first));
             Nmap --;
          }
@@ -283,7 +291,7 @@ string programDescription =
       error("Main: Unable to open output file.\n");
       return 1;
    }
-   outF<<"# Ntotal "<<Ntotal<<"\n# Nmap "<<Nmap<<endl;
+   outF<<"# Ntotal "<<Ntotal<<"\n# Nmap "<<Nmap<<"\n# M "<<M<<endl;
    outF<<"# LOGFORMAT (probabilities saved on log scale.)\n# r_name num_alignments (tr_id prob )^*{num_alignments}"<<endl;
    outF.precision(9);
    outF<<scientific;
@@ -322,37 +330,41 @@ string programDescription =
             RE_nameMismatch++;
             if(RE_nameMismatch>10)break;
             invalidAlignment = true;
-         }else if(readD.getP(curF, prob, probNoise)){
-            // We calculated valid probabilities for this alignment.   
-            // Add alignment:
-            alignments.push_back(ns_parseAlignment::TagAlignment(curF->first->core.tid+1, prob, probNoise));
-            // Update counters:
-            if( curF->paired ) {
-               // Fragment's both reads are mapped as a pair.
-               pairedN++;
-               DEBUG_AT(" P\n");
-            }else {
-               if (curF->first->core.flag & BAM_FPAIRED) {
-                  // Read was part of pair (meaning that the other is unmapped).
-                  if (curF->first->core.flag & BAM_FREAD1) {
-                     firstN++;
-                     DEBUG_AT(" 1\n");
-                  } else if (curF->first->core.flag & BAM_FREAD2) {
-                     secondN++;
-                     DEBUG_AT(" 2\n");
+         }else if((!args.flag("excludeSingletons")) || curF->paired || (! (curF->first->core.flag & BAM_FPAIRED))){
+            // We only calculate probabilties and add alignments if: 
+            // (singletons are not exlucded) OR  (it is a proper paired alignments) OR (it is single-end read)
+            if(readD.getP(curF, prob, probNoise)){
+               // We calculated valid probabilities for this alignment.   
+               // Add alignment:
+               alignments.push_back(ns_parseAlignment::TagAlignment(curF->first->core.tid+1, prob, probNoise));
+               // Update counters:
+               if( curF->paired ) {
+                  // Fragment's both reads are mapped as a pair.
+                  pairedN++;
+                  DEBUG_AT(" P\n");
+               }else {
+                  if (curF->first->core.flag & BAM_FPAIRED) {
+                     // Read was part of pair (meaning that the other is unmapped).
+                     if (curF->first->core.flag & BAM_FREAD1) {
+                        firstN++;
+                        DEBUG_AT(" 1\n");
+                     } else if (curF->first->core.flag & BAM_FREAD2) {
+                        secondN++;
+                        DEBUG_AT(" 2\n");
+                     } else {
+                        weirdN ++;
+                        DEBUG_AT(" W\n");
+                     }
                   } else {
-                     weirdN ++;
-                     DEBUG_AT(" W\n");
+                     // Read is single end, with valid alignment.
+                     singleN++;
+                     DEBUG_AT(" S\n");
                   }
-               } else {
-                  // Read is single end, with valid alignment.
-                  singleN++;
-                  DEBUG_AT(" S\n");
                }
+            } else {
+               // Calculation of alignment probabilities failed.
+               invalidAlignment = true;
             }
-         } else {
-            // Calculation of alignment probabilities failed.
-            invalidAlignment = true;
          }
       }else DEBUG_AT("UNMAP\n");
       // next fragment has different name

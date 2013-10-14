@@ -28,7 +28,7 @@ SimpleSparse* readData(const ArgumentParser &args, long trM){//{{{
    inFile.open(args.args()[0].c_str());
    FileHeader fh(&inFile);
    ns_fileHeader::AlignmentFileType format;
-   if((!fh.probHeader(&Nmap,&Ntotal,&format)) || (Nmap ==0)){//{{{
+   if((!fh.probHeader(&Nmap,&Ntotal,&M,&format)) || (Nmap ==0)){//{{{
       error("Prob file header read failed.\n");
       return NULL;
    }//}}}
