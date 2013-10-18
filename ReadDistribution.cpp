@@ -50,7 +50,7 @@ inline char base2int(char B){//{{{
 inline int base2BAMint(char B){//{{{
    return tableB2BI[B];
 }//}}}
-inline void mapAdd(map<long,double > &m, long key, double val){//{{{
+template<class keyT,class valT> inline void mapAdd(map<keyT,valT> &m, keyT key, valT val){//{{{
    if(m.count(key)==0)
       m[key] = val;
    else
@@ -237,6 +237,7 @@ bool ReadDistribution::observed(fragmentP frag){ //{{{
       logLen = log(len);
       logLengthSum += logLen;
       logLengthSqSum += logLen*logLen;
+      mapAdd(fragLengths,(long)len,(long)1);
    }else{
       len = frag_first_endPos - frag->first->core.pos;
       singleReadLength = (long)len;
@@ -450,11 +451,24 @@ void ReadDistribution::logProfiles(string logFileName){//{{{
          }
       }
    }
-   outF<<"#\n# Mismatch likelihood: (probHit, probMis)"<<endl;
-   for(i=0;i<(long)lFreqHit.size();i++)outF<<exp(lFreqHit[i])<<" ";
-   outF<<endl;
-   for(i=0;i<(long)lFreqMis.size();i++)outF<<exp(lFreqMis[i])<<" ";
-   outF<<endl;
+   outF<<"# Mismatch likelihood: (probHit, probMis)"<<endl;
+   if(!lFreqHit.empty()){
+      for(i=0;i<(long)lFreqHit.size();i++)outF<<exp(lFreqHit[i])<<" ";
+      outF<<endl;
+      for(i=0;i<(long)lFreqMis.size();i++)outF<<exp(lFreqMis[i])<<" ";
+      outF<<endl;
+   }
+   outF<<"# Fragment lengths:\n";
+   if(validLength){
+      outF<<"# Distribution parameters: mu: "<<lMu<<" sigma: "<<lSigma<<endl;
+      outF<<"# Length distribution: (length, counts) L "<<fragLengths.size()<<endl;
+      for(map<long,long>::iterator it=fragLengths.begin();it!=fragLengths.end();it++)
+         outF<<it->first<<" ";
+      outF<<endl;
+      for(map<long,long>::iterator it=fragLengths.begin();it!=fragLengths.end();it++)
+         outF<<it->second<<" ";
+      outF<<endl;
+   }
    outF.close();
 }//}}}
 void ReadDistribution::updateMismatchFreq(bam1_t *samA) {//{{{

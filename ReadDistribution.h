@@ -42,7 +42,7 @@ struct fragmentT{//{{{
    void copyFragment(const fragmentT *sourceF){
       paired = sourceF->paired;
       bam_copy1(first, sourceF->first);
-      bam_copy1(second, sourceF->first);
+      bam_copy1(second, sourceF->second);
    }
 };
 
@@ -96,6 +96,7 @@ class ReadDistribution{
       vector<double> lFreqMis;
       // Cache length probabilities.
       vector<double> lLengthP,lLengthNorm;
+      map<long,long> fragLengths;
    
       double getLengthLP(long len) const;
       double computeLengthLP(double len) const;
