@@ -237,6 +237,7 @@ bool ReadDistribution::observed(fragmentP frag){ //{{{
       logLen = log(len);
       logLengthSum += logLen;
       logLengthSqSum += logLen*logLen;
+      DEBUG(if(len<=75)message("%s %ld %d %ld %d %ld\n",bam1_qname(frag->first), len, frag->first->core.pos,frag_first_endPos,frag->second->core.pos,frag_second_endPos));
       mapAdd(fragLengths,(long)len,(long)1);
    }else{
       len = frag_first_endPos - frag->first->core.pos;
