@@ -487,7 +487,7 @@ namespace ns_parseAlignment {
 
 bool nextFragDiffers(const ns_rD::fragmentP curF, const ns_rD::fragmentP nextF, bool mateNamesDiffer){//{{{
    if(readNameCmp(bam1_qname(curF->first), bam1_qname(nextF->first))==0) return false;
-   if(mateNamesDiffer && (readNameCmp(bam1_qname(curF->first), bam1_qname(nextF->second))==0)) return false;
+   if(nextF->paired && mateNamesDiffer && (readNameCmp(bam1_qname(curF->first), bam1_qname(nextF->second))==0)) return false;
    return true;
 }//}}}
 
