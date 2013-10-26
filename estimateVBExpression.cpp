@@ -118,7 +118,7 @@ string programDescription =
    args.addOptionL("P","procN","procN",0,"Limit the maximum number of threads to be used.",4);
    args.addOptionS("m","method","optMethod",0,"Optimization method (steepest, PR, FR, HS).","FR");
    args.addOptionL("s","seed","seed",0,"Random initialization seed.");
-   args.addOptionL("","maxIter","maxIter",0,"Maximum number of iterations.",1e4);
+   args.addOptionL("","maxIter","maxIter",0,"Maximum number of iterations.",(long)1e4);
    args.addOptionD("","optLimit","limit",0,"Optimisation limit in terms of minimal gradient or change of bound.",1e-5); 
    args.addOptionL("","samples","samples",0,"Number of samples to be sampled from the distribution.");
    args.addOptionB("V","veryVerbose","veryVerbose",0,"More verbose output, better if output forwarded into file.");
@@ -135,7 +135,7 @@ string programDescription =
    }else  optM = OPTT_FR;
    args.updateS("outputType", ns_expression::getOutputType(args, "theta"));
    if(args.getS("outputType") == "tau"){
-      error("Main: 'tau' is not valid output type.");
+      error("Main: 'tau' is not valid output type.\n");
       return 1;
    }
    // }}}
@@ -156,7 +156,7 @@ string programDescription =
    }
    beta = readData(args,M);
    if(! beta){
-      error("Main: Reading probabilities failed.");
+      error("Main: Reading probabilities failed.\n");
       return 1;
    }
    M = beta->M;
@@ -223,7 +223,7 @@ string programDescription =
          if(args.verbose)message("Removing temporary file %s.\n", samplesTmpName.c_str());
          remove(samplesTmpName.c_str());
       }else {
-         error("Main: Transposing samples failed.");
+         error("Main: Transposing samples failed.\n");
          return 1;
       }
    }

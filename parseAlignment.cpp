@@ -37,6 +37,8 @@ class TagAlignment{//{{{
       void setProb(double p){prob=p;}
 }; //}}}
 
+// Check if next fragment is different.
+bool nextFragDiffers(const ns_rD::fragmentP curF, const ns_rD::fragmentP nextF, bool mateNamesDiffer);
 // String comparison allowing last cmpEPS bases different as long as length
 // is the same.
 long readNameCmp(const char *str1, const char *str2);
@@ -95,6 +97,7 @@ string programDescription =
    args.addOptionB("","unstranded","unstranded",0,"Paired read are not strand specific.");
    args.addOptionB("","show1warning","show1warning",0,"Show first alignments that are considered wrong (TID unknown, TID mismatch, wrong strand).");
    args.addOptionB("","excludeSingletons","excludeSingletons",0,"Exclude single mate alignments for paired-end reads.");
+   args.addOptionB("","mateNamesDiffer","mateNamesDiffer",0,"Mates from paired-end reads have different names.");
    if(!args.parse(*argc,argv))return 0;
    if(args.verbose)buildTime(argv[0],__DATE__,__TIME__);
    readD.setProcN(args.getL("procN"));
@@ -197,7 +200,9 @@ string programDescription =
          // (at least) The first read was mapped.
          if( curF->paired ) {
             // Fragment's both reads are mapped as a pair.
-            if(ns_parseAlignment::readNameCmp(bam1_qname(curF->first), bam1_qname(curF->second))==0){
+            // Check mates' names.
+            if((ns_parseAlignment::readNameCmp(bam1_qname(curF->first), bam1_qname(curF->second))==0) || 
+               (args.flag("mateNamesDiffer"))){
                pairedGA++;
             }else{
                pairedBad++;
@@ -230,7 +235,7 @@ string programDescription =
          }
       }
       // Next fragment is different.
-      if(ns_parseAlignment::readNameCmp(bam1_qname(curF->first), bam1_qname(nextF->first))!=0){
+      if(ns_parseAlignment::nextFragDiffers(curF, nextF, args.flag("mateNamesDiffer"))){
          Ntotal++;
          allGA = singleGA + pairedGA + firstGA +secondGA+ weirdGA;
          if( allGA == 0 ){ // No good alignment.
@@ -318,7 +323,7 @@ string programDescription =
          // Read reads while the name is the same.
          while(ns_parseAlignment::readNextFragment(samData,curF,nextF)){
             DEBUG_AT(" ignore\n");
-            if(ns_parseAlignment::readNameCmp(bam1_qname(curF->first), bam1_qname(nextF->first))!=0)
+            if(ns_parseAlignment::nextFragDiffers(curF, nextF, args.flag("mateNamesDiffer")))
                break;
          }
          readC++;
@@ -328,7 +333,8 @@ string programDescription =
       if( !(curF->first->core.flag & BAM_FUNMAP) ){
          DEBUG_AT("M");
          // (at least) The first read was mapped.
-         if(curF->paired && (ns_parseAlignment::readNameCmp(bam1_qname(curF->first), bam1_qname(curF->second))!=0)){
+         // Check mates' names.
+         if(curF->paired && (ns_parseAlignment::readNameCmp(bam1_qname(curF->first), bam1_qname(curF->second))!=0) && (!args.flag("mateNamesDiffer"))){
             if(RE_nameMismatch == 0){
                warning("Paired read name mismatch: %s %s\n",bam1_qname(curF->first), bam1_qname(curF->second));
             }
@@ -373,7 +379,7 @@ string programDescription =
          }
       }else DEBUG_AT("UNMAP\n");
       // next fragment has different name
-      if(ns_parseAlignment::readNameCmp(bam1_qname(curF->first), bam1_qname(nextF->first))!=0){
+      if(ns_parseAlignment::nextFragDiffers(curF, nextF, args.flag("mateNamesDiffer"))){
          DEBUG_AT("  last\n");
          readC++;
          if(args.verbose){ if(progressLog(readC,Ntotal,10,' '))timer.split(1,'m');}
@@ -478,6 +484,12 @@ int main(int argc,char* argv[]){
 #endif
 
 namespace ns_parseAlignment {
+
+bool nextFragDiffers(const ns_rD::fragmentP curF, const ns_rD::fragmentP nextF, bool mateNamesDiffer){//{{{
+   if(readNameCmp(bam1_qname(curF->first), bam1_qname(nextF->first))==0) return false;
+   if(mateNamesDiffer && (readNameCmp(bam1_qname(curF->first), bam1_qname(nextF->second))==0)) return false;
+   return true;
+}//}}}
 
 long readNameCmp(const char *str1, const char *str2){//{{{
    // Check first character(so that we can look back later).
