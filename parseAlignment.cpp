@@ -527,21 +527,20 @@ bool readNextFragment(samfile_t* samData, ns_rD::fragmentP &cur, ns_rD::fragment
       *(next->first->data) = '\0';
       return currentOK;
    }
-   // if paired then try reading second pair
-   if( !(next->first->core.flag & BAM_FPROPER_PAIR) || 
-       (samread(samData,next->second)<0)){
-      next->paired = false;
-   }else{
-      /* look for last read 
-      ignored -- expecting always only singles and pairs
-      THIS WOULD NOT WORK 
-        - because SAM FLAG does not indicate whether it's first or last read of a pair, but which "file" is the read from 
-        - this was observed from bowtie alignment data
-      while( !(next->second->core.flag & BAM_FREAD2) &&
-             (samread(samData,next->second)>=0)) ;
-      */
+   // Read proper pairs OR pairs with both mates unmapped into one fragment.
+   if((next->first->core.flag & BAM_FPROPER_PAIR) ||
+      ((next->first->core.flag & BAM_FPAIRED) &&
+       (next->first->core.flag & BAM_FUNMAP) &&
+       (next->first->core.flag & BAM_FMUNMAP))){
       next->paired = true;
+      // Try reading second mate.
+      if(samread(samData,next->second)<0) next->paired = false;
+   }else{
+      next->paired = false;
    }
+   /* Note:
+    * Relying on BAM_FREAD2 as being the last read of template probably does not work.
+    */
    return currentOK;
 }//}}}
 

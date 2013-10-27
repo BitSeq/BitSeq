@@ -1,6 +1,6 @@
 0.7.5
 Improvements:
-- parseAlignment adding option to mateNamesDiffer
+- parseAlignment adding option to mateNamesDiffer [!! add note that this can't be used with mixed alignments !!]
 
 0.7.4
 [0.7.3] (bug in copying alignment)
