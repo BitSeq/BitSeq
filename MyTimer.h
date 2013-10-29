@@ -20,6 +20,7 @@ class MyTimer{
    void setVerbose(){quiet=false;}
    void start(long timer=0);
    double split(long timer=0, char f='s');
+   double getTime(long timer=0, char f='s');
    double current(long timer=0, char f='s');
    double stop(long timer=0, char f='s');
 };

@@ -33,6 +33,13 @@ double MyTimer::split(long timer, char f){//{{{
    times[timer]=time(NULL);
    return ret;
 }//}}}
+double MyTimer::getTime(long timer, char f){//{{{
+   if(timer>=N)return 0;
+   double ret;
+   ret=time(NULL)-times[timer];
+   adjust(ret,f);
+   return ret;
+}//}}}
 double MyTimer::current(long timer, char f){//{{{
    if(timer>=N)return 0;
    double ret;

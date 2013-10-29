@@ -146,7 +146,7 @@ TagAlignments* readData(const ArgumentParser &args) {//{{{
 void MCMC(TagAlignments *alignments,gibbsParameters &gPar,ArgumentParser &args){//{{{
    // Declarations: {{{
    DEBUG(message("Declarations:\n"));
-   long i,j,samplesHave=0,totalSamples=0,samplesN,chainsN,samplesSave,seed,curTime;
+   long i,j,samplesHave=0,totalSamples=0,samplesN,chainsN,samplesSave,seed;
    pairD rMean,tmpA,tmpV,sumNorms;
    double rH1,rH2;
    ofstream meansFile;
@@ -184,7 +184,8 @@ void MCMC(TagAlignments *alignments,gibbsParameters &gPar,ArgumentParser &args){
          samplers[j] = new GibbsSampler;
    }
 
-   timer.start();;
+   timer.start();
+   timer.start(1);
    if(args.isSet("seed"))seed=args.getL("seed");
    else seed = time(NULL);
    if(args.verbose)message("seed: %ld\n",seed);
@@ -222,6 +223,7 @@ void MCMC(TagAlignments *alignments,gibbsParameters &gPar,ArgumentParser &args){
       }
    }
 #endif
+   totalSamples = gPar.burnIn();
    message("Burn in: %ld DONE. ",gPar.burnIn());
    DEBUG(message(" reseting samplers after BurnIn\n"));
    for(i=0;i<chainsN;i++){
@@ -258,9 +260,9 @@ void MCMC(TagAlignments *alignments,gibbsParameters &gPar,ArgumentParser &args){
          }
       }
 #endif
-      totalSamples+=samplesN*chainsN;
+      totalSamples += samplesN;
       message("\nSampling DONE. ");
-      curTime = (long)(60*timer.split(2,'m'));
+      timer.split(0,'m');
       //}}}
       // Check for change of parameters: {{{
       gPar.readParameters();
@@ -336,8 +338,8 @@ void MCMC(TagAlignments *alignments,gibbsParameters &gPar,ArgumentParser &args){
       //}}}
       // Log rHat if necessary. {{{
       #ifdef LOG_RHAT
-         ofstream rhatLog(rhatLogFile.c_str());
-         rhatLog<<totalSamples/chainsN<<" "<<curTime;
+         ofstream rhatLog(rhatLogFile.c_str(), ofstream::app);
+         rhatLog<<totalSamples<<" "<<(long)timer.getTime(1);
          for(i=1;i<M;i++){
             rhatLog<<" "<<sqrt(rHat2[i].FF.FF);
          }
@@ -400,7 +402,7 @@ void MCMC(TagAlignments *alignments,gibbsParameters &gPar,ArgumentParser &args){
             // Prepare for producing samples if Rhat^2<target scale reduction
             // OR reached samplesNmax
             // OR produced too many samples (>500 000)
-         if((totalSamples < 5000000) && (rMean.FF > gPar.targetScaleReduction())){
+         if((totalSamples*chainsN < 5000000) && (rMean.FF > gPar.targetScaleReduction())){
             samplesN *= 2;
          }else{
             quitNext = true;
@@ -498,7 +500,7 @@ void MCMC(TagAlignments *alignments,gibbsParameters &gPar,ArgumentParser &args){
    }
 //   delete [] samplers;
    //}}}
-   message("Total samples: %ld\n",totalSamples);
+   message("Total samples: %ld\n",totalSamples*chainsN);
 }//}}}
 
 extern "C" int estimateExpression(int *argc, char* argv[]) {//{{{
