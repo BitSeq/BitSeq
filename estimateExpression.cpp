@@ -24,6 +24,7 @@
 #define SS second
 
 //#define LOG_NEED
+#define LOG_RHAT
 TranscriptInfo trInfo;
 
 long  M;//, mAll; // M : number of transcripts (include transcript 0 ~ Noise)
@@ -145,7 +146,7 @@ TagAlignments* readData(const ArgumentParser &args) {//{{{
 void MCMC(TagAlignments *alignments,gibbsParameters &gPar,ArgumentParser &args){//{{{
    // Declarations: {{{
    DEBUG(message("Declarations:\n"));
-   long i,j,samplesHave=0,totalSamples=0,samplesN,chainsN,samplesSave,seed;
+   long i,j,samplesHave=0,totalSamples=0,samplesN,chainsN,samplesSave,seed,curTime;
    pairD rMean,tmpA,tmpV,sumNorms;
    double rH1,rH2;
    ofstream meansFile;
@@ -154,6 +155,19 @@ void MCMC(TagAlignments *alignments,gibbsParameters &gPar,ArgumentParser &args){
    bool quitNext = false;
    vector<pairD> betwVar(M),withVar(M),s2j(M),totAverage(M),av,var;
    vector<pair<pairD,long> > rHat2(M);
+   // }}}
+   // Names: {{{
+   stringstream sstr;
+   #ifdef LOG_RHAT
+      sstr.str("");
+      sstr<<args.getS("outFilePrefix")<<".rhatLog";
+      string rhatLogFile = sstr.str();
+   #endif
+   #ifdef LOG_NEED
+      sstr.str("");
+      sstr<<args.getS("outFilePrefix")<<".effLog";
+      string effLogFile = sstr.str();
+   #endif
    // }}}
    // Init: {{{
    DEBUG(message("Initialization:\n"));
@@ -246,7 +260,7 @@ void MCMC(TagAlignments *alignments,gibbsParameters &gPar,ArgumentParser &args){
 #endif
       totalSamples+=samplesN*chainsN;
       message("\nSampling DONE. ");
-      timer.split(0,'m');
+      curTime = (long)(60*timer.split(2,'m'));
       //}}}
       // Check for change of parameters: {{{
       gPar.readParameters();
@@ -320,13 +334,23 @@ void MCMC(TagAlignments *alignments,gibbsParameters &gPar,ArgumentParser &args){
       if(args.flag("gibbs"))message("  Mean thetaAct (noise parameter)\n   %lf\n",totAverage[0].FF);
       messageF("\n");
       //}}}
+      // Log rHat if necessary. {{{
+      #ifdef LOG_RHAT
+         ofstream rhatLog(rhatLogFile.c_str());
+         rhatLog<<totalSamples/chainsN<<" "<<curTime;
+         for(i=1;i<M;i++){
+            rhatLog<<" "<<sqrt(rHat2[i].FF.FF);
+         }
+         rhatLog<<endl;
+         rhatLog.close();
+      #endif
+      // }}}
       // Increase sample size and start over: {{{
       if(quitNext){// Sampling iterations end {{{
          if(sqrt(rHat2[0].FF.FF) > gPar.targetScaleReduction()){
             message("WARNING: Following transcripts failed to converge entirely\n   (however the estimates might still be usable):\n");
             long countUncoverged=0;
-            stringstream sstr;
-            sstr.str();
+            sstr.str("");
             sstr<<"# unconverged_transcripts: ";
             for(i=0;(i<M) && (sqrt(rHat2[i].FF.FF) > gPar.targetScaleReduction());i++){
                sstr<<rHat2[i].SS<<" ("<<sqrt(rHat2[i].FF.FF)<<") ";
@@ -358,9 +382,7 @@ void MCMC(TagAlignments *alignments,gibbsParameters &gPar,ArgumentParser &args){
          } 
          // log the number of effective samples, only when testing... //{{{
          #ifdef LOG_NEED
-            stringstream sstr;
-            sstr<<args.getS("outFilePrefix")<<".effLog";
-            ofstream effLog(sstr.str().c_str());
+            ofstream effLog(effLogFile.c_str());
             for(i=1;i<M;i++){
                effLog<<needS[rHat2[i].SS]<<" "<<sqrt(rHat2[i].FF.FF)<<" "<<samplesHave*betwVar[rHat2[i].SS].FF<<" "<<withVar[rHat2[i].SS].FF<<" "<<rHat2[i].SS<<endl;
             }
@@ -395,7 +417,6 @@ void MCMC(TagAlignments *alignments,gibbsParameters &gPar,ArgumentParser &args){
          if(samplesN<samplesSave){
             samplesSave = samplesN;
          }
-         stringstream sstr;
          for(j=0;j<chainsN;j++){
             sstr.str("");
             sstr<<args.getS("outFilePrefix")<<"."<<args.getS("outputType")<<"S-"<<j;

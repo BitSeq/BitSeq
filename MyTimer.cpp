@@ -9,7 +9,7 @@ void MyTimer::adjust(double &time,char f){//{{{
    if(f=='h')time/=3600.0;
 }//}}}
 void MyTimer::write(double time,char f){//{{{
-   if(!quiet)messageF("[time: +%lf %c]\n",time,f);
+   if(!quiet)messageF("[time: +%.2lf %c]\n",time,f);
 }//}}}
 MyTimer::MyTimer(){//{{{
    N=1;
