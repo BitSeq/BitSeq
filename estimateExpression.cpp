@@ -532,13 +532,6 @@ string programDescription =
    if(args.verbose)buildTime(argv[0],__DATE__,__TIME__);
    // }}}
    MyTimer timer;
-#ifdef SUPPORT_OPENMP
-   if(args.isSet("procN"))
-      omp_set_num_threads(args.getL("procN"));
-   else
-      omp_set_num_threads(args.getL("MCMC_chainsN"));
-#endif
-
    gibbsParameters gPar;
    TagAlignments *alignments=NULL;
 //{{{ Initialization:
@@ -549,6 +542,13 @@ string programDescription =
    }
    args.updateS("outputType", ns_expression::getOutputType(args));
    if(args.verbose)gPar.getAllParameters();
+#ifdef SUPPORT_OPENMP
+   if(args.isSet("procN"))
+      omp_set_num_threads(args.getL("procN"));
+   else
+      omp_set_num_threads(gPar.chainsN());
+#endif
+
 
    //}}}
    // {{{ Read transcriptInfo and .prob file 
