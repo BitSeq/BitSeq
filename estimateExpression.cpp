@@ -24,7 +24,7 @@
 #define SS second
 
 //#define LOG_NEED
-#define LOG_RHAT
+//#define LOG_RHAT
 TranscriptInfo trInfo;
 
 long  M;//, mAll; // M : number of transcripts (include transcript 0 ~ Noise)
