@@ -562,7 +562,8 @@ string programDescription =
    }
    //}}}
    delete alignments;
-   if(args.verbose){message("DONE. "); timer.split(0,'m');}
+   message("DONE. ");
+   timer.split(0,'m');
    return 0;
 }//}}}
 
