@@ -129,6 +129,7 @@ void VariationalBayes::optimize(bool verbose,OPT_TYPE method,long maxIter,double
    double boundOld,bound,squareNorm,squareNormOld=1,valBeta=0,valBetaDiv,natGrad_i,gradGamma_i,phiGradPhiSum_r;
    double *gradPhi,*natGrad,*gradGamma,*searchDir,*tmpD,*phiOld;
    gradPhi=natGrad=gradGamma=searchDir=tmpD=phiOld=NULL;
+   MyTimer timer;
    // allocate stuff {{{
    //SimpleSparse *phiGradPhi=new SimpleSparse(beta);
    gradPhi = new double[T];
@@ -151,6 +152,7 @@ void VariationalBayes::optimize(bool verbose,OPT_TYPE method,long maxIter,double
    #endif
 #endif
    boundOld=getBound();
+   timer.start();
    while(true){
       negGradient(gradPhi);
       // "yuck"
@@ -248,7 +250,7 @@ void VariationalBayes::optimize(bool verbose,OPT_TYPE method,long maxIter,double
          #ifdef SHOW_FIXED
             messageF("iter(%c): %5.ld  bound: %.3lf grad: %.7lf  beta: %.7lf  fixed: %ld\n",(usedSteepest?'s':'o'),iteration,bound,squareNorm,valBeta,phi->countAboveDelta(0.999));
          #else
-            messageF("iter(%c): %5.ld  bound: %.3lf grad: %.7lf  beta: %.7lf\n",(usedSteepest?'s':'o'),iteration,bound,squareNorm,valBeta);
+            messageF("iter(%c)[%5.lds]: %5.ld  bound: %.3lf grad: %.7lf  beta: %.7lf\n",(usedSteepest?'s':'o'),(long)timer.getTime(),iteration,bound,squareNorm,valBeta);
          #endif
       }else if(!quiet){
          messageF("\riter(%c): %5.ld  bound: %.3lf grad: %.7lf  beta: %.7lf      ",(usedSteepest?'s':'o'),iteration,bound,squareNorm,valBeta);
