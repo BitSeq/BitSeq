@@ -39,7 +39,8 @@ PROGRAMS = \
    getVariance \
    getWithinGeneExpression \
    parseAlignment \
-   transposeLargeFile
+   transposeLargeFile \
+   gtftool
 
 all: $(PROGRAMS)
 
@@ -83,6 +84,9 @@ parseAlignment: parseAlignment.cpp $(COMMON_DEPS) ReadDistribution.o samtools/sa
 
 transposeLargeFile: transposeLargeFile.cpp $(COMMON_DEPS) transposeFiles.o
 	$(CXX) $(CXXFLAGS) $(LDFLAGS) transposeLargeFile.cpp $(COMMON_DEPS) transposeFiles.o -o transposeLargeFile
+
+gtftool: gtftool.cpp
+	$(CXX) $(CXXFLAGS) $(LDFLAGS) gtftool.cpp -o gtftool
 
 # LIBRARIES:
 ArgumentParser.o: ArgumentParser.cpp ArgumentParser.h
