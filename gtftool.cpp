@@ -7,6 +7,8 @@
 #include <map>
 #include <set>
 
+const int BUFSIZE=4096;
+
 class GTFEntry {
 public:
   std::string seqname;
@@ -65,7 +67,20 @@ public:
     return 0;
   }
 
-  void pretty_print(std::ostream& s)
+  std::string extract_attribute(std::string name) const
+  {
+    std::size_t startpos = 0;
+    std::size_t endpos = attribute.find(' ');
+    while (endpos < std::string::npos) {
+      if (attribute.compare(startpos, endpos, name) == 0) {
+	std::size_t terminatorpos = attribute.find(';', endpos);
+	return attribute.substr(endpos+1, terminatorpos-endpos-1);
+      }
+    }
+    return std::string("");
+  }
+
+  void pretty_print(std::ostream& s) const
   {
     s << "seqname: " << seqname << std::endl;
     s << "source: " << source << std::endl;
@@ -80,13 +95,99 @@ public:
 };
 
 
+class FastaReader {
+public:
+  void find_next_chromosome()
+  {
+    char buf[BUFSIZE];
+    std::string line;
+
+    while (std::fgets(buf, 4096, fp) != NULL) {
+      line = std::string(buf);
+      if (line.at(0) == '>') {
+	std::size_t endpos = line.find(' ', 1);
+	chromosome = line.substr(1, endpos-1);
+	filepos = 0;
+	buffer = "";
+	bufferpos = 0;
+	return;
+      }
+    }
+    chromosome = "";
+    filepos = -1;
+  }
+
+  FastaReader(std::string file): buffer(""), bufferpos(0), filepos(0)
+  {
+    std::string tmp;
+
+    tmp = "gunzip -c '";
+    tmp += file;
+    tmp += "'";
+    fp = popen(tmp.c_str(), "r");
+    find_next_chromosome();
+  }
+
+  ~FastaReader()
+  {
+    fclose(fp);
+  }
+
+  std::string get_current_chromosome() const
+  {
+    return chromosome;
+  }
+
+  std::string read_string(int startpos, int endpos)
+  {
+    clear_buffer(startpos);
+    read_to_buffer(endpos);
+    return buffer.substr(startpos-bufferpos, endpos-startpos);
+  }
+
+private:
+  void read_to_buffer(int endpos)
+  {
+    std::string ALPHABET="ACGTNUKSYMWRBDHV";
+    char buf[BUFSIZE];
+    std::string line;
+
+    while (std::fgets(buf, 4096, fp) != NULL && filepos < endpos) {
+      line = std::string(buf);
+      std::size_t endpos = line.find_last_of(ALPHABET);
+      buffer += line.substr(0, endpos);
+      filepos += endpos;
+    }
+  }
+
+  void clear_buffer(int startpos)
+  {
+    if (startpos > bufferpos) {
+      if (startpos-bufferpos > buffer.length()) {
+	buffer = "";
+	bufferpos = filepos;
+      } else {
+	buffer = buffer.substr(startpos-bufferpos);
+	bufferpos = startpos;
+      }
+    }
+  }
+
+  std::FILE *fp;
+  std::string chromosome;
+  std::string buffer;
+  int bufferpos;
+  int filepos;
+};
+
+
 void read_gtf(std::string file, std::vector<GTFEntry *>& gtf,
 	      std::multimap<std::string, GTFEntry *>& gtf_per_chromosome,
 	      std::set<std::string>& chromosomes)
 {
   GTFEntry *entry;
   std::FILE *input;
-  char buf[4096];
+  char buf[BUFSIZE];
   std::string tmp;
   std::string line;
 
@@ -109,8 +210,8 @@ void read_gtf(std::string file, std::vector<GTFEntry *>& gtf,
       }
     }
   }
+  fclose(input);
 }
-
 
 
 int main(int argc,char* argv[])
@@ -121,13 +222,29 @@ int main(int argc,char* argv[])
   std::set<std::string> chromosomes = std::set<std::string>();
 
   read_gtf(argv[1], gtf, gtf_per_chromosome, chromosomes);
+  FastaReader fasta(argv[2]);
 
-  //gtf[0]->pretty_print(std::cout);
+  gtf[0]->pretty_print(std::cout);
+  std::cout << "gene_id: " << gtf[0]->extract_attribute("gene_id")
+	    << std::endl;
   std::cout << gtf.size() << " genes found." << std::endl;
   for (std::set<std::string>::const_iterator i=chromosomes.begin();
        i != chromosomes.end(); i++) {
     std::cout << *i << ": " << gtf_per_chromosome.count(*i) 
 	      << " genes." << std::endl;
+  }
+
+  std::cout << "Fasta chromosome: " << fasta.get_current_chromosome()
+	    << std::endl;
+
+  std::pair<std::multimap<std::string, GTFEntry *>::iterator, std::multimap<std::string, GTFEntry *>::iterator> range;
+  range = gtf_per_chromosome.equal_range(fasta.get_current_chromosome());
+
+  for (std::multimap<std::string, GTFEntry *>::iterator i=range.first;
+       i != range.second; i++) {
+    std::cout << i->second->start << " " << i->second->end << std::endl;
+    std::cout << fasta.read_string(i->second->start, i->second->end)
+	      << std::endl;
   }
 
   return 0;
