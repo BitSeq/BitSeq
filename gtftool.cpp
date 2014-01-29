@@ -9,6 +9,31 @@
 
 const int BUFSIZE=4096;
 
+std::string dna_reverse_complement(std::string orig)
+{
+  std::string res = std::string(orig.length(), ' ');
+  std::string::iterator i=res.begin();
+  std::string::reverse_iterator j=orig.rbegin();
+  while (j != orig.rend()) {
+    switch (*j) {
+      case 'A':
+	*i = 'T'; break;
+      case 'C':
+	*i = 'G'; break;
+      case 'G':
+	*i = 'C'; break;
+      case 'T':
+	*i = 'A'; break;
+      default:
+	*i = *j;
+      }
+    ++i;
+    ++j;
+  }
+
+  return res;
+}
+
 class GTFEntry {
 public:
   std::string seqname;
@@ -107,9 +132,9 @@ public:
       if (line.at(0) == '>') {
 	std::size_t endpos = line.find(' ', 1);
 	chromosome = line.substr(1, endpos-1);
-	filepos = 0;
+	filepos = 1;
 	buffer = "";
-	bufferpos = 0;
+	bufferpos = 1;
 	return;
       }
     }
@@ -142,7 +167,7 @@ public:
   {
     clear_buffer(startpos);
     read_to_buffer(endpos);
-    return buffer.substr(startpos-bufferpos, endpos-startpos);
+    return buffer.substr(startpos-bufferpos, endpos-startpos+1);
   }
 
 private:
@@ -155,7 +180,7 @@ private:
     while (std::fgets(buf, 4096, fp) != NULL && filepos < endpos) {
       line = std::string(buf);
       std::size_t endpos = line.find_last_of(ALPHABET);
-      buffer += line.substr(0, endpos);
+      buffer += line.substr(0, endpos+1);
       filepos += endpos;
     }
   }
@@ -243,8 +268,13 @@ int main(int argc,char* argv[])
   for (std::multimap<std::string, GTFEntry *>::iterator i=range.first;
        i != range.second; i++) {
     std::cout << i->second->start << " " << i->second->end << std::endl;
-    std::cout << fasta.read_string(i->second->start, i->second->end)
+    if (i->second->strand == '+')
+      std::cout << fasta.read_string(i->second->start, i->second->end) << std::endl;
+    else if (i->second->strand == '-')
+      std::cout << dna_reverse_complement(fasta.read_string(i->second->start, i->second->end))
 	      << std::endl;
+    else
+      std::cout << "Unknown strand" << std::endl;
   }
 
   return 0;
