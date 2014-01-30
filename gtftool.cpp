@@ -6,7 +6,7 @@
 #include <vector>
 #include <map>
 #include <set>
-#include <exception>
+#include <stdexcept>
 
 const int BUFSIZE=4096;
 const unsigned int LINEWIDTH=70;
@@ -150,7 +150,7 @@ public:
       }
     }
     chromosome = "";
-    filepos = -1;
+    filepos = 0;
     return false;
   }
 
@@ -177,7 +177,7 @@ public:
     return chromosome;
   }
 
-  std::string read_string(int startpos, int endpos)
+  std::string read_string(std::size_t startpos, std::size_t endpos)
   {
     clear_buffer(startpos);
     read_to_buffer(endpos);
@@ -185,7 +185,7 @@ public:
   }
 
 private:
-  void read_to_buffer(int endpos)
+  void read_to_buffer(std::size_t endpos)
   {
     std::string ALPHABET="ACGTNUKSYMWRBDHV";
     char buf[BUFSIZE];
@@ -204,10 +204,10 @@ private:
     }
   }
 
-  void clear_buffer(int startpos)
+  void clear_buffer(std::size_t startpos)
   {
     if (startpos > bufferpos) {
-      if (startpos-bufferpos > buffer.length()) {
+      if (startpos > bufferpos + buffer.length()) {
 	buffer = "";
 	bufferpos = filepos;
       } else {
@@ -220,8 +220,8 @@ private:
   std::FILE *fp;
   std::string chromosome;
   std::string buffer;
-  int bufferpos;
-  int filepos;
+  std::size_t bufferpos;
+  std::size_t filepos;
 };
 
 
