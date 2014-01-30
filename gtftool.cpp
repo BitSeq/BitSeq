@@ -6,8 +6,10 @@
 #include <vector>
 #include <map>
 #include <set>
+#include <exception>
 
 const int BUFSIZE=4096;
+const unsigned int LINEWIDTH=70;
 
 std::string dna_reverse_complement(std::string orig)
 {
@@ -30,8 +32,14 @@ std::string dna_reverse_complement(std::string orig)
     ++i;
     ++j;
   }
-
   return res;
+}
+
+inline std::string dequote(std::string orig) {
+  if (orig.at(0) == '"' && orig.at(orig.length()-1) == '"')
+    return orig.substr(1, orig.length()-2);
+  else
+    return orig;
 }
 
 class GTFEntry {
@@ -96,11 +104,14 @@ public:
   {
     std::size_t startpos = 0;
     std::size_t endpos = attribute.find(' ');
+    std::size_t terminatorpos;
     while (endpos < std::string::npos) {
-      if (attribute.compare(startpos, endpos, name) == 0) {
-	std::size_t terminatorpos = attribute.find(';', endpos);
-	return attribute.substr(endpos+1, terminatorpos-endpos-1);
+      terminatorpos = attribute.find(';', endpos);
+      if (attribute.compare(startpos, endpos-startpos, name) == 0) {
+	return dequote(attribute.substr(endpos+1, terminatorpos-endpos-1));
       }
+      startpos = terminatorpos + 2;
+      endpos = attribute.find(' ', startpos);
     }
     return std::string("");
   }
@@ -122,7 +133,7 @@ public:
 
 class FastaReader {
 public:
-  void find_next_chromosome()
+  bool find_next_chromosome()
   {
     char buf[BUFSIZE];
     std::string line;
@@ -135,11 +146,12 @@ public:
 	filepos = 1;
 	buffer = "";
 	bufferpos = 1;
-	return;
+	return true;
       }
     }
     chromosome = "";
     filepos = -1;
+    return false;
   }
 
   FastaReader(std::string file): buffer(""), bufferpos(0), filepos(0)
@@ -150,12 +162,14 @@ public:
     tmp += file;
     tmp += "'";
     fp = popen(tmp.c_str(), "r");
+    if (!fp)
+      throw std::runtime_error("popen failed on " + tmp);
     find_next_chromosome();
   }
 
   ~FastaReader()
   {
-    fclose(fp);
+    pclose(fp);
   }
 
   std::string get_current_chromosome() const
@@ -176,12 +190,17 @@ private:
     std::string ALPHABET="ACGTNUKSYMWRBDHV";
     char buf[BUFSIZE];
     std::string line;
+    std::size_t lastchar = 0;
 
-    while (std::fgets(buf, 4096, fp) != NULL && filepos < endpos) {
+    while (filepos < endpos) {
+      if (std::fgets(buf, 4096, fp) == NULL)
+	throw "premature EOF";
       line = std::string(buf);
-      std::size_t endpos = line.find_last_of(ALPHABET);
-      buffer += line.substr(0, endpos+1);
-      filepos += endpos;
+      if (line.at(0) == '>')
+	throw "next chromosome reached!";
+      lastchar = line.find_last_of(ALPHABET);
+      buffer += line.substr(0, lastchar+1);
+      filepos += lastchar+1;
     }
   }
 
@@ -206,9 +225,105 @@ private:
 };
 
 
+struct gtfcomp {
+  bool operator() (const GTFEntry* lhs, const GTFEntry* rhs) const
+  { return (lhs==0 || rhs==0 || lhs->start < rhs->start
+	    || (lhs->start == rhs->start && lhs != rhs)); }
+};
+
+typedef std::set<GTFEntry *,gtfcomp> GTFSet;
+
+
+class GTFStore {
+public:
+  GTFStore() : gtf_per_chromosome(), chromosomes() {}
+  void insert(std::string chr, GTFEntry * gtf)
+  {
+    std::map<std::string, GTFSet *>::iterator it = gtf_per_chromosome.find(chr);
+    // chromosome not found before
+    if (it == gtf_per_chromosome.end()) {
+      GTFSet *gtfs = new GTFSet();
+      gtfs->insert(gtf);
+      gtf_per_chromosome.insert(std::pair<std::string, GTFSet * >(chr, gtfs));
+      chromosomes.insert(chr);
+    } else {
+      it->second->insert(gtf);
+    }
+  }
+
+  GTFSet::iterator begin(std::string chr)
+  {
+    std::map<std::string, GTFSet *>::iterator it = gtf_per_chromosome.find(chr);
+    if (it != gtf_per_chromosome.end())
+      return it->second->begin();
+    else
+      throw "Chromosome not found";
+  }
+
+  GTFSet::iterator end(std::string chr)
+  {
+    std::map<std::string, GTFSet *>::iterator it = gtf_per_chromosome.find(chr);
+    if (it != gtf_per_chromosome.end())
+      return it->second->end();
+    else
+      throw "Chromosome not found";
+  }
+
+  std::size_t count(std::string chr)
+  {
+    std::map<std::string, GTFSet *>::iterator it = gtf_per_chromosome.find(chr);
+    if (it != gtf_per_chromosome.end())
+      return it->second->size();
+    else
+      return 0;
+  }
+
+  std::set<std::string>& get_chromosomes()
+  {
+    return chromosomes;
+  }
+
+private:
+  std::map<std::string, GTFSet *> gtf_per_chromosome;
+  std::set<std::string> chromosomes;
+};
+
+
+void write_fasta_entry(std::ostream& s, const GTFEntry *gtf, std::string seq)
+{
+  std::string tmp;
+
+  s << ">";
+  s << gtf->extract_attribute("transcript_id") << "|";
+  s << gtf->extract_attribute("gene_id") << "|";
+
+  tmp = gtf->extract_attribute("havana_gene");
+  if (tmp.empty())
+    s << "-|";
+  else
+    s << tmp << "|";
+
+  tmp = gtf->extract_attribute("havana_transcript");
+  if (tmp.empty())
+    s << "-|";
+  else
+    s << tmp << "|";
+  
+  s << gtf->extract_attribute("transcript_name") << "|";
+  s << gtf->extract_attribute("gene_name") << "|";
+  s << seq.length() << "|" << std::endl;
+
+  int start = 0;
+  while (seq.length() > start + LINEWIDTH) {
+    s << seq.substr(start, LINEWIDTH) << std::endl;
+    start += LINEWIDTH;
+  }
+  s << seq.substr(start) << std::endl;
+}
+
+
 void read_gtf(std::string file, std::vector<GTFEntry *>& gtf,
-	      std::multimap<std::string, GTFEntry *>& gtf_per_chromosome,
-	      std::set<std::string>& chromosomes)
+	      GTFStore& gtf_per_chromosome)
 {
   GTFEntry *entry;
   std::FILE *input;
@@ -228,54 +343,53 @@ void read_gtf(std::string file, std::vector<GTFEntry *>& gtf,
 
       if (entry->feature.compare("gene") == 0) {
 	gtf.push_back(entry);
-	gtf_per_chromosome.insert(std::pair<std::string, GTFEntry *>(entry->seqname, entry));
-	chromosomes.insert(entry->seqname);
+	gtf_per_chromosome.insert(entry->seqname, entry);
       } else {
 	delete entry;
       }
     }
   }
-  fclose(input);
+  pclose(input);
 }
 
 
 int main(int argc,char* argv[])
 {
   std::vector<GTFEntry *> gtf = std::vector<GTFEntry *>();
-  std::multimap<std::string, GTFEntry *> gtf_per_chromosome =
-    std::multimap<std::string, GTFEntry *>();
-  std::set<std::string> chromosomes = std::set<std::string>();
+  GTFStore gtf_per_chromosome = GTFStore();
 
-  read_gtf(argv[1], gtf, gtf_per_chromosome, chromosomes);
+  read_gtf(argv[1], gtf, gtf_per_chromosome);
   FastaReader fasta(argv[2]);
 
-  gtf[0]->pretty_print(std::cout);
-  std::cout << "gene_id: " << gtf[0]->extract_attribute("gene_id")
-	    << std::endl;
-  std::cout << gtf.size() << " genes found." << std::endl;
-  for (std::set<std::string>::const_iterator i=chromosomes.begin();
-       i != chromosomes.end(); i++) {
-    std::cout << *i << ": " << gtf_per_chromosome.count(*i) 
-	      << " genes." << std::endl;
-  }
+  std::cerr << gtf.size() << " genes found." << std::endl;
 
-  std::cout << "Fasta chromosome: " << fasta.get_current_chromosome()
-	    << std::endl;
+  GTFSet::iterator ibeg;
+  GTFSet::iterator iend;
+  do {
+    std::string chr = fasta.get_current_chromosome();
+    
+    try {
+      ibeg = gtf_per_chromosome.begin(chr);
+      iend = gtf_per_chromosome.end(chr);
+    } catch (...) {
+      std::cerr << "No gtf entries for chromosome " << chr << std::endl;
+      continue;
+    }
+    std::cerr << "Starting chromosome " << chr << " with " << gtf_per_chromosome.count(chr) << " genes." << std::endl;
 
-  std::pair<std::multimap<std::string, GTFEntry *>::iterator, std::multimap<std::string, GTFEntry *>::iterator> range;
-  range = gtf_per_chromosome.equal_range(fasta.get_current_chromosome());
-
-  for (std::multimap<std::string, GTFEntry *>::iterator i=range.first;
-       i != range.second; i++) {
-    std::cout << i->second->start << " " << i->second->end << std::endl;
-    if (i->second->strand == '+')
-      std::cout << fasta.read_string(i->second->start, i->second->end) << std::endl;
-    else if (i->second->strand == '-')
-      std::cout << dna_reverse_complement(fasta.read_string(i->second->start, i->second->end))
-	      << std::endl;
-    else
-      std::cout << "Unknown strand" << std::endl;
-  }
+    for (GTFSet::iterator i=ibeg; i != iend; ++i) {
+      if ((*i)->strand == '+')
+	write_fasta_entry(std::cout,
+			  *i,
+			  fasta.read_string((*i)->start, (*i)->end));
+      else if ((*i)->strand == '-')
+	write_fasta_entry(std::cout,
+			  *i,
+			  dna_reverse_complement(fasta.read_string((*i)->start, (*i)->end)));
+      else
+	std::cerr << "Unknown strand" << std::endl;
+    }
+  } while (fasta.find_next_chromosome());
 
   return 0;
 }
