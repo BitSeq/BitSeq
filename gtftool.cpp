@@ -7,6 +7,7 @@
 #include <map>
 #include <set>
 #include <stdexcept>
+#include <sstream>
 
 const int BUFSIZE=4096;
 const unsigned int LINEWIDTH=70;
@@ -47,8 +48,8 @@ public:
   std::string seqname;
   std::string source;
   std::string feature;
-  int start;
-  int end;
+  std::size_t start;
+  std::size_t end;
   double score;
   char strand;
   char frame;
@@ -289,7 +290,8 @@ private:
 };
 
 
-void write_fasta_entry(std::ostream& s, const GTFEntry *gtf, std::string seq)
+void write_fasta_entry_gencode(std::ostream& s, const GTFEntry *gtf,
+			       std::string seq)
 {
   std::string tmp;
 
@@ -356,6 +358,38 @@ void read_gtf(std::string file, std::vector<GTFEntry *>& gtf,
 }
 
 
+void reconstruct_genes(GTFStore & gtf_per_chromosome, GTFStore & exons)
+{
+  std::set<std::string> genes = exons.get_chromosomes();
+  std::set<std::string>::iterator gbeg, gend;
+  gbeg = genes.begin();
+  gend = genes.end();
+
+  // Iterating over genes
+  for (std::set<std::string>::iterator g = gbeg; g != gend ; ++g) {
+    GTFSet::iterator ibeg = exons.begin(*g);
+    GTFSet::iterator iend = exons.end(*g);
+    std::size_t start = (*ibeg)->start;
+    std::size_t end = (*ibeg)->end;
+    for (GTFSet::iterator i = ibeg; i != iend ; ++i) {
+      start = std::min(start, (*i)->start);
+      end = std::max(end, (*i)->end);
+    }
+    GTFEntry *entry = new GTFEntry(*(*ibeg));
+    entry->start = start;
+    entry->end = end;
+    std::stringstream ss;
+    ss << "gene_id \"" << entry->extract_attribute("gene_id") << "\"; ";
+    ss << "transcript_id \"" << entry->extract_attribute("gene_id") << "\"; ";
+    ss << "gene_name \"" << entry->extract_attribute("gene_name") << "\"; ";
+    ss << "gene_biotype \"" << entry->extract_attribute("gene_biotype") << "\"; ";
+    ss << "transcript_name \"" << entry->extract_attribute("gene_name") << "\"; ";
+    entry->attribute = ss.str();
+    gtf_per_chromosome.insert(entry->seqname, entry);
+  }
+}
+
+
 int main(int argc,char* argv[])
 {
   std::vector<GTFEntry *> gtf = std::vector<GTFEntry *>();
@@ -365,6 +399,11 @@ int main(int argc,char* argv[])
   read_gtf(argv[1], gtf, gtf_per_chromosome, exons);
   FastaReader fasta(argv[2]);
 
+  if (gtf.size() == 0) {
+    std::cerr << "No gene entries found, reconstructing from exons."
+	      << std::endl;
+    reconstruct_genes(gtf_per_chromosome, exons);
+  }
   std::cerr << gtf.size() << " genes found." << std::endl;
 
   GTFSet::iterator ibeg;
@@ -389,13 +428,13 @@ int main(int argc,char* argv[])
 	skipped++;
       } else {
 	if ((*i)->strand == '+')
-	  write_fasta_entry(std::cout,
-			    *i,
-			    fasta.read_string((*i)->start, (*i)->end));
+	  write_fasta_entry_gencode(std::cout,
+				    *i,
+				    fasta.read_string((*i)->start, (*i)->end));
 	else if ((*i)->strand == '-')
-	  write_fasta_entry(std::cout,
-			    *i,
-			    dna_reverse_complement(fasta.read_string((*i)->start, (*i)->end)));
+	  write_fasta_entry_gencode(std::cout,
+				    *i,
+				    dna_reverse_complement(fasta.read_string((*i)->start, (*i)->end)));
 	else
 	  std::cerr << "Unknown strand" << std::endl;
       }
