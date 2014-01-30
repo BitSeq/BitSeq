@@ -323,7 +323,8 @@ void write_fasta_entry(std::ostream& s, const GTFEntry *gtf, std::string seq)
 
 
 void read_gtf(std::string file, std::vector<GTFEntry *>& gtf,
-	      GTFStore& gtf_per_chromosome)
+	      GTFStore& gtf_per_chromosome,
+	      GTFStore& exons)
 {
   GTFEntry *entry;
   std::FILE *input;
@@ -344,6 +345,8 @@ void read_gtf(std::string file, std::vector<GTFEntry *>& gtf,
       if (entry->feature.compare("gene") == 0) {
 	gtf.push_back(entry);
 	gtf_per_chromosome.insert(entry->seqname, entry);
+      } else if (entry->feature.compare("exon") == 0) {
+	exons.insert(entry->extract_attribute("gene_id"), entry);
       } else {
 	delete entry;
       }
@@ -357,8 +360,9 @@ int main(int argc,char* argv[])
 {
   std::vector<GTFEntry *> gtf = std::vector<GTFEntry *>();
   GTFStore gtf_per_chromosome = GTFStore();
+  GTFStore exons = GTFStore();
 
-  read_gtf(argv[1], gtf, gtf_per_chromosome);
+  read_gtf(argv[1], gtf, gtf_per_chromosome, exons);
   FastaReader fasta(argv[2]);
 
   std::cerr << gtf.size() << " genes found." << std::endl;
@@ -377,17 +381,29 @@ int main(int argc,char* argv[])
     }
     std::cerr << "Starting chromosome " << chr << " with " << gtf_per_chromosome.count(chr) << " genes." << std::endl;
 
+    int skipped = 0;
     for (GTFSet::iterator i=ibeg; i != iend; ++i) {
-      if ((*i)->strand == '+')
-	write_fasta_entry(std::cout,
-			  *i,
-			  fasta.read_string((*i)->start, (*i)->end));
-      else if ((*i)->strand == '-')
-	write_fasta_entry(std::cout,
-			  *i,
-			  dna_reverse_complement(fasta.read_string((*i)->start, (*i)->end)));
-      else
-	std::cerr << "Unknown strand" << std::endl;
+      std::string gene = (*i)->extract_attribute("gene_id");
+      if (exons.count(gene) == 1) {
+	//std::cerr << "[INFO] Skipping single-exon gene " << gene << std::endl;
+	skipped++;
+      } else {
+	if ((*i)->strand == '+')
+	  write_fasta_entry(std::cout,
+			    *i,
+			    fasta.read_string((*i)->start, (*i)->end));
+	else if ((*i)->strand == '-')
+	  write_fasta_entry(std::cout,
+			    *i,
+			    dna_reverse_complement(fasta.read_string((*i)->start, (*i)->end)));
+	else
+	  std::cerr << "Unknown strand" << std::endl;
+      }
+    }
+    if (skipped > 0) {
+      std::cerr << "[INFO] " << skipped << " single exon genes skipped."
+		<< std::endl;
+      skipped = 0;
     }
   } while (fasta.find_next_chromosome());
 
