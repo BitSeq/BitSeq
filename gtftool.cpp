@@ -43,6 +43,58 @@ inline std::string dequote(std::string orig) {
     return orig;
 }
 
+class FileHandle {
+  std::FILE *fp;
+  bool ispipe;
+  bool isopen;
+public:
+  FileHandle() : fp(0), ispipe(false), isopen(false) { }
+
+  FileHandle(std::string name)
+  {
+    if (name.substr(name.length()-3, 3).compare(".gz") == 0) {
+      std::string tmp;
+
+      tmp = "gunzip -c '";
+      tmp += name;
+      tmp += "'";
+      ispipe = true;
+      fp = popen(tmp.c_str(), "r");
+      if (!fp)
+	throw std::runtime_error("popen failed on " + tmp);
+      isopen = true;
+    } else {
+      ispipe = false;
+      fp = fopen(name.c_str(), "r");
+      if (!fp)
+	throw std::runtime_error("error opening file " + name);
+      isopen = true;
+    }
+  }
+
+  char *fgets(char * str, int size)
+  {
+    return std::fgets(str, size, fp);
+  }
+
+  void close()
+  {
+    if (isopen) {
+      if (ispipe)
+	pclose(fp);
+      else
+	fclose(fp);
+      isopen = false;
+    }
+  }
+
+  ~FileHandle()
+  {
+    close();
+  }
+};
+
+
 class GTFEntry {
 public:
   std::string seqname;
@@ -139,7 +191,7 @@ public:
     char buf[BUFSIZE];
     std::string line;
 
-    while (std::fgets(buf, 4096, fp) != NULL) {
+    while (fp.fgets(buf, 4096) != NULL) {
       line = std::string(buf);
       if (line.at(0) == '>') {
 	std::size_t endpos = line.find(' ', 1);
@@ -155,22 +207,14 @@ public:
     return false;
   }
 
-  FastaReader(std::string file): buffer(""), bufferpos(0), filepos(0)
+  FastaReader(std::string file): fp(file), buffer(""), bufferpos(0), filepos(0)
   {
-    std::string tmp;
-
-    tmp = "gunzip -c '";
-    tmp += file;
-    tmp += "'";
-    fp = popen(tmp.c_str(), "r");
-    if (!fp)
-      throw std::runtime_error("popen failed on " + tmp);
     find_next_chromosome();
   }
 
   ~FastaReader()
   {
-    pclose(fp);
+    fp.close();
   }
 
   std::string get_current_chromosome() const
@@ -194,7 +238,7 @@ private:
     std::size_t lastchar = 0;
 
     while (filepos < endpos) {
-      if (std::fgets(buf, 4096, fp) == NULL)
+      if (fp.fgets(buf, 4096) == NULL)
 	throw "premature EOF";
       line = std::string(buf);
       if (line.at(0) == '>')
@@ -218,7 +262,7 @@ private:
     }
   }
 
-  std::FILE *fp;
+  FileHandle fp;
   std::string chromosome;
   std::string buffer;
   std::size_t bufferpos;
@@ -237,16 +281,16 @@ typedef std::set<GTFEntry *,gtfcomp> GTFSet;
 
 class GTFStore {
 public:
-  GTFStore() : gtf_per_chromosome(), chromosomes() {}
+  GTFStore() : gtf_per_seq(), seqs() {}
   void insert(std::string chr, GTFEntry * gtf)
   {
-    std::map<std::string, GTFSet *>::iterator it = gtf_per_chromosome.find(chr);
-    // chromosome not found before
-    if (it == gtf_per_chromosome.end()) {
+    std::map<std::string, GTFSet *>::iterator it = gtf_per_seq.find(chr);
+    // seq not found before
+    if (it == gtf_per_seq.end()) {
       GTFSet *gtfs = new GTFSet();
       gtfs->insert(gtf);
-      gtf_per_chromosome.insert(std::pair<std::string, GTFSet * >(chr, gtfs));
-      chromosomes.insert(chr);
+      gtf_per_seq.insert(std::pair<std::string, GTFSet * >(chr, gtfs));
+      seqs.insert(chr);
     } else {
       it->second->insert(gtf);
     }
@@ -254,39 +298,39 @@ public:
 
   GTFSet::iterator begin(std::string chr)
   {
-    std::map<std::string, GTFSet *>::iterator it = gtf_per_chromosome.find(chr);
-    if (it != gtf_per_chromosome.end())
+    std::map<std::string, GTFSet *>::iterator it = gtf_per_seq.find(chr);
+    if (it != gtf_per_seq.end())
       return it->second->begin();
     else
-      throw "Chromosome not found";
+      throw "Seq not found";
   }
 
   GTFSet::iterator end(std::string chr)
   {
-    std::map<std::string, GTFSet *>::iterator it = gtf_per_chromosome.find(chr);
-    if (it != gtf_per_chromosome.end())
+    std::map<std::string, GTFSet *>::iterator it = gtf_per_seq.find(chr);
+    if (it != gtf_per_seq.end())
       return it->second->end();
     else
-      throw "Chromosome not found";
+      throw "Seq not found";
   }
 
   std::size_t count(std::string chr)
   {
-    std::map<std::string, GTFSet *>::iterator it = gtf_per_chromosome.find(chr);
-    if (it != gtf_per_chromosome.end())
+    std::map<std::string, GTFSet *>::iterator it = gtf_per_seq.find(chr);
+    if (it != gtf_per_seq.end())
       return it->second->size();
     else
       return 0;
   }
 
-  std::set<std::string>& get_chromosomes()
+  std::set<std::string>& get_seqs()
   {
-    return chromosomes;
+    return seqs;
   }
 
 private:
-  std::map<std::string, GTFSet *> gtf_per_chromosome;
-  std::set<std::string> chromosomes;
+  std::map<std::string, GTFSet *> gtf_per_seq;
+  std::set<std::string> seqs;
 };
 
 
@@ -329,16 +373,11 @@ void read_gtf(std::string file, std::vector<GTFEntry *>& gtf,
 	      GTFStore& exons)
 {
   GTFEntry *entry;
-  std::FILE *input;
+  FileHandle input = FileHandle(file);
   char buf[BUFSIZE];
-  std::string tmp;
   std::string line;
 
-  tmp = "gunzip -c '";
-  tmp += file;
-  tmp += "'";
-  input = popen(tmp.c_str(), "r");
-  while (std::fgets(buf, 4096, input) != NULL) {
+  while (input.fgets(buf, 4096) != NULL) {
     line = std::string(buf);
     if (line.at(0) != '#') {
       entry = new GTFEntry();
@@ -354,13 +393,13 @@ void read_gtf(std::string file, std::vector<GTFEntry *>& gtf,
       }
     }
   }
-  pclose(input);
+  input.close();
 }
 
 
 void reconstruct_genes(GTFStore & gtf_per_chromosome, GTFStore & exons)
 {
-  std::set<std::string> genes = exons.get_chromosomes();
+  std::set<std::string> genes = exons.get_seqs();
   std::set<std::string>::iterator gbeg, gend;
   gbeg = genes.begin();
   gend = genes.end();
