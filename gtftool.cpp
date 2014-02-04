@@ -8,6 +8,8 @@
 #include <set>
 #include <stdexcept>
 #include <sstream>
+#include "ArgumentParser.h"
+#include "common.h"
 
 const int BUFSIZE=4096;
 const unsigned int LINEWIDTH=70;
@@ -335,7 +337,7 @@ private:
 
 
 void write_fasta_entry_gencode(std::ostream& s, const GTFEntry *gtf,
-			       std::string seq)
+			       std::string& seq)
 {
   std::string tmp;
 
@@ -358,6 +360,30 @@ void write_fasta_entry_gencode(std::ostream& s, const GTFEntry *gtf,
   s << gtf->extract_attribute("transcript_name") << "|";
   s << gtf->extract_attribute("gene_name") << "|";
   s << seq.length() << "|" << std::endl;
+
+  int start = 0;
+  while (seq.length() > start + LINEWIDTH) {
+    s << seq.substr(start, LINEWIDTH) << std::endl;
+    start += LINEWIDTH;
+  }
+  s << seq.substr(start) << std::endl;
+}
+
+
+void write_fasta_entry_ensembl(std::ostream& s, const GTFEntry *gtf,
+			       std::string& seq)
+{
+  std::string tmp;
+
+  s << ">";
+  s << gtf->extract_attribute("transcript_id") << " ";
+  s << "cdna:" << "N/A" << " ";
+  s << "chromosome:" << "N/A" << ":"
+    << gtf->seqname << ":" << gtf->start << ":" << gtf->end
+    << (gtf->strand == '+' ? "1" : "-1") << " ";
+  s << "gene:" << gtf->extract_attribute("gene_id") << " ";
+  s << "gene_biotype:N/A" << " ";
+  s << "transcript_biotype:N/A" << std::endl;
 
   int start = 0;
   while (seq.length() > start + LINEWIDTH) {
@@ -429,14 +455,24 @@ void reconstruct_genes(GTFStore & gtf_per_chromosome, GTFStore & exons)
 }
 
 
-int main(int argc,char* argv[])
+void write_gene_sequences(std::string gtffile, std::string genomefile,
+			  std::string outputFormat)
 {
   std::vector<GTFEntry *> gtf = std::vector<GTFEntry *>();
   GTFStore gtf_per_chromosome = GTFStore();
   GTFStore exons = GTFStore();
+  bool gencodeoutput;
 
-  read_gtf(argv[1], gtf, gtf_per_chromosome, exons);
-  FastaReader fasta(argv[2]);
+  if (outputFormat.compare("gencode") == 0)
+    gencodeoutput = 1;
+  else if (outputFormat.compare("ensembl") == 0)
+    gencodeoutput = 0;
+  else
+    throw std::runtime_error("invalid outputFormat");
+  
+  read_gtf(gtffile, gtf, gtf_per_chromosome, exons);
+  FastaReader fasta(genomefile);
+
 
   if (gtf.size() == 0) {
     std::cerr << "No gene entries found, reconstructing from exons."
@@ -462,20 +498,18 @@ int main(int argc,char* argv[])
     int skipped = 0;
     for (GTFSet::iterator i=ibeg; i != iend; ++i) {
       std::string gene = (*i)->extract_attribute("gene_id");
+      std::string sequence;
       if (exons.count(gene) == 1) {
 	//std::cerr << "[INFO] Skipping single-exon gene " << gene << std::endl;
 	skipped++;
       } else {
-	if ((*i)->strand == '+')
-	  write_fasta_entry_gencode(std::cout,
-				    *i,
-				    fasta.read_string((*i)->start, (*i)->end));
-	else if ((*i)->strand == '-')
-	  write_fasta_entry_gencode(std::cout,
-				    *i,
-				    dna_reverse_complement(fasta.read_string((*i)->start, (*i)->end)));
+	sequence = fasta.read_string((*i)->start, (*i)->end);
+	if ((*i)->strand == '-')
+	  sequence = dna_reverse_complement(sequence);
+	if (gencodeoutput)
+	  write_fasta_entry_gencode(std::cout, *i, sequence);
 	else
-	  std::cerr << "Unknown strand" << std::endl;
+	  write_fasta_entry_ensembl(std::cout, *i, sequence);
       }
     }
     if (skipped > 0) {
@@ -484,6 +518,27 @@ int main(int argc,char* argv[])
       skipped = 0;
     }
   } while (fasta.find_next_chromosome());
+}
+
+
+int main(int argc,char* argv[])
+{
+  std::string programDescription =
+    "gtf file toolkit\n\n"
+    "Supported commands:\n"
+    "genes\n"
+    "Writes unspliced pre-mRNA sequences for genes according to\n"
+    "[gtfFile] from the genomic reference [genomeFile], except for\n"
+    "single-exon genes.";
+  ArgumentParser args(programDescription, "[command]", 1);
+  args.addOptionS("t","gtfFile","gtfFile",1,"Name of the gtf input file.");
+  args.addOptionS("g","genomeFile","genomeFile",1,"Name of the genome input fasta file.");
+  args.addOptionS("","outputFormat","outputFormat",0,"Output format: gencode (default) or ensembl.", "gencode");
+  if(!args.parse(argc,argv))return 0;
+  if(args.verbose)buildTime(argv[0],__DATE__,__TIME__);
+
+  write_gene_sequences(args.getS("gtfFile"), args.getS("genomeFile"),
+		       args.getS("outputFormat"));
 
   return 0;
 }
