@@ -1,20 +1,9 @@
 CXX = g++
-HOSTNAME = $(shell hostname)
 ARCH = -mtune=generic
-VERSION = 0.7.4
+VERSION = 0.7.5
+#	ARCH = -march=core2
+#	ARCH = -march=native
 
-ifeq ($(HOSTNAME), valiant)
-	ARCH = -march=core2
-endif
-ifeq ($(HOSTNAME), gauss)
-	ARCH = -march=native
-endif
-ifeq ($(HOSTNAME), rpc465.cs.man.ac.uk)
-	ARCH = -march=native
-endif
-ifeq ($(HOSTNAME), chopok)
-	ARCH = -march=native
-endif
 
 # Use O1 for debuiggging so it's not totally slow.
 DBGFLAGS = -O1 -ggdb -U_FORTIFY_SOURCE
@@ -137,3 +126,4 @@ clean:
 
 clean-all:
 	rm samtools/*.o *.o $(PROGRAMS)
+
