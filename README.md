@@ -14,7 +14,7 @@ make
 Help & Usage:
 --------------------------------
 See wiki for more information:
-http://code.google.com/p/bitseq/wiki/BitSeq
+https://github.com/BitSeq/BitSeq/wiki/Basic-usage
 
 
 Contact:
