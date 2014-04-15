@@ -49,8 +49,8 @@ all: $(PROGRAMS)
 COMMON_DEPS = ArgumentParser.o common.o FileHeader.o misc.o MyTimer.o
 #COMMON_DEPS = ArgumentParser.cpp common.cpp FileHeader.cpp misc.cpp MyTimer.cpp
 # PROGRAMS:
-convertSamples: convertSamples.cpp $(COMMON_DEPS) TranscriptInfo.o posteriorSamples.o
-	$(CXX) $(CXXFLAGS) $(LDFLAGS) convertSamples.cpp posteriorSamples.o $(COMMON_DEPS) TranscriptInfo.o -o convertSamples
+convertSamples: convertSamples.cpp $(COMMON_DEPS) TranscriptInfo.o PosteriorSamples.o
+	$(CXX) $(CXXFLAGS) $(LDFLAGS) convertSamples.cpp PosteriorSamples.o $(COMMON_DEPS) TranscriptInfo.o -o convertSamples
 
 estimateDE: estimateDE.cpp $(COMMON_DEPS) PosteriorSamples.o TranscriptInfo.o
 	$(CXX) $(CXXFLAGS) $(BOOSTFLAGS) $(LDFLAGS) estimateDE.cpp $(COMMON_DEPS) PosteriorSamples.o TranscriptInfo.o -o estimateDE
@@ -88,8 +88,8 @@ parseAlignment: parseAlignment.cpp $(COMMON_DEPS) PosteriorSamples.o ReadDistrib
 transposeLargeFile: transposeLargeFile.cpp $(COMMON_DEPS) PosteriorSamples.o TranscriptInfo.o transposeFiles.o
 	$(CXX) $(CXXFLAGS) $(LDFLAGS) transposeLargeFile.cpp $(COMMON_DEPS) PosteriorSamples.o TranscriptInfo.o transposeFiles.o -o transposeLargeFile
 
-gtftool: gtftool.cpp
-	$(CXX) $(CXXFLAGS) $(LDFLAGS) gtftool.cpp -o gtftool
+gtftool: gtftool.cpp $(COMMON_DEPS) TranscriptInfo.o PosteriorSamples.o
+	$(CXX) $(CXXFLAGS) $(LDFLAGS) gtftool.cpp $(COMMON_DEPS) TranscriptInfo.o PosteriorSamples.o -o gtftool
 
 # LIBRARIES:
 ArgumentParser.o: ArgumentParser.cpp ArgumentParser.h

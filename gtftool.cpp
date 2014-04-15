@@ -150,7 +150,12 @@ public:
 
     endpos = line.find('\t', startpos);
     attribute = line.substr(startpos, endpos-startpos);
-    startpos = endpos + 1;
+    // remove spaces
+    while (attribute.at(0) == ' ')
+      attribute.erase(0, 1);
+    // remove trailing linefeed
+    attribute.erase(std::remove(attribute.begin(), attribute.end(), '\n'),
+		    attribute.end());
 
     return 0;
   }
@@ -181,7 +186,7 @@ public:
     s << "score: " << score << std::endl;
     s << "strand: " << strand << std::endl;
     s << "frame: " << frame << std::endl;
-    s << "attribute: " << attribute << std::endl;
+    s << "attribute: '" << attribute << "'" << std::endl;
   }
 };
 
@@ -379,11 +384,14 @@ void write_fasta_entry_ensembl(std::ostream& s, const GTFEntry *gtf,
   s << gtf->extract_attribute("transcript_id") << " ";
   s << "cdna:" << "N/A" << " ";
   s << "chromosome:" << "N/A" << ":"
-    << gtf->seqname << ":" << gtf->start << ":" << gtf->end
+    << gtf->seqname << ":" << gtf->start << ":" << gtf->end << ":"
     << (gtf->strand == '+' ? "1" : "-1") << " ";
   s << "gene:" << gtf->extract_attribute("gene_id") << " ";
-  s << "gene_biotype:N/A" << " ";
-  s << "transcript_biotype:N/A" << std::endl;
+  tmp = gtf->extract_attribute("gene_biotype");
+  if (tmp.empty())
+    tmp = "N/A";
+  s << "gene_biotype:" << tmp << " ";
+  s << "transcript_biotype:" << tmp << std::endl;
 
   int start = 0;
   while (seq.length() > start + LINEWIDTH) {
@@ -478,8 +486,20 @@ void write_gene_sequences(std::string gtffile, std::string genomefile,
     std::cerr << "No gene entries found, reconstructing from exons."
 	      << std::endl;
     reconstruct_genes(gtf_per_chromosome, exons);
+    int count = 0;
+    std::set<std::string> chrs = gtf_per_chromosome.get_seqs();
+    std::set<std::string>::iterator chbeg, chend;
+    chbeg = chrs.begin();
+    chend = chrs.end();
+    for (std::set<std::string>::iterator c = chbeg; c != chend ; ++c) {
+      //std::cerr << *c << ": " << gtf_per_chromosome.count(*c)
+      //          << " gene(s)." << std::endl;
+      count += gtf_per_chromosome.count(*c);
+    }
+    std::cerr << count << " genes found." << std::endl;
+  } else {
+    std::cerr << gtf.size() << " genes found." << std::endl;
   }
-  std::cerr << gtf.size() << " genes found." << std::endl;
 
   GTFSet::iterator ibeg;
   GTFSet::iterator iend;
@@ -491,7 +511,19 @@ void write_gene_sequences(std::string gtffile, std::string genomefile,
       iend = gtf_per_chromosome.end(chr);
     } catch (...) {
       std::cerr << "No gtf entries for chromosome " << chr << std::endl;
-      continue;
+      if (chr.substr(0, 3).compare("chr") == 0) {
+	chr.erase(0, 3);
+      } else {
+	chr.insert(0, "chr");
+      }
+      std::cerr << "Trying alternative name " << chr << std::endl;
+      try {
+	ibeg = gtf_per_chromosome.begin(chr);
+	iend = gtf_per_chromosome.end(chr);
+      } catch (...) {
+	std::cerr << "No gtf entries for chromosome " << chr << std::endl;
+	continue;
+      }
     }
     std::cerr << "Starting chromosome " << chr << " with " << gtf_per_chromosome.count(chr) << " genes." << std::endl;
 
