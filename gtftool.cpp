@@ -348,7 +348,11 @@ void write_fasta_entry_gencode(std::ostream& s, const GTFEntry *gtf,
   std::string tmp;
 
   s << ">";
-  s << gtf->extract_attribute("transcript_id") << "|";
+  tmp = gtf->extract_attribute("transcript_id");
+  if (tmp.empty())
+    s << gtf->extract_attribute("gene_id") << "|";
+  else
+    s << tmp << "|";
   s << gtf->extract_attribute("gene_id") << "|";
 
   tmp = gtf->extract_attribute("havana_gene");
@@ -382,7 +386,11 @@ void write_fasta_entry_ensembl(std::ostream& s, const GTFEntry *gtf,
   std::string tmp;
 
   s << ">";
-  s << gtf->extract_attribute("transcript_id") << " ";
+  tmp = gtf->extract_attribute("transcript_id");
+  if (tmp.empty())
+    s << gtf->extract_attribute("gene_id") << " ";
+  else
+    s << tmp << " ";
   s << "cdna:" << "N/A" << " ";
   s << "chromosome:" << "N/A" << ":"
     << gtf->seqname << ":" << gtf->start << ":" << gtf->end << ":"
