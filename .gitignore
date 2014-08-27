@@ -1,0 +1,15 @@
+*.o
+convertSamples
+estimateDE
+estimateExpression
+estimateHyperPar
+estimateVBExpression
+extractSamples
+getFoldChange
+getGeneExpression
+getPPLR
+getVariance
+getWithinGeneExpression
+gtftool
+parseAlignment
+transposeLargeFile
