@@ -22,7 +22,9 @@ Contact:
 Please use local issue tracker: https://github.com/BitSeq/BitSeq/issues for 
 help, issue resolution and comments.
 
-For direct contact, please contact Peter Glaus (glaus [at] cs.man.ac.uk).
+For direct contact, please contact Panagiotis Papastamoulis
+(panagiotis.papastamoulis [at] manchester.ac.uk) or Antti Honkela
+(antti.honkela [at] hiit.fi).
 
 
 License:
