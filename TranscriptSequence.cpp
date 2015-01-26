@@ -58,10 +58,10 @@ bool TranscriptSequence::readSequence(string fileName, refFormatT format){//{{{
                gotTrNames = false;
             }
          }else{ // format == STANDARD
-            pos=min(trDesc.find("gene:"),trDesc.find("gene="));
+            pos=min(trDesc.find(" gene:"),trDesc.find("gene="));
             if(pos!=(long)string::npos){
                geneDesc.clear();
-               geneDesc.str(trDesc.substr(pos+5));
+               geneDesc.str(trDesc.substr(pos+6));
                geneDesc >> geneName;
                geneNames.push_back(geneName);
             }else{
