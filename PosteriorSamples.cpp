@@ -304,9 +304,6 @@ double Conditions::probFC(vector<double> x, vector<double> y, double logThreshol
    sort( x.begin(), x.end() );
    sort( y.begin(), y.end() );
 
-   //printf("X[ %f , %f , %f ] ", x[0], x[500], x[999]);
-   //printf("Y[ %f , %f , %f ]  => \n ", y[0], y[500], y[999]);
-
    for (vector<double>::iterator it = x.begin(); it != x.end(); it++){
       vector<double>::iterator lowIt, upIt;
 
@@ -325,8 +322,7 @@ double Conditions::probFC(vector<double> x, vector<double> y, double logThreshol
       stat += tmp;
 
    }
-   int factor =  pow(x.size(), 2);
-   stat /= factor;
+   stat /= pow(x.size(), 2);
 
    return stat;
 }

@@ -93,7 +93,7 @@ extern "C" int estimateFCProb(int *argc,char* argv[]){
       }//}}} 
    cond.close();
    
-   outFile<<"# Probability of a fold-change (%f)"<<endl;
+   outFile<<"# Probability of a fold-change ( logFCThreshold: "<<fcThreshold<<" )"<<endl;
    outFile<<"# files: ";
    for(r=0;r<RN;r++)outFile<<args.args()[r]<<" ";
    outFile<<endl;
