@@ -2,6 +2,12 @@
 #include<cstdlib>
 #include<vector>
 
+#include <iostream>
+#include <cmath>
+#include <fstream>
+#include <sstream>
+#include <string>
+
 using namespace std;
 
 #include "PosteriorSamples.h"
@@ -291,6 +297,39 @@ bool Conditions::getTranscript(long cond, long tr, vector<double> &trSamples, lo
    }
    return status;
 }//}}}
+double Conditions::probFC(vector<double> x, vector<double> y, double logThreshold)
+{
+   double stat = 0;
+
+   sort( x.begin(), x.end() );
+   sort( y.begin(), y.end() );
+
+   //printf("X[ %f , %f , %f ] ", x[0], x[500], x[999]);
+   //printf("Y[ %f , %f , %f ]  => \n ", y[0], y[500], y[999]);
+
+   for (vector<double>::iterator it = x.begin(); it != x.end(); it++){
+      vector<double>::iterator lowIt, upIt;
+
+      double tmp = 0;
+
+      double lowVal = *it - logThreshold;
+      double upVal  = *it + logThreshold;
+
+      lowIt = lower_bound(y.begin(), y.end(), lowVal);
+      upIt  = upper_bound(y.begin(), y.end(), upVal);
+
+      int lowInd = lowIt - y.begin();
+      int upInd  = upIt - y.begin();
+
+      tmp = (x.size() - (upInd - lowInd));
+      stat += tmp;
+
+   }
+   int factor =  pow(x.size(), 2);
+   stat /= factor;
+
+   return stat;
+}
 void Conditions::close(){//{{{
    for(long i=0;i<CN;i++){
       samples[i].close();

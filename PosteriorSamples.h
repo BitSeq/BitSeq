@@ -60,6 +60,7 @@ class Conditions{//{{{
       bool getTranscript(long cond, long rep, long tr, vector<double> &trSamples);
       bool getTranscript(long cond, long tr, vector<double> &trSamples);
       bool getTranscript(long cond, long tr, vector<double> &trSamples, long samplesN);
+      double probFC(vector<double> x, vector<double> y, double logThreshold);
       bool logged() const { return areLogged; }
 };//}}}
 
