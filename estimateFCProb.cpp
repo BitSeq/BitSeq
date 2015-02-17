@@ -23,6 +23,7 @@ extern "C" int estimateFCProb(int *argc,char* argv[]){
    args.addOptionS("o","outFile","outFileName",1,"Name of the output file.");
    args.addOptionB("l","log","log",0,"Use logged values.",0);
    args.addOptionD("t","logFCThreshold","logFCThreshold",0,"(Logged) Fold-change cut-off.", 2);
+   args.addOptionS("","norm","normalization",0,"Normalization constants for each input file provided as comma separated list of doubles (e.g. 1.0017,1.0,0.9999 ).");
    if(!args.parse(*argc,argv)){return 0;}
    if(args.verbose)buildTime(argv[0],__DATE__,__TIME__);
    bool doLog=args.flag("log"),logged=false;
@@ -49,6 +50,13 @@ extern "C" int estimateFCProb(int *argc,char* argv[]){
       if(cond.logged())logged=true;
    }
    
+   if(args.isSet("normalization")){
+      if(! cond.setNorm(args.getTokenizedS2D("normalization"))){
+         error("Main: Applying normalization constants failed.\n");
+         return 1;
+      }
+   }
+
    RN=cond.getRN();  
 
    if(args.verbose)message("replicates: %ld samples: %ld transcripts: %ld\n",RN,N,M);
