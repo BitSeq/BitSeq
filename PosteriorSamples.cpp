@@ -1,6 +1,8 @@
 #include<algorithm>
 #include<cstdlib>
 #include<vector>
+#include<numeric>
+// #include<functional>
 
 #include <iostream>
 #include <cmath>
@@ -325,6 +327,29 @@ double Conditions::probFC(vector<double> x, vector<double> y, double logThreshol
    stat /= pow(x.size(), 2);
 
    return stat;
+}
+bool Conditions::transcriptStat(vector<double> sam, long tr, vector< vector<double> > &stat){
+   if(sam.empty()) return false;
+
+   double sum = accumulate(sam.begin(), sam.end(), 0.0);
+   double m =  sum / sam.size();
+
+   double accum = 0.0;
+   for (vector<double>::iterator it = sam.begin(); it != sam.end(); it++){
+      accum += (*it - m) * (*it - m);
+   }
+
+   sort(sam.begin(), sam.end());
+   // meadian
+   if(sam.size() % 2 == 0)
+      stat[tr][0] = (sam[sam.size()/2 - 1] + sam[sam.size()/2]) / 2;
+   else
+      stat[tr][0] = sam[sam.size()/2];
+
+   stat[tr][1] = m;      // mean
+   stat[tr][2] = sqrt(accum / (sam.size()-1));  // standard deviation
+
+   return true;
 }
 void Conditions::close(){//{{{
    for(long i=0;i<CN;i++){

@@ -67,6 +67,9 @@ extern "C" int estimateFCProb(int *argc,char* argv[]){
       return 1;
    }
    vector<double> prob(M);
+   // To summarise: [0] median, [1] mean, [2] std.
+   vector< vector<double> > condStat1(M, vector<double>(3));
+   vector< vector<double> > condStat2(M, vector<double>(3));
    vector<double> tr(N),tr2(N); 
    
       for(j=0;j<M;j++){
@@ -78,6 +81,7 @@ extern "C" int estimateFCProb(int *argc,char* argv[]){
                for(i=0;i<N;i++)
                   tr[i]= log2(tr[i]);
             }
+            cond.transcriptStat(tr, j, condStat1);
          }else{
             warning("Error at %ld %ld\n",j,0L);
          }
@@ -87,6 +91,7 @@ extern "C" int estimateFCProb(int *argc,char* argv[]){
                for(i=0;i<N;i++)
                   tr2[i]= log2(tr2[i]);
             }
+            cond.transcriptStat(tr2, j, condStat2);
          }else{
             warning("Error at %ld %ld\n",j,1L);
          }
@@ -110,7 +115,12 @@ extern "C" int estimateFCProb(int *argc,char* argv[]){
    (outFile<<scientific).precision(9);
    for(i=0;i<M;i++){
       if(prob[i]==-47)outFile<<"NaN "<<endl;
-      else outFile<<prob[i]<<endl;
+      else {
+         outFile<<prob[i]<<" ";
+         for(int s=0;s<3;s++) outFile<<condStat1[i][s]<<" ";
+         for(int s=0;s<3;s++) outFile<<condStat2[i][s]<<" ";
+         outFile<<endl;
+      }
    }
    outFile.close();
    if(args.verbose)message("DONE\n");
