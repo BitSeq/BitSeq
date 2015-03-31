@@ -507,15 +507,15 @@ extern "C" int estimateExpression(int *argc, char* argv[]) {//{{{
 clearDataEE();
 string programDescription =
 "Estimates expression given precomputed probabilities of (observed) reads' alignments.\n\
-   Uses MCMC sampling algorithm to produce relative abundance or RPKM.\n";
+   Uses MCMC sampling algorithm to produce relative abundance, RPKM or TPM.\n";
    // Set options {{{
    ArgumentParser args;
    args.init(programDescription,"[prob file]",1);
    args.addOptionS("o","outPrefix","outFilePrefix",1,"Prefix for the output files.");
-   args.addOptionS("O","outType","outputType",0,"Output type (theta, RPKM, counts, tau, tpm).","theta");
+   args.addOptionS("O","outType","outputType",0,"Output type (theta, RPKM, TPM, counts, tau).","theta");
    args.addOptionB("G","gibbs","gibbs",0,"Use Gibbs sampling instead of collapsed Gibbs sampling.");
    args.addOptionS("p","parFile","parFileName",0,"File containing parameters for the sampler, which can be otherwise specified by --MCMC* options. As the file is checked after every MCMC iteration, the parameters can be adjusted while running.");
-   args.addOptionS("t","trInfoFile","trInfoFileName",0,"File containing transcript information. (Necessary for RPKM)");
+   args.addOptionS("t","trInfoFile","trInfoFileName",0,"File containing transcript information. (Necessary for RPKM and TPM)");
    args.addOptionL("P","procN","procN",0,"Limit the maximum number of threads to be used. (Default is the number of MCMC chains.)");
    args.addOptionS("","thetaActFile","thetaActFileName",0,"File for logging noise parameter theta^{act}.");
    args.addOptionL("","MCMC_burnIn","MCMC_burnIn",0,"Length of sampler's burn in period.",1000);
@@ -554,7 +554,7 @@ string programDescription =
    // {{{ Read transcriptInfo and .prob file 
    if((!args.isSet("trInfoFileName"))||(!trInfo.readInfo(args.getS("trInfoFileName")))){
       if( (args.getS("outputType") == "rpkm") || (args.getS("outputType") == "tpm") ){
-         error("Main: Missing transcript info file. The file is necessary for producing RPKM (TPM).\n");
+         error("Main: Missing transcript info file. The file is necessary for producing RPKM and TPM.\n");
          return 1;
       }
    }else{
