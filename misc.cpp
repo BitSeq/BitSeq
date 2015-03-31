@@ -31,7 +31,7 @@ namespace ns_expression {
 
 string getOutputType(const ArgumentParser &args, const string &defaultType){ //{{{
    string type = ns_misc::toLower(args.getS("outputType"));
-   if((type!="theta") && (type!="rpkm") && (type!="counts") && (type!="tau")){
+   if((type!="theta") && (type!="rpkm") && (type!="counts") && (type!="tau") && (type!="tpm")){
       type = defaultType;
       warning("Using output type %s.",type.c_str());
    }
