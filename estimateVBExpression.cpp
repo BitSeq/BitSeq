@@ -113,8 +113,8 @@ string programDescription =
    ArgumentParser args;
    args.init(programDescription,"[prob file]",1);
    args.addOptionS("o","outPrefix","outFilePrefix",1,"Prefix for the output files.");
-   args.addOptionS("O","outType","outputType",0,"Output type (theta, RPKM, counts) of the samples sampled from the distribution.","theta");
-   args.addOptionS("t","trInfoFile","trInfoFileName",0,"File containing transcript information. (Necessary for RPKM samples)");
+   args.addOptionS("O","outType","outputType",0,"Output type (theta, RPKM, TPM, counts) of the samples sampled from the distribution.","theta");
+   args.addOptionS("t","trInfoFile","trInfoFileName",0,"File containing transcript information. (Necessary for RPKM and TPM samples)");
    args.addOptionL("P","procN","procN",0,"Limit the maximum number of threads to be used.",4);
    args.addOptionS("m","method","optMethod",0,"Optimization method (steepest, PR, FR, HS).","FR");
    args.addOptionL("s","seed","seed",0,"Random initialization seed.");
@@ -147,8 +147,8 @@ string programDescription =
 
    // {{{ Read transcriptInfo and .prob file 
    if((!args.isSet("trInfoFileName"))||(!trInfo.readInfo(args.getS("trInfoFileName")))){
-      if(args.isSet("samples") && (args.getL("samples")>0) && (args.getS("outputType") == "rpkm")){
-         error("Main: Missing transcript info file. The file is necessary for producing RPKM samples.\n");
+     if(args.isSet("samples") && (args.getL("samples")>0) && ((args.getS("outputType") == "rpkm") || (args.getS("outputType") == "tpm"))){
+         error("Main: Missing transcript info file. The file is necessary for producing RPKM or TPM samples.\n");
          return 1;
       }
    }else{
