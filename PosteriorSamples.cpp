@@ -2,13 +2,8 @@
 #include<cstdlib>
 #include<vector>
 #include<numeric>
-// #include<functional>
-
-#include <iostream>
 #include <cmath>
-#include <fstream>
-#include <sstream>
-#include <string>
+//#include <string>
 
 using namespace std;
 
