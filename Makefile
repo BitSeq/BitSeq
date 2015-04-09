@@ -1,6 +1,6 @@
 CXX = g++
 ARCH = -mtune=generic
-VERSION = 0.7.5
+VERSION = 0.7.9
 #	ARCH = -march=core2
 #	ARCH = -march=native
 
