@@ -50,6 +50,7 @@ string programDescription =
    args.addOptionS("p","parameters","parFileName",1,"File containing estimated hyperparameters.");
    args.addOptionB("s","samples","samples",0,"Produce samples of condition mean expression apart from PPLR and confidence.");
    args.addOptionD("l","lambda0","lambda0",0,"Parameter lambda_0.",LAMBDA_0);
+   args.addOptionD("t","logFCThreshold","logFCThreshold",0,"Compute a posterior probability (for each transcript) that there was a change as big as specified by the parameter. Does not output anything if left as default.", 0);
    args.addOptionD("","confidenceInterval","cf",0,"Percentage for confidence intervals.", 95);
    args.addOptionS("","norm","normalization",0,"Normalization constants for each input file provided as comma separated list of doubles (e.g. 1.0017,1.0,0.9999 ).");
    args.addOptionL("","seed","seed",0,"Random initialization seed.");
@@ -86,6 +87,7 @@ string programDescription =
    long c,c2,m,n,r;
    double prec,var,sum,sumSq,alpha,beta,betaPar,mu_00,normMu;
    double lambda0 = args.getD("lambda0");
+   double fcThreshold = args.getD("logFCThreshold");
    long RC;
    MyTimer timer;
    boost::random::mt11213b rng_mt(ns_misc::getSeed(args));
@@ -93,7 +95,7 @@ string programDescription =
    typedef boost::random::gamma_distribution<long double>::param_type gDP;
    boost::random::normal_distribution<long double> normalDistribution;
    typedef boost::random::normal_distribution<long double>::param_type nDP;
-   double log2FC, pplr, ciLow, ciHigh;
+   double log2FC, pplr, fcProb, ciLow, ciHigh;
    vector<double> difs(N);
    // }}}
 
@@ -152,6 +154,16 @@ string programDescription =
                if(samples[c2][n] > samples[c][n])pplr+=1;
             pplr/=N;
             outF<<pplr<<" ";
+         }
+      }
+      // Compute a posterior probability of FC (if threshold is greater than 0)
+      if(fcThreshold>0.0){
+         for(c=0;c<C;c++){
+            for(c2=c+1;c2<C;c2++){
+               fcProb = 0;
+               fcProb = cond.probFC(samples[c], samples[c2], fcThreshold);
+               outF<<fcProb<<" ";
+            }
          }
       }
       // }}}
@@ -256,12 +268,22 @@ bool initializeOutputFile(long C, long M, long N, const ArgumentParser &args, of
    for(long c=0;c<C;c++)
       for(long c2=c+1;c2<C;c2++)
       *outF<<c+1<<"~"<<c2+1<<" ";
-   *outF<<"\n# Columns contain PPLR for each pair of conditions, "
-          "log2 fold change with confidence intervals for each pair of conditions and "
-          "log mean condition mean expression for each condition.\n"
-          "# CPxPPLR CPx(log2FC ConfidenceLow ConfidenceHigh) "
-          "Cx(log mean condition mean expressions)"
-        <<endl;
+      if(args.getD("logFCThreshold")>0.0){
+         *outF<<"\n# Columns contain PPLR for each pair of conditions, "
+            "a probability of the logged fold-change being bigger than the cut-off value ("<<args.getD("logFCThreshold")<<"), "
+            "log2 fold change with confidence intervals for each pair of conditions and "
+            "log mean condition mean expression for each condition.\n"
+            "# CPxPPLR CPx(log2FC ConfidenceLow ConfidenceHigh) "
+            "Cx(log mean condition mean expressions)"
+         <<endl;
+      }else{
+         *outF<<"\n# Columns contain PPLR for each pair of conditions, "
+            "log2 fold change with confidence intervals for each pair of conditions and "
+            "log mean condition mean expression for each condition.\n"
+            "# CPxPPLR CPx(log2FC ConfidenceLow ConfidenceHigh) "
+            "Cx(log mean condition mean expressions)"
+         <<endl;
+      }
    return true;
 }//}}}
 
