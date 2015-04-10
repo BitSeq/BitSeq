@@ -589,9 +589,3 @@ string programDescription =
    timer.split(0,'m');
    return 0;
 }//}}}
-
-#ifndef BIOC_BUILD
-int main(int argc, char* argv[]) {
-   return estimateExpression(&argc,argv);
-}
-#endif

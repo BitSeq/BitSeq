@@ -205,11 +205,6 @@ string programDescription =
    return 0;
 }
 
-#ifndef BIOC_BUILD
-int main(int argc,char* argv[]){
-   return estimateDE(&argc,argv);
-}
-#endif
 
 namespace ns_estimateDE {
 

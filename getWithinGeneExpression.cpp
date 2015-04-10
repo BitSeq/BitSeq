@@ -195,13 +195,6 @@ extern "C" int getWithinGeneExpression(int *argc,char* argv[]){
 }
 
 
-#ifndef BIOC_BUILD
-int main(int argc,char* argv[]){
-   return getWithinGeneExpression(&argc,argv);
-}
-#endif
-
-
 namespace ns_withinGene {
 
 void readTranscripts(long g, const TranscriptInfo &trInfo, PosteriorSamples *samples, long *gM, vector< vector<double> > *trs){//{{{

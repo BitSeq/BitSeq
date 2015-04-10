@@ -112,9 +112,3 @@ extern "C" int getGeneExpression(int *argc,char* argv[]){
    if(args.verbose)message("DONE\n");
    return 0;
 }
-
-#ifndef BIOC_BUILD
-int main(int argc,char* argv[]){
-   return getGeneExpression(&argc,argv);
-}
-#endif

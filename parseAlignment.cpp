@@ -477,12 +477,6 @@ string programDescription =
    return 0;
 }
 
-#ifndef BIOC_BUILD
-int main(int argc,char* argv[]){
-   return parseAlignment(&argc,argv);
-}
-#endif
-
 namespace ns_parseAlignment {
 
 bool nextFragDiffers(const ns_rD::fragmentP curF, const ns_rD::fragmentP nextF, bool mateNamesDiffer){//{{{

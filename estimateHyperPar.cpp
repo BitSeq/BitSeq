@@ -361,9 +361,3 @@ string programDescription =
    if(args.verbose){message("DONE.\n");timer.stop(1,'m');}
    return 0;
 }
-
-#ifndef BIOC_BUILD
-int main(int argc,char* argv[]){
-   return estimateHyperPar(&argc,argv);
-}
-#endif

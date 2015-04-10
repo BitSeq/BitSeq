@@ -249,7 +249,7 @@ void ArgumentParser::usage(){//{{{
    map<string,Option>::iterator it;
    vector<string>::iterator itV;
    Option opt;
-   message("\nUsage: %s ",(programName).c_str());
+   message("\nUsage: bitseq %s ",(programName).c_str());
    sort(compulsory.begin(),compulsory.end());
    for(itV=compulsory.begin();itV!=compulsory.end();itV++){
       if(validOptions[*itV].shortName!="")

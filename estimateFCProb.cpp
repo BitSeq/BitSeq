@@ -126,11 +126,3 @@ extern "C" int estimateFCProb(int *argc,char* argv[]){
    if(args.verbose)message("DONE\n");
    return 0;
 }
-
-
-#ifndef BIOC_BUILD
-int main(int argc,char* argv[]){
-   return estimateFCProb(&argc,argv);
-}
-#endif
-

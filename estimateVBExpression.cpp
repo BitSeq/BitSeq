@@ -230,9 +230,3 @@ string programDescription =
    if(args.verbose){message("DONE. "); timer.split(2,'m');}
    return 0;
 }//}}}
-
-#ifndef BIOC_BUILD
-int main(int argc, char* argv[]) {
-   return estimateVBExpression(&argc,argv);
-}
-#endif
