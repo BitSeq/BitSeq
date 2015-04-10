@@ -12,7 +12,7 @@ using namespace std;
 #include "misc.h"
 #include "PosteriorSamples.h"
 
-int main(int argc,char* argv[]){
+extern "C" int getPPLR(int *argc,char* argv[]){
    string programDescription=
 "Computes PPLR from MCMC expression samples.\n"
 "   (the probability of second condition being up-regulated)\n"
@@ -25,7 +25,7 @@ int main(int argc,char* argv[]){
    args.addOptionB("d","distribution","distribution",0,"Produce whole distribution of differences.");
    args.addOptionS("s","selectFile","selectFileName",0,"File containing list of selected transcript IDs (zero based), only these will be reported. Only works with --distribution option.");
    args.addOptionD("","subSample","subSample",0,"Sub-sample the distributions using a given fraction of expression samples.",1.0);
-   if(!args.parse(argc,argv))return 0;
+   if(!args.parse(*argc,argv))return 0;
    if(args.verbose)buildTime(argv[0],__DATE__,__TIME__);
    // }}}
 

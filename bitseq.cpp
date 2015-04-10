@@ -16,6 +16,12 @@ extern "C" int estimateFCProb(int *argc, char* argv[]);
 extern "C" int getGeneExpression(int *argc,char* argv[]);
 extern "C" int getVariance(int *argc,char* argv[]);
 extern "C" int getWithinGeneExpression(int *argc,char* argv[]);
+extern "C" int getFoldChange(int *argc,char* argv[]);
+extern "C" int getPPLR(int *argc,char* argv[]);
+extern "C" int convertSamples(int *argc,char* argv[]);
+extern "C" int extractSamples(int *argc,char* argv[]);
+extern "C" int transposeLargeFile(int *argc,char* argv[]);
+extern "C" int gtftool(int *argc,char* argv[]);
 
 typedef int (*mainfun)(int *, char **);
 typedef std::map<std::string, mainfun> mainfun_map;
@@ -57,6 +63,18 @@ public:
     docs.push_back(std::make_pair("getVariance", "Estimate variance from MCMC samples"));
     commandmap.insert(std::make_pair("getWithinGeneExpression", &getWithinGeneExpression));
     docs.push_back(std::make_pair("getWithinGeneExpression", "Compute transcript relative expression within gene"));
+    commandmap.insert(std::make_pair("getFoldChange", &getFoldChange));
+    docs.push_back(std::make_pair("getFoldChange", "Computes log_2 Fold Change from MCMC expression samples"));
+    commandmap.insert(std::make_pair("getPPLR", &getPPLR));
+    docs.push_back(std::make_pair("getPPLR", "Computes PPLR from MCMC expression samples"));
+    commandmap.insert(std::make_pair("convertSamples", &convertSamples));
+    docs.push_back(std::make_pair("convertSamples", "Converts or normalizes MCMC expression samples"));
+    commandmap.insert(std::make_pair("extractSamples", &extractSamples));
+    docs.push_back(std::make_pair("extractSamples", "Extracts MCMC samples of selected transcripts"));
+    commandmap.insert(std::make_pair("transposeLargeFile", &transposeLargeFile));
+    docs.push_back(std::make_pair("transposeLargeFile", "Transposes result files"));
+    commandmap.insert(std::make_pair("gtftool", &gtftool));
+    docs.push_back(std::make_pair("gtftool", "Extract pre-mRNA sequences for transcriptome"));
   }
 };
 

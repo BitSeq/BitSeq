@@ -33,7 +33,7 @@ vector <long> tokenizeL(const string &input,const string &space = " "){//{{{
    return ret;
 } //}}}
 
-int main(int argc,char* argv[]){
+extern "C" int extractSamples(int *argc,char* argv[]){
    srand(time(NULL));
    string programDescription=
 "Extracts MCMC samples of selected transcripts.\n\
@@ -43,7 +43,7 @@ int main(int argc,char* argv[]){
    args.addOptionS("o","outFile","outFileName",1,"Name of the output file.");
    args.addOptionS("L","list","list",0,"Comma delimited list of ZERO-BASED transcript ids (i.e. lines) which should be extracted: 0,17,47,1024,4777");
    args.addOptionL("r","random","randomN",0,"Choose random [randomN] transcripts.");
-   if(!args.parse(argc,argv))return 0;
+   if(!args.parse(*argc,argv))return 0;
    if(args.verbose)buildTime(argv[0],__DATE__,__TIME__);
    // }}}
    long i,j,c,C,N,M=0,S;

@@ -562,7 +562,7 @@ void write_gene_sequences(std::string gtffile, std::string genomefile,
 }
 
 
-int main(int argc,char* argv[])
+extern "C" int gtftool(int *argc,char* argv[])
 {
   std::string programDescription =
     "gtf file toolkit\n\n"
@@ -575,7 +575,7 @@ int main(int argc,char* argv[])
   args.addOptionS("t","gtfFile","gtfFile",1,"Name of the gtf input file.");
   args.addOptionS("g","genomeFile","genomeFile",1,"Name of the genome input fasta file.");
   args.addOptionS("","outputFormat","outputFormat",0,"Output format: gencode (default) or ensembl.", "gencode");
-  if(!args.parse(argc,argv))return 0;
+  if(!args.parse(*argc,argv))return 0;
   if(args.verbose)buildTime(argv[0],__DATE__,__TIME__);
 
   write_gene_sequences(args.getS("gtfFile"), args.getS("genomeFile"),

@@ -28,7 +28,7 @@ double logNorm(double sample, double Lnorm, double len = 1){
 }
 }
 
-int main(int argc,char* argv[]){
+extern "C" int convertSamples(int *argc,char* argv[]){
    string programDescription=
 "Converts or normalizes MCMC expression samples.\n\
    [sampleFile] should contain transposed MCMC samples.";
@@ -47,7 +47,7 @@ int main(int argc,char* argv[]){
    args.addOptionS("a","action","action",1,actionDesc);
    args.addOptionD("","Nmap","Nmap",0,"Total number of aligned reads. Or a normalization constant, when normalizing.");
    args.addOptionS("t","trInfoFile","trInfoFileName",0,"File containing transcript information.");
-   if(!args.parse(argc,argv))return 0;
+   if(!args.parse(*argc,argv))return 0;
    if(args.verbose)buildTime(argv[0],__DATE__,__TIME__);
    string action = args.getS("action");
    if(! ((action=="T2R")||(action=="T2RL")||(action=="R2T")||(action=="C2R")||

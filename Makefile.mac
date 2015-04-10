@@ -16,50 +16,25 @@ BOOSTFLAGS = -I .
 #OPENMP = -fopenmp -DSUPPORT_OPENMP
 OPENMP = 
 
-PROGRAMS = \
-   convertSamples \
-   extractSamples \
-   getFoldChange \
-   getPPLR \
-   transposeLargeFile \
-   gtftool \
-   bitseq
+PROGRAMS = bitseq
 
 all: $(PROGRAMS)
 
 COMMON_DEPS = ArgumentParser.o common.o FileHeader.o misc.o MyTimer.o TranscriptInfo.o PosteriorSamples.o
 
-COMMAND_OBJECTS = estimateExpression.o estimateVBExpression.o parseAlignment.o estimateDE.o estimateFCProb.o estimateHyperPar.o getGeneExpression.o getVariance.o getWithinGeneExpression.o
+HELPER_OBJECTS = SimpleSparse.o CollapsedSampler.o GibbsParameters.o GibbsSampler.o lowess.o ReadDistribution.o Sampler.o TagAlignments.o TranscriptExpression.o TranscriptSequence.o transposeFiles.o VariationalBayes.o
+
+COMMAND_OBJECTS = estimateExpression.o estimateVBExpression.o parseAlignment.o estimateDE.o estimateFCProb.o estimateHyperPar.o getGeneExpression.o getVariance.o getWithinGeneExpression.o getFoldChange.o getPPLR.o convertSamples.o extractSamples.o transposeLargeFile.o gtftool.o
 
 # PROGRAMS:
-convertSamples: convertSamples.cpp $(COMMON_DEPS)
-	$(CXX) $(CXXFLAGS) $(LDFLAGS) convertSamples.cpp $(COMMON_DEPS) -o convertSamples
+bitseq: bitseq.cpp $(COMMON_DEPS) $(COMMAND_OBJECTS) $(HELPER_OBJECTS) samtools/sam.o
+	$(CXX) $(CXXFLAGS) $(BOOSTFLAGS) $(OPENMP) $(LDFLAGS) -pthread bitseq.cpp $(COMMON_DEPS) $(COMMAND_OBJECTS) $(HELPER_OBJECTS) samtools/*.o -lz -o bitseq
 
-extractSamples: extractSamples.cpp $(COMMON_DEPS)
-	$(CXX) $(CXXFLAGS) $(LDFLAGS) extractSamples.cpp $(COMMON_DEPS) -o extractSamples
-
-getFoldChange: getFoldChange.cpp $(COMMON_DEPS) 
-	$(CXX) $(CXXFLAGS) $(LDFLAGS) getFoldChange.cpp $(COMMON_DEPS) -o getFoldChange
-
-getPPLR: getPPLR.cpp $(COMMON_DEPS)
-	$(CXX) $(CXXFLAGS) $(LDFLAGS) getPPLR.cpp $(COMMON_DEPS) -o getPPLR
-
-#parseAlignment: parseAlignment.cpp $(COMMON_DEPS) ReadDistribution.o samtools/sam.o TranscriptExpression.o TranscriptSequence.o
-#	$(CXX) $(CXXFLAGS) $(OPENMP) $(LDFLAGS) -pthread parseAlignment.cpp $(COMMON_DEPS) ReadDistribution.o samtools/*.o TranscriptExpression.o TranscriptSequence.o -lz -o parseAlignment
-
-transposeLargeFile: transposeLargeFile.cpp $(COMMON_DEPS) transposeFiles.o
-	$(CXX) $(CXXFLAGS) $(LDFLAGS) transposeLargeFile.cpp $(COMMON_DEPS) transposeFiles.o -o transposeLargeFile
-
-gtftool: gtftool.cpp $(COMMON_DEPS)
-	$(CXX) $(CXXFLAGS) $(LDFLAGS) gtftool.cpp $(COMMON_DEPS) -o gtftool
-
-bitseq: bitseq.cpp $(COMMON_DEPS) $(COMMAND_OBJECTS) ReadDistribution.o samtools/sam.o TranscriptExpression.o TranscriptSequence.o
-	$(CXX) $(CXXFLAGS) $(BOOSTFLAGS) $(OPENMP) $(LDFLAGS) -pthread bitseq.cpp $(COMMON_DEPS) $(COMMAND_OBJECTS) SimpleSparse.o CollapsedSampler.o GibbsParameters.o GibbsSampler.o lowess.o ReadDistribution.o Sampler.o TagAlignments.o TranscriptExpression.o TranscriptSequence.o transposeFiles.o VariationalBayes.o samtools/*.o -lz -o bitseq
+# default compilation
+%.o: %.cpp
+	$(CXX) $(CXXFLAGS) $(BOOSTFLAGS) -c $<
 
 # COMMANDS:
-estimateDE.o: estimateDE.cpp
-	$(CXX) $(CXXFLAGS) $(BOOSTFLAGS) -c estimateDE.cpp
-
 estimateExpression.o: estimateExpression.cpp
 	$(CXX) $(CXXFLAGS) $(BOOSTFLAGS) $(OPENMP) -c estimateExpression.cpp 
 
@@ -69,27 +44,11 @@ estimateVBExpression.o: estimateVBExpression.cpp
 parseAlignment.o: parseAlignment.cpp
 	$(CXX) $(CXXFLAGS) $(BOOSTFLAGS) $(OPENMP) -c parseAlignment.cpp 
 
-estimateFCProb.o: estimateFCProb.cpp
-	$(CXX) $(CXXFLAGS) -c estimateFCProb.cpp
-
-estimateHyperPar.o: estimateHyperPar.cpp
-	$(CXX) $(CXXFLAGS) $(BOOSTFLAGS) -c estimateHyperPar.cpp
-
-getGeneExpression.o: getGeneExpression.cpp
-	$(CXX) $(CXXFLAGS) -c getGeneExpression.cpp
-
-getVariance.o: getVariance.cpp
-	$(CXX) $(CXXFLAGS) -c getVariance.cpp
-
-getWithinGeneExpression.o: getWithinGeneExpression.cpp
-	$(CXX) $(CXXFLAGS) -c getWithinGeneExpression.cpp
-
 # LIBRARIES:
 ArgumentParser.o: ArgumentParser.cpp ArgumentParser.h
 	$(CXX) $(CXXFLAGS) -ffunction-sections -fdata-sections -c ArgumentParser.cpp
 
 CollapsedSampler.o: CollapsedSampler.cpp CollapsedSampler.h GibbsParameters.h Sampler.h
-	$(CXX) $(CXXFLAGS) $(BOOSTFLAGS) -c CollapsedSampler.cpp
 
 FileHeader.o: common.h misc.h FileHeader.cpp FileHeader.h
 	$(CXX) $(CXXFLAGS) $(BOOSTFLAGS) -ffunction-sections -fdata-sections -c FileHeader.cpp
