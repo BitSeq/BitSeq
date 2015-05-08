@@ -13,8 +13,8 @@ make
 
 Help & Usage:
 --------------------------------
-See wiki for more information:
-https://github.com/BitSeq/BitSeq/wiki/Basic-usage
+See webpage for more information:
+http://bitseq.github.io/
 
 
 Contact:
