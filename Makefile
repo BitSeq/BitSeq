@@ -29,7 +29,7 @@ all: $(PROGRAMS)
 
 COMMON_DEPS = ArgumentParser.o common.o FileHeader.o misc.o MyTimer.o TranscriptInfo.o PosteriorSamples.o
 
-HELPER_OBJECTS = SimpleSparse.o CollapsedSampler.o GibbsParameters.o GibbsSampler.o lowess.o ReadDistribution.o Sampler.o TagAlignments.o TranscriptExpression.o TranscriptSequence.o transposeFiles.o VariationalBayes.o
+HELPER_OBJECTS = SimpleSparse.o CollapsedSampler.o GibbsParameters.o GibbsSampler.o lowess.o ProbsFile.o ReadDistribution.o Sampler.o TagAlignments.o TranscriptExpression.o TranscriptSequence.o transposeFiles.o VariationalBayes.o
 
 COMMAND_OBJECTS = estimateExpression.o estimateVBExpression.o parseAlignment.o estimateDE.o estimateFCProb.o estimateHyperPar.o getGeneExpression.o getVariance.o getWithinGeneExpression.o getFoldChange.o getPPLR.o convertSamples.o extractSamples.o transposeLargeFile.o gtftool.o
 
@@ -87,6 +87,7 @@ VariationalBayes.o: VariationalBayes.cpp VariationalBayes.h SimpleSparse.h
 common.o: common.cpp common.h
 GibbsParameters.o: ArgumentParser.h GibbsParameters.cpp GibbsParameters.h
 lowess.o: lowess.cpp lowess.h
+ProbsFile.o: ProbsFile.cpp ProbsFile.h
 TagAlignments.o: TagAlignments.cpp TagAlignments.h
 TranscriptExpression.o: TranscriptExpression.cpp TranscriptExpression.h
 TranscriptInfo.o: TranscriptInfo.cpp TranscriptInfo.h

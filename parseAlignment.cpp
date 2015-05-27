@@ -11,6 +11,7 @@ using namespace std;
 #include "TranscriptExpression.h"
 #include "TranscriptInfo.h"
 #include "TranscriptSequence.h"
+#include "ProbsFile.h"
 
 #include "common.h"
 //}}}
@@ -19,24 +20,6 @@ using namespace std;
 #define DEBUG_AT(x)
 
 namespace ns_parseAlignment {
-class TagAlignment{//{{{
-   protected:
-      int_least32_t trId;
-//      bool strand; // true = forward; false = reverse
-      double prob,lowProb;
-   public:
-      TagAlignment(long t=0,double p = 0,double lp = 0){
-         trId=(int_least32_t)t;
-//         strand=s;
-         prob=p;
-         lowProb=lp;
-      }
-      long getTrId()const {return trId;}
-      double getProb()const {return prob;}
-      double getLowProb()const {return lowProb;}
-      void setProb(double p){prob=p;}
-}; //}}}
-
 // Check if next fragment is different.
 bool nextFragDiffers(const ns_rD::fragmentP curF, const ns_rD::fragmentP nextF, bool mateNamesDiffer);
 // String comparison allowing last cmpEPS bases different as long as length
@@ -291,20 +274,12 @@ string programDescription =
    // Re-opening alignment file 
    if(!ns_parseAlignment::openSamFile(args.args()[0], inFormat, &samData))return 1;
    if(args.verbose)message("Writing alignment probabilities.\n");
-   double prob,probNoise,minProb;
+   double prob,probNoise;
    prob = probNoise = 0;
    set<string> failedReads;
    vector<ns_parseAlignment::TagAlignment> alignments;
    // Open and initialize output file {{{
-   ofstream outF(args.getS("outFileName").c_str());
-   if(!outF.is_open()){
-      error("Main: Unable to open output file.\n");
-      return 1;
-   }
-   outF<<"# Ntotal "<<Ntotal<<"\n# Nmap "<<Nmap<<"\n# M "<<M<<endl;
-   outF<<"# LOGFORMAT (probabilities saved on log scale.)\n# r_name num_alignments (tr_id prob )^*{num_alignments}"<<endl;
-   outF.precision(9);
-   outF<<scientific;
+   ProbWriter writer(args.getS("outFileName"), Ntotal, Nmap, M);
    // }}}
    
    // start reading:
@@ -384,22 +359,14 @@ string programDescription =
          readC++;
          if(args.verbose){ if(progressLog(readC,Ntotal,10,' '))timer.split(1,'m');}
          if(!alignments.empty()){
-            outF<<bam1_qname(curF->first)<<" "<<alignments.size()+1;
-            minProb = 1;
-            for(i=0;i<(long)alignments.size();i++){
-               if(minProb>alignments[i].getLowProb())minProb = alignments[i].getLowProb();
-               outF<<" "<<alignments[i].getTrId()
-//                   <<" "<<getStrandC(alignments[i].getStrand())
-                   <<" "<<alignments[i].getProb();
-            }
-            outF<<" 0 "<<minProb<<endl;
+	    writer.writeRead(bam1_qname(curF->first), alignments);
             alignments.clear();
          }else{
             // read has no valid alignments:
             if(invalidAlignment){
                // If there were invalid alignments, write a mock record in order to keep Nmap consistent.
                invalidN++;
-               outF<<bam1_qname(curF->first)<<" 1 0 0"<<endl;
+               writer.writeDummy(bam1_qname(curF->first));
             }else {
                noN++;
             }
@@ -417,7 +384,7 @@ string programDescription =
             "   Something is possibly wrong with your data or the reads have to be renamed.\n");
       return 1;
    }
-   outF.close();
+   writer.finalize();
    timer.split(0,'m');
    if(args.verbose){
       message("Analyzed %ld reads:\n",readC);
@@ -440,7 +407,7 @@ string programDescription =
    }
    // Deal with reads that failed to align {{{
    if(args.isSet("failed")){
-      outF.open(args.getS("failed").c_str());
+      fstream outF(args.getS("failed").c_str());
       if(outF.is_open()){
          for(set<string>::iterator setIt=failedReads.begin(); setIt!=failedReads.end();setIt++)
             outF<<*setIt<<endl;
