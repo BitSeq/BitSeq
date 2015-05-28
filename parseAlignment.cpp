@@ -11,7 +11,7 @@ using namespace std;
 #include "TranscriptExpression.h"
 #include "TranscriptInfo.h"
 #include "TranscriptSequence.h"
-#include "ProbsFile.h"
+#include "LikelihoodWriter.h"
 #include "ParseAlignment.h"
 
 #include "common.h"

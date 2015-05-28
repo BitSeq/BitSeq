@@ -1,4 +1,4 @@
-#include "ProbsFile.h"
+#include "LikelihoodWriter.h"
 #include <stdexcept>
 
 ProbWriter::ProbWriter(string fname, long Ntotal, long Nmap, long M) : outF(fname)
