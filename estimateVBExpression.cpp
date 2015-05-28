@@ -131,7 +131,7 @@ void makeParseAlignmentArgs(int *argc, char **argv[], const ArgumentParser &args
   
   *argc = myoptions.size()+1;
   (*argv) = new char*[myoptions.size()+1];
-  for (int i=0; i<myoptions.size(); i++) {
+  for (size_t i=0; i<myoptions.size(); i++) {
     vector<char> *char_array = new vector<char>(myoptions[i].begin(),
 						myoptions[i].end());
     char_array->push_back(0);
@@ -222,7 +222,7 @@ string programDescription =
    MyTimer timer;
    timer.start(2);
    long M = 0; 
-   SimpleSparse *beta;
+   SimpleSparse *beta = 0;
    TranscriptInfo trInfo;
    bool likelihoodsread = false;
 

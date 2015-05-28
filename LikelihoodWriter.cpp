@@ -1,7 +1,7 @@
 #include "LikelihoodWriter.h"
 #include <stdexcept>
 
-ProbWriter::ProbWriter(string fname, long Ntotal, long Nmap, long M) : outF(fname)
+ProbWriter::ProbWriter(string fname, long Ntotal, long Nmap, long M) : outF(fname.c_str())
 {
   // Open and initialize output file {{{
   if(!outF.is_open()){
