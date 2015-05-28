@@ -120,6 +120,10 @@ void makeParseAlignmentArgs(int *argc, char **argv[], const ArgumentParser &args
   myoptions.push_back(args.getS("trInfoFileName"));
   myoptions.push_back("-s");
   myoptions.push_back(args.getS("trSeqFileName"));
+  if (args.flag("veryVerbose"))
+    myoptions.push_back("-V");
+  else if (args.verbose)
+    myoptions.push_back("-v");
   istringstream iss(args.getS("parseAlArgs"));
   copy(istream_iterator<string>(iss),
        istream_iterator<string>(),
@@ -227,7 +231,7 @@ string programDescription =
    std::transform(fname.begin(), fname.end(), fname.begin(), ::tolower);
    if ((fname.substr(fname.length()-4, 4).compare(".sam") == 0) ||
        (fname.substr(fname.length()-4, 4).compare(".bam") == 0)) {
-     if(args.verbose)message("Input format SAM/BAM.\n");
+     if(args.verbose)message("Input format SAM/BAM, calling parseAlignment internally.\n");
      beta = parseData(args,M);
      likelihoodsread = true;
    }
@@ -256,12 +260,6 @@ string programDescription =
       return 1;
    }
    // }}}
-
-   if (args.flag("veryVerbose")) {
-     for (int i=0; i<10; i++) {
-       message("beta[%d] = (%d, %f)\n", i, beta->col[i], beta->val[i]);
-     }
-   }
 
    if(args.verbose)timer.split();
 
