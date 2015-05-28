@@ -12,6 +12,7 @@ using namespace std;
 #include "TranscriptInfo.h"
 #include "TranscriptSequence.h"
 #include "ProbsFile.h"
+#include "ParseAlignment.h"
 
 #include "common.h"
 //}}}
@@ -40,6 +41,10 @@ bool initializeInfoFile(const ArgumentParser &args, samfile_t *samFile, Transcri
 } // namespace ns_parseAlignment
 
 extern "C" int parseAlignment(int *argc,char* argv[]){
+  return parseAlignmentReal(argc, argv, 0);
+}
+
+int parseAlignmentReal(int *argc,char* argv[], AlignmentLikelihoods *outalignments){
 string programDescription =
 "Pre-computes probabilities of (observed) reads' alignments.\n\
    [alignment file] should be in either SAM or BAM format.\n";
@@ -278,9 +283,15 @@ string programDescription =
    prob = probNoise = 0;
    set<string> failedReads;
    vector<ns_parseAlignment::TagAlignment> alignments;
-   // Open and initialize output file {{{
-   ProbWriter writer(args.getS("outFileName"), Ntotal, Nmap, M);
-   // }}}
+   LikelihoodWriter *writer;
+   if (!outalignments) {
+     // Open and initialize output file {{{
+     writer = new ProbWriter(args.getS("outFileName"), Ntotal, Nmap, M);
+     // }}}
+   } else {
+     // In-memory processing of alignments
+     writer = new MemoryWriter(outalignments, Ntotal, Nmap, M);
+   }
    
    // start reading:
    timer.start(1);
@@ -359,14 +370,14 @@ string programDescription =
          readC++;
          if(args.verbose){ if(progressLog(readC,Ntotal,10,' '))timer.split(1,'m');}
          if(!alignments.empty()){
-	    writer.writeRead(bam1_qname(curF->first), alignments);
+	    writer->writeRead(bam1_qname(curF->first), alignments);
             alignments.clear();
          }else{
             // read has no valid alignments:
             if(invalidAlignment){
                // If there were invalid alignments, write a mock record in order to keep Nmap consistent.
                invalidN++;
-               writer.writeDummy(bam1_qname(curF->first));
+               writer->writeDummy(bam1_qname(curF->first));
             }else {
                noN++;
             }
@@ -384,7 +395,7 @@ string programDescription =
             "   Something is possibly wrong with your data or the reads have to be renamed.\n");
       return 1;
    }
-   writer.finalize();
+   writer->finalize();
    timer.split(0,'m');
    if(args.verbose){
       message("Analyzed %ld reads:\n",readC);

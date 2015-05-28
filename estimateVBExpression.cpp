@@ -1,3 +1,6 @@
+#include <sstream>
+#include <algorithm>
+#include <iterator>
 #include "ArgumentParser.h"
 #include "FileHeader.h"
 #include "misc.h"
@@ -6,6 +9,7 @@
 #include "TagAlignments.h"
 #include "transposeFiles.h"
 #include "VariationalBayes.h"
+#include "ParseAlignment.h"
 
 #include "common.h"
 
@@ -105,16 +109,88 @@ SimpleSparse* readData(const ArgumentParser &args, long trM){//{{{
    return beta;
 }//}}}
 
+void makeParseAlignmentArgs(int *argc, char **argv[], const ArgumentParser &args)
+{
+  vector<string> myoptions;
+  
+  myoptions.push_back("parseAlignment");
+  myoptions.push_back("-o");
+  myoptions.push_back("dummy.out");
+  myoptions.push_back("-t");
+  myoptions.push_back(args.getS("trInfoFileName"));
+  myoptions.push_back("-s");
+  myoptions.push_back(args.getS("trSeqFileName"));
+  istringstream iss(args.getS("parseAlArgs"));
+  copy(istream_iterator<string>(iss),
+       istream_iterator<string>(),
+       back_inserter(myoptions));
+  
+  *argc = myoptions.size()+1;
+  (*argv) = new char*[myoptions.size()+1];
+  for (int i=0; i<myoptions.size(); i++) {
+    vector<char> *char_array = new vector<char>(myoptions[i].begin(),
+						myoptions[i].end());
+    char_array->push_back(0);
+    (*argv)[i] = &((*char_array)[0]);
+  }
+  vector<char> *char_array = new vector<char>(args.args()[0].begin(),
+					      args.args()[0].end());
+  char_array->push_back(0);
+  (*argv)[myoptions.size()] = &((*char_array)[0]);
+}
+
+SimpleSparse* parseData(const ArgumentParser &args, long trM){//{{{
+   long i;
+   long Nmap=0, M=0;
+   string readId,strand,blank;
+   ifstream inFile;
+   MyTimer timer;
+   AlignmentLikelihoods *likelihoods = new AlignmentLikelihoods();
+   int parseargc;
+   char **parseargv;
+
+   // Parse alignment probabilities
+   makeParseAlignmentArgs(&parseargc, &parseargv, args);
+   parseAlignmentReal(&parseargc, parseargv, likelihoods);
+   message("N mapped: %ld\n",likelihoods->Nmap);
+   messageF("N total:  %ld\n",likelihoods->Ntotal);
+
+   long Nhits,NreadsReal;
+   likelihoods->alignments->finalizeRead(&M, &NreadsReal, &Nhits);
+   // Increase M based on number of transcripts in trInfo file.
+   if(M<trM)M = trM;
+   //}}}
+   message("All alignments: %ld\n",Nhits);
+   messageF("Isoforms: %ld\n",M);
+   Nmap = NreadsReal;
+
+   SimpleSparse *beta = new SimpleSparse(Nmap, M, Nhits);
+
+   for(i=0;i<=Nmap;i++)beta->rowStart[i]=likelihoods->alignments->getReadsI(i);
+   for(i=0;i<Nhits;i++){
+      beta->val[i]=likelihoods->alignments->getProb(i);
+      beta->col[i]=likelihoods->alignments->getTrId(i);
+   }
+
+   delete likelihoods;
+   return beta;
+}//}}}
+
+
 extern "C" int estimateVBExpression(int *argc, char* argv[]) {//{{{
 string programDescription =
 "Estimates expression given precomputed probabilities of (observed) reads' alignments.\n\
-   Uses Variational Bayes algorithm to produce parameters for distribution of relative abundances.\n";
+   Uses Variational Bayes algorithm to produce parameters for distribution of relative abundances.\n\
+   Input can be either .prob file from parseAlignment or SAM/BAM file in\n\
+   which case parseAlignment is run internally using parseAlArgs.\n";
    // Set options {{{
    ArgumentParser args;
-   args.init(programDescription,"[prob file]",1);
+   args.init(programDescription,"[input file]",1);
    args.addOptionS("o","outPrefix","outFilePrefix",1,"Prefix for the output files.");
    args.addOptionS("O","outType","outputType",0,"Output type (theta, RPKM, TPM, counts) of the samples sampled from the distribution.","theta");
-   args.addOptionS("t","trInfoFile","trInfoFileName",0,"File containing transcript information. (Necessary for RPKM and TPM samples)");
+   args.addOptionS("t","trInfoFile","trInfoFileName",0,"File containing transcript information. (Necessary for RPKM and TPM samples and SAM/BAM input)");
+   args.addOptionS("", "parseAlArgs", "parseAlArgs", 0, "Additional arguments for parseAlignment if using SAM/BAM input");
+   args.addOptionS("", "trSeqFile", "trSeqFileName", 0, "Transcript sequence in FASTA format if using SAM/BAM input");
    args.addOptionL("P","procN","procN",0,"Limit the maximum number of threads to be used.",4);
    args.addOptionS("m","method","optMethod",0,"Optimization method (steepest, PR, FR, HS).","FR");
    args.addOptionL("s","seed","seed",0,"Random initialization seed.");
@@ -144,8 +220,18 @@ string programDescription =
    long M = 0; 
    SimpleSparse *beta;
    TranscriptInfo trInfo;
+   bool likelihoodsread = false;
 
    // {{{ Read transcriptInfo and .prob file 
+   string fname = args.args()[0];
+   std::transform(fname.begin(), fname.end(), fname.begin(), ::tolower);
+   if ((fname.substr(fname.length()-4, 4).compare(".sam") == 0) ||
+       (fname.substr(fname.length()-4, 4).compare(".bam") == 0)) {
+     if(args.verbose)message("Input format SAM/BAM.\n");
+     beta = parseData(args,M);
+     likelihoodsread = true;
+   }
+
    if((!args.isSet("trInfoFileName"))||(!trInfo.readInfo(args.getS("trInfoFileName")))){
      if(args.isSet("samples") && (args.getL("samples")>0) && ((args.getS("outputType") == "rpkm") || (args.getS("outputType") == "tpm"))){
          error("Main: Missing transcript info file. The file is necessary for producing RPKM or TPM samples.\n");
@@ -154,7 +240,12 @@ string programDescription =
    }else{
       M = trInfo.getM()+1;
    }
-   beta = readData(args,M);
+
+   if (!likelihoodsread) {
+     if(args.verbose)message("Input format PROB.\n");
+     beta = readData(args,M);
+   }
+
    if(! beta){
       error("Main: Reading probabilities failed.\n");
       return 1;
@@ -165,6 +256,12 @@ string programDescription =
       return 1;
    }
    // }}}
+
+   if (args.flag("veryVerbose")) {
+     for (int i=0; i<10; i++) {
+       message("beta[%d] = (%d, %f)\n", i, beta->col[i], beta->val[i]);
+     }
+   }
 
    if(args.verbose)timer.split();
 
