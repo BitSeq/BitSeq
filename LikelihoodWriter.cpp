@@ -59,13 +59,13 @@ void MemoryWriter::writeRead(string name, vector<ns_parseAlignment::TagAlignment
     likelihoods->alignments->pushAlignmentL(alignments[i].getTrId(),
 					    alignments[i].getProb());
   }
-  likelihoods->alignments->pushAlignment(0, minProb);
+  likelihoods->alignments->pushAlignmentL(0, minProb);
   likelihoods->alignments->pushRead();
 }
 
 void MemoryWriter::writeDummy(string name)
 {
-  likelihoods->alignments->pushAlignment(0, 0);
+  likelihoods->alignments->pushAlignmentL(0, 0);
   likelihoods->alignments->pushRead();
 }
 
