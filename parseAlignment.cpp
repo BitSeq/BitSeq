@@ -12,7 +12,7 @@ using namespace std;
 #include "TranscriptInfo.h"
 #include "TranscriptSequence.h"
 #include "LikelihoodWriter.h"
-#include "ParseAlignment.h"
+#include "parseAlignment.h"
 
 #include "common.h"
 //}}}

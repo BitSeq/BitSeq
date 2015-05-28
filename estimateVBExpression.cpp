@@ -9,7 +9,7 @@
 #include "TagAlignments.h"
 #include "transposeFiles.h"
 #include "VariationalBayes.h"
-#include "ParseAlignment.h"
+#include "parseAlignment.h"
 
 #include "common.h"
 
