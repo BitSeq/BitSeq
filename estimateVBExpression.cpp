@@ -291,7 +291,7 @@ string programDescription =
    outF<<"# M "<<M<<"\n"
          "# List includes also 'noise' transcript (first line)\n"
          "# <alpha> - parameter of Dirichlet distribution\n"
-         "# <alpha> <beta> - parameters of the marginal Gamma distribution\n"
+         "# <alpha> <beta> - parameters of the marginal Beta distribution\n"
          "# columns: <mean theta> <alpha> <beta>"<<endl;
    outF<<scientific;
    outF.precision(9);
