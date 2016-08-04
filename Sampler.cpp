@@ -144,6 +144,22 @@ void Sampler::appendFile(){//{{{
       getTau(tau,norm);
       for(i=1;i<m;i++)
          (*outFile)<<tau[i]<<" ";
+   }else if(saveType == "tpm"){
+      double fpkmSum = 0.0;
+      if(norm == 0)norm = 1000000000.0;
+      for(i=1;i<m;i++)
+         if((*isoformLengths)[i]>0)
+            fpkmSum += theta[i]*norm/(*isoformLengths)[i];
+         else
+            fpkmSum += theta[i]*norm;
+
+      //message("fpkmSum: %lf\n",fpkmSum);
+
+      for(i=1;i<m;i++)
+         if((*isoformLengths)[i]>0)
+            (*outFile)<<1000000.0 * ( theta[i]*norm/(*isoformLengths)[i] ) / fpkmSum<<" ";
+         else
+            (*outFile)<<1000000.0 * ( theta[i]*norm ) / fpkmSum<<" ";
    }
    (*outFile)<<endl;
 }//}}}
