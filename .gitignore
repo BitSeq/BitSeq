@@ -13,3 +13,4 @@ getWithinGeneExpression
 gtftool
 parseAlignment
 transposeLargeFile
+estimateFCProb

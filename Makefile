@@ -19,6 +19,7 @@ PROGRAMS = \
    convertSamples \
    estimateDE \
    estimateExpression \
+   estimateFCProb \
    estimateHyperPar \
    estimateVBExpression \
    extractSamples \
@@ -43,6 +44,9 @@ estimateDE: estimateDE.cpp $(COMMON_DEPS) PosteriorSamples.o
 
 estimateExpression: estimateExpression.cpp $(COMMON_DEPS) CollapsedSampler.o GibbsParameters.o GibbsSampler.o Sampler.o TagAlignments.o TranscriptInfo.o transposeFiles.o
 	$(CXX) $(CXXFLAGS) $(BOOSTFLAGS) $(OPENMP) $(LDFLAGS) estimateExpression.cpp $(COMMON_DEPS) CollapsedSampler.o GibbsParameters.o GibbsSampler.o Sampler.o TagAlignments.o TranscriptInfo.o transposeFiles.o -o estimateExpression
+
+estimateFCProb: estimateFCProb.cpp $(COMMON_DEPS) PosteriorSamples.o
+	$(CXX) $(CXXFLAGS) $(LDFLAGS) estimateFCProb.cpp $(COMMON_DEPS) PosteriorSamples.o -o estimateFCProb
 
 estimateHyperPar: estimateHyperPar.cpp $(COMMON_DEPS) lowess.o PosteriorSamples.o TranscriptExpression.o 
 	$(CXX) $(CXXFLAGS) $(BOOSTFLAGS) $(LDFLAGS) estimateHyperPar.cpp $(COMMON_DEPS) lowess.o PosteriorSamples.o TranscriptExpression.o -o estimateHyperPar
