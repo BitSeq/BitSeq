@@ -87,6 +87,7 @@ SimpleSparse::SimpleSparse(SimpleSparse *m0){//{{{
    memcpy(rowStart, m0->rowStart, (N+1)*sizeof(long));
    */
 }//}}}
+
 SimpleSparse::~SimpleSparse(){//{{{
    delete[] val;
    if(base){

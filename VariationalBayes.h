@@ -36,6 +36,7 @@ class VariationalBayes {
       double getBound();
       void optimize(bool verbose=false, OPT_TYPE method=OPTT_STEEPEST,long maxIter=10000,double ftol=1e-5, double gtol=1e-5);
       double *getAlphas();
+      SimpleSparse *getPhi();
       void setLog(string logFileName,MyTimer *timer);
       // Generates samples from the distribution. The 0 (noise) transcript is left out.
       void generateSamples(long samplesN, const string &outTypeS, const vector<double> *isoformLengths, ofstream *outF);
