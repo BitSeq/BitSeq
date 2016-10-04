@@ -213,22 +213,45 @@ string programDescription =
       if(! ns_misc::openOutput((args.getS("outFilePrefix")+".m_phi"), &outF)){
          return 1;
       }
+
+      // Get read headers. Already performed in readData but function returns SimpleSparse
+      long Ntotal=0,Nmap=0, M=0;
+      ifstream inF;
+      string readId;
+      inF.open(args.args()[0].c_str());
+
+      FileHeader fh(&inF);
+      ns_fileHeader::AlignmentFileType format;
+      if((!fh.probHeader(&Nmap,&Ntotal,&M,&format)) || (Nmap ==0)){//{{{
+         error("Prob file header read failed.\n");
+         return NULL;
+      }//}}}
+      if(format == ns_fileHeader::OLD_FORMAT){
+         error("Please use new/log format of Prob file.");
+         return NULL;
+      }
+
       outF<<"# List of read to transcript probabilities\n"
       "# List includes a 'noise' transcript (index 0)\n"
       "# the index a reference corresponds to is contained in the genome info tr file\n"
-      "# and the reads information is contained in the '.prob' file from parseAlignment\n"
-      "# <format> index_nr0 probability0 index_nr1 probability1 ..."<<endl;
+      //"# and the reads information is contained in the '.prob' file from parseAlignment\n"
+      "# format:\n" 
+      "# (read header) transcript_index0 probability0 transcript_index1 probability1 ..."<<endl;
 
       outF<<scientific;
       outF.precision(9);
-      //for(i=0;i<phi->T;i++){
+
       for(i=0;i<phi->N;i++){
+         inF>>readId;
+         inF.ignore(10000000,'\n');
+         outF<<readId<<" ";
+
          for(j=phi->rowStart[i];j<phi->rowStart[i+1];j++){
-            //res[i]+=val[j];
             outF<<phi->col[j]<<" "<<phi->val[j]<<" ";
          }
          outF<<"\n";
       }
+      inF.close();
       outF.close();
    }
 
