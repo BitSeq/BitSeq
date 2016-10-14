@@ -322,6 +322,7 @@ void VariationalBayes::optimize(bool verbose,OPT_TYPE method,long maxIter,double
    if(logTimer)logTimer->setVerbose();
    logF.close();
 #endif
+
    // free memory {{{
    //delete phiGradPhi;
    delete[] gradPhi;
@@ -338,6 +339,10 @@ double *VariationalBayes::getAlphas(){//{{{
    double *alphas = new double[M];
    for(long i=0;i<M;i++)alphas[i] = alpha[i] + phiHat[i];
    return alphas;
+}//}}}
+
+SimpleSparse *VariationalBayes::getPhi(){//{{{
+   return phi;
 }//}}}
 
 void VariationalBayes::generateSamples(long samplesN, const string &outTypeS, const vector<double> *isoformLengths, ofstream *outF) {//{{{
