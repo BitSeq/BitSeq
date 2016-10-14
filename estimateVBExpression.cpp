@@ -122,7 +122,7 @@ string programDescription =
    args.addOptionD("","optLimit","limit",0,"Optimisation limit in terms of minimal gradient or change of bound.",1e-5); 
    args.addOptionL("","samples","samples",0,"Number of samples to be sampled from the distribution.");
    args.addOptionB("V","veryVerbose","veryVerbose",0,"More verbose output, better if output forwarded into file.");
-   args.addOptionB("","phi","phi",0,"Output phi (probabilities of reads mapping to each transcript).");
+   args.addOptionB("","saveAlignmentProbs","saveAlignmentProbs",0,"Output phi (probabilities of reads mapping to each transcript).");
    if(!args.parse(*argc,argv))return 0;
    if(args.verbose)buildTime(argv[0],__DATE__,__TIME__);
    OPT_TYPE optM;
