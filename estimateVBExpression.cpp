@@ -207,7 +207,7 @@ string programDescription =
    outF.close();
 
    // print read/transcript probabilities
-   if(args.isSet("phi")) {
+   if(args.isSet("saveAlignmentProbs")) {
       long j;
       SimpleSparse *phi = varB.getPhi();
       if(! ns_misc::openOutput((args.getS("outFilePrefix")+".m_phi"), &outF)){
@@ -224,11 +224,11 @@ string programDescription =
       ns_fileHeader::AlignmentFileType format;
       if((!fh.probHeader(&Nmap,&Ntotal,&M,&format)) || (Nmap ==0)){//{{{
          error("Prob file header read failed.\n");
-         return NULL;
+         return 1;
       }//}}}
       if(format == ns_fileHeader::OLD_FORMAT){
          error("Please use new/log format of Prob file.");
-         return NULL;
+         return 1;
       }
 
       outF<<"# List of read to transcript probabilities\n"
